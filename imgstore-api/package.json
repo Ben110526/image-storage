@@ -1,0 +1,23 @@
+{
+  "name": "imgstore-api",
+  "version": "1.0.0",
+  "description": "Image Storage API on Cloudflare Workers using Google Drive backend",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/*.test.mjs",
+    "test:runtime": "node tests/workerd.smoke.mjs",
+    "auth": "node scripts/setup-oauth.mjs"
+  },
+  "dependencies": {
+    "hono": "^4.6.14"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250109.0",
+    "linkedom": "^0.18.13",
+    "typescript": "^5.7.3",
+    "wrangler": "^3.101.0"
+  }
+}

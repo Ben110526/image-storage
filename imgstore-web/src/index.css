@@ -1,0 +1,150 @@
+@import '../tokens.css';
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow-x: clip;
+  min-height: 100vh;
+  font-family: var(--font-body);
+  color: var(--color-ink);
+  background-color: var(--color-paper);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  transition: background-color var(--dur-base) var(--ease-out), color var(--dur-base) var(--ease-out);
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* Hallmark · theme: Terminal — phosphor scanlines instead of color glow */
+.ambient-glow-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(148, 210, 189, 0.022) 0px,
+      rgba(148, 210, 189, 0.022) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+}
+
+[data-theme='light'] .ambient-glow-bg {
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(22, 101, 52, 0.03) 0px,
+      rgba(22, 101, 52, 0.03) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+}
+
+/* Terminal panel — flat, hairline rule, no glass */
+.spatial-card {
+  background-color: var(--color-paper-2) !important;
+  border: 1px solid var(--color-border) !important;
+  box-shadow: none !important;
+  border-radius: var(--radius-sm) !important;
+  transition: border-color var(--dur-base) var(--ease-out) !important;
+}
+
+.spatial-card:hover {
+  border-color: var(--color-border-strong) !important;
+}
+
+/* Interactive Bevel Button */
+.bevel-button {
+  font-family: var(--font-display) !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+  border-radius: var(--radius-sm) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.2), inset 0 -1px 0 0 rgba(0, 0, 0, 0.25) !important;
+  transition: transform var(--dur-fast) var(--ease-out), filter var(--dur-fast) var(--ease-out) !important;
+}
+
+.bevel-button:active {
+  transform: translateY(1px) scale(0.99) !important;
+}
+
+/* Code & Telemetry Monospace Styles */
+.font-mono {
+  font-family: var(--font-mono) !important;
+}
+
+.font-display {
+  font-family: var(--font-display) !important;
+}
+
+/* Custom Refined Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-paper);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-ink-3);
+}
+
+/* Focus Visible Accessibility */
+:focus-visible {
+  outline: 2px solid var(--color-focus) !important;
+  outline-offset: 2px !important;
+}
+
+/* Prevent native input/textarea elements inside styled controls from showing duplicate outlines */
+input:focus,
+input:focus-visible,
+textarea:focus,
+textarea:focus-visible,
+.MuiInputBase-input:focus,
+.MuiInputBase-input:focus-visible {
+  outline: none !important;
+}
+
+/* Terminal dialog — flat panel, hairline border */
+.liquid-glass-dialog {
+  background: var(--color-paper-2) !important;
+  border: 1px solid var(--color-border-strong) !important;
+  box-shadow: 0 24px 64px -12px rgba(0, 0, 0, 0.6) !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+[data-theme='light'] .liquid-glass-dialog {
+  background: var(--color-paper) !important;
+  box-shadow: 0 24px 50px -10px rgba(15, 23, 42, 0.18) !important;
+}
+
+/* Reduced Motion Override */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,0 +1,10 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>ImgStore — Privacy</title>
+<body style="font:16px/1.7 system-ui;max-width:760px;margin:48px auto;padding:0 24px"><a href="/">← ImgStore</a>
+<h1>Privacy and shared image storage</h1><p>Updated September 18, 2026.</p>
+<p>ImgStore stores uploaded images in one shared cloud storage account operated by the service administrator. Users do not connect personal cloud storage or sign in with a third-party account. The storage administrator can access and manage all uploaded images.</p>
+<p>Anyone with a public image link can view and copy the image. Upload only images you intend to share. Client API keys allow access to that client's own image records, while the administrator key manages the entire store.</p>
+<h2>Stored data</h2><p>The shared cloud storage holds image files. Cloudflare Workers KV holds filenames, sizes, timestamps, storage file IDs, client identifiers, key labels and API key hashes. Cloudflare may cache images for delivery. The shared storage connection credentials are stored as server secrets.</p>
+<p>The browser stores the API key you enter and your connection settings locally. Signing out removes the browser credential; it does not revoke the key or delete images. Keys expire after one year or can be revoked by the administrator. Image records remain until deleted. Revocation and deletion may take time to propagate, and downloaded copies cannot be recalled.</p>
+<p>Records from the earlier sign-in version may retain profile and storage connection data until removed. New clients do not provide third-party account data. Contact the storage administrator for access, key replacement or data removal.</p>
+<p>The storage provider and Cloudflare process storage and network requests, including normal connection information such as IP addresses, to operate this service.</p></body></html>

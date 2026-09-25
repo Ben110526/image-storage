@@ -1,0 +1,15 @@
+{
+  "name": "imgstore",
+  "version": "2.0.0",
+  "private": true,
+  "scripts": {
+    "setup": "npm ci --prefix imgstore-api && npm ci --prefix imgstore-web",
+    "dev": "node scripts/dev.mjs",
+    "dev:api": "npm --prefix imgstore-api run dev",
+    "dev:web": "npm --prefix imgstore-web run dev",
+    "check": "npm --prefix imgstore-api run typecheck && npm --prefix imgstore-api test && npm --prefix imgstore-web run build && npm --prefix imgstore-web run lint",
+    "deploy:api": "cd imgstore-api && ../imgstore-web/node_modules/.bin/wrangler deploy",
+    "deploy:web": "npm --prefix imgstore-web run deploy",
+    "deploy": "npm run check && npm run deploy:api && npm run deploy:web"
+  }
+}
