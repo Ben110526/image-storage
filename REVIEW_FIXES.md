@@ -114,5 +114,5 @@ Link phải trỏ tới dữ liệu công khai. Không bảo đảm import đư�
 ### Phiên bản hiện tại
 
 - API: `f1504e95-d3e8-4a44-8f3d-ebc7478bc0fd` — https://imgstore-api.xlabaryai.workers.dev (không đổi API lần này; đây là deployment 22/09)
-- Web: `6682f331-3c87-4357-8121-d88936dce2a4` — https://imgstore-web.xlabaryai.workers.dev
-- Bundle: `/assets/index-BXxUjtze.js` (~796 KB, gzip ~244 KB; cảnh báo kích thước còn có).
+- Web: `49e4cd34-6686-4bd0-a359-ffaed8ca2f81` — https://imgstore-web.xlabaryai.workers.dev
+- Bundle: `/assets/index-oLjf790F.js` (~796 KB, gzip ~244 KB; cảnh báo kích thước còn có).

@@ -32,6 +32,9 @@ export function UploadFolderPicker({ scope, value, onChange }: Props) {
   const queryClient = useQueryClient();
   const folders = useQuery({ queryKey: ['folders', scope], queryFn: fetchFolders, retry: 1 });
   const autoSelected = useRef('');
+  // True once the user picks a folder by hand or creates one — that choice
+  // beats the automatic "uploads/YYYY-MM" default if it resolves later.
+  const userChosen = useRef(false);
 
   const [newPath, setNewPath] = useState('');
 
@@ -40,7 +43,8 @@ export function UploadFolderPicker({ scope, value, onChange }: Props) {
     onSuccess: folder => {
       queryClient.setQueryData<Awaited<ReturnType<typeof fetchFolders>>>(['folders', scope], previous => previous
         ? { ...previous, folders: [...previous.folders.filter(f => f.id !== folder.id), folder] } : previous);
-      onChange(folder);
+      // Don't drag the selection back to the auto folder after a manual pick.
+      if (!userChosen.current) onChange(folder);
       void queryClient.invalidateQueries({ queryKey: ['folders', scope] });
     },
   });
@@ -51,11 +55,13 @@ export function UploadFolderPicker({ scope, value, onChange }: Props) {
       // Trim edge slashes and collapse duplicate separators before validation.
       const raw = input.trim().replace(/^\/+|\/+$/g, '').replace(/\/{2,}/g, '/');
       if (!raw) throw new Error('Folder name is empty.');
-      if (raw.length > 100) throw new Error('Folder path must be at most 100 characters.');
       const segments = raw.split('/');
       if (segments.some(s => !s || s === '.' || s === '..' || FORBIDDEN_CHARS.test(s))) {
         throw new Error('Folder name cannot contain "\\", "." or ".." path segments.');
       }
+      // The server limits each level to 100 chars (up to 8 levels) — match it
+      // per segment so long valid nested paths aren't blocked by the UI.
+      if (segments.some(s => s.length > 100)) throw new Error('Each folder name must be at most 100 characters.');
       // The new folder is created under the currently selected folder — the
       // parent is implied by value, not passed through the UI.
       const parentPath = value?.path ?? '';
@@ -63,6 +69,7 @@ export function UploadFolderPicker({ scope, value, onChange }: Props) {
     },
     onSuccess: folder => {
       haptics.playSuccess();
+      userChosen.current = true; // an explicit create is a user choice too
       queryClient.setQueryData<Awaited<ReturnType<typeof fetchFolders>>>(['folders', scope], previous => previous
         ? { ...previous, folders: [...previous.folders.filter(f => f.id !== folder.id), folder] } : previous);
       onChange(folder);
@@ -92,6 +99,7 @@ export function UploadFolderPicker({ scope, value, onChange }: Props) {
         disabled={ensure.isPending} sx={{ minWidth: 260 }}
         onChange={event => {
           autoSelected.current = scope; // a manual pick stops the auto default
+          userChosen.current = true;
           onChange(children.find(f => f.id === event.target.value));
         }}>
         <MenuItem value="">My folder (root)</MenuItem>
@@ -111,7 +119,7 @@ export function UploadFolderPicker({ scope, value, onChange }: Props) {
               if (newPath.trim() && !create.isPending) create.mutate(newPath);
             }
           }}
-          disabled={folders.isPending || create.isPending}
+          disabled={folders.isPending || ensure.isPending || create.isPending}
           fullWidth
           slotProps={{ inputLabel: { shrink: true } }}
         />
@@ -119,7 +127,7 @@ export function UploadFolderPicker({ scope, value, onChange }: Props) {
           variant="outlined"
           size="small"
           onClick={() => { haptics.playClick(); create.mutate(newPath); }}
-          disabled={!newPath.trim() || folders.isPending || create.isPending}
+          disabled={!newPath.trim() || folders.isPending || ensure.isPending || create.isPending}
           sx={{ flexShrink: 0, px: 2, alignSelf: 'flex-start' }}
         >
           Create folder
@@ -133,7 +141,7 @@ export function UploadFolderPicker({ scope, value, onChange }: Props) {
         {' '}Separators like "a/b" create nested folders. Queued files keep their destination.
       </Typography>
       {folders.isPending && <Typography variant="caption" sx={{ display: 'block' }}>Loading your folders…</Typography>}
-      {(folders.error || ensure.error || create.error) && <Alert severity="error" sx={{ mt: 1 }} action={<Button color="inherit" onClick={() => { autoSelected.current = ''; ensure.reset(); create.reset(); void folders.refetch(); }}>Retry</Button>}>
+      {(folders.error || ensure.error || create.error) && <Alert severity="error" sx={{ mt: 1 }} action={<Button color="inherit" onClick={() => { autoSelected.current = ''; userChosen.current = false; ensure.reset(); create.reset(); void folders.refetch(); }}>Retry</Button>}>
         {(create.error || ensure.error || folders.error)?.message}
       </Alert>}
     </Box>
