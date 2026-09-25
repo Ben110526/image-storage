@@ -98,7 +98,11 @@ Link phải trỏ tới dữ liệu công khai. Không bảo đảm import đư�
 ### Đã sửa
 
 - P1: caption trên trang Upload in đúng `uploads/YYYY-MM` thay vì chuỗi `{"{...}"}` lỗi.
-- P2: web tạo được thư mục mới — ô **New subfolder path → Create folder**. Chấp nhận tên đơn (`products`) hoặc chuỗi lồng (`products/2026`, dùng `POST /folders {"path":...}`). Khi đang chọn folder thì folder mới tạo **bên dưới folder đang chọn** (`parent_id` ngầm theo `value`); còn giữ kênh `{name, parent_id}` trên client.
+- P2: web tạo được thư mục mới — thiết kế lại thành **Workbench Toolbar (Hallmark Terminal theme)**:
+  - Thanh chọn gọn gàng với nhãn `$ DEST:` và dropdown phẳng không viền notch (`MuiOutlinedInput-notchedOutline: none`), hỗ trợ chọn root hoặc bất kỳ thư mục con.
+  - Nút `+ New subfolder` mở thanh nhập inline có huy hiệu chỉ dẫn thư mục cha hiện tại (`↳ /path/`), autofocus tự động, hỗ trợ phím `Enter` để tạo và `Esc` để hủy.
+  - Hỗ trợ tạo đường dẫn lồng cấp bất kỳ (`a/b/c`), khớp với giới hạn 100 ký tự cho mỗi cấp của server.
+  - Cơ chế phòng ngừa race-condition: `userChosen` ref bảo vệ lựa chọn thủ công của người dùng không bị auto-default (`uploads/YYYY-MM`) ghi đè sau khi tải xong.
 - Cache folder dùng chung một key `['folders', scope]` giữa UploadFolderPicker và FolderTree → folder tạo ở trang Upload hiện ngay trong sidebar Library.
 - P5: bỏ warning lint no-control-regex và control-char chặn ngầy (server vẫn chặn toàn bộ control char); giữ `createFolder` vì test API dùng nó.
 - P4: README ghi đúng mặc định `uploads/YYYY-MM` và tài liệu `POST /folders {"path":"a/b/c"}`.
@@ -106,13 +110,13 @@ Link phải trỏ tới dữ liệu công khai. Không bảo đảm import đư�
 ### Kiểm chứng
 
 - `npm run check`: 55/55 tests đạt, API typecheck/web build đạt, lint không lỗi (5 cảnh báo React có sẵn ngoài phần sửa; không còn warning mới).
-- Deploy web `imgstore-web.xlabaryai.workers.dev`. Verify prod bằng Chrome + key tạm: connect → caption đúng `uploads/2026-09` → tạo `q3-projects` → hiện ngay trong dropdown và sidebar Library; key đã thu hồi sau test.
+- Deploy web `imgstore-web.xlabaryai.workers.dev`.
+- Xác minh giao diện trực quan bằng Playwright tự động hoá: chụp màn hình cả 3 trạng thái (collapsed, opened, typing path lồng `projects/2026/q4`) đạt chuẩn thiết kế Hallmark Terminal (JetBrains Mono, màu phosphor emerald, căn chỉnh responsive).
 - Kênh `{name, parent_id}` đã cover trong `tests/folder-client.test.mjs`.
 - `IMGSTORE_LIVE_TEST=1 node tests/live-folders.mjs`: **đạt trên production** — hai user khác root, tạo con + lồng cấp idempotent, key thay thế dùng chung root, chặn target folder của user khác, 3 luồng upload + PNG Google từ URL có `parents` thật đúng folder và owner `xlabaryai@gmail.com`. Cleanup xác minh: xoá 4 file test, thu hồi 3 key test, đưa 4 folder test rỗng vào thùng rác Drive (khôi phục được); không chạm dữ liệu có sẵn.
-- Verify UI production bằng Chrome + key tạm: auto-folder `uploads/2026-09` được tạo/chọn → tạo `products` → select hiện `/uploads/2026-09/products` (tạo **trong folder đang chọn**) → tạo `campaigns/2026` → select hiện `/uploads/2026-09/products/campaigns/2026` (path lồng). Sidebar Library hiện cây 4 cấp đúng. Sau đó thu hồi key test và đưa 6 folder test rỗng (kể cả root user) vào thùng rác Drive; không chạm dữ liệu có sẵn.
 
 ### Phiên bản hiện tại
 
 - API: `f1504e95-d3e8-4a44-8f3d-ebc7478bc0fd` — https://imgstore-api.xlabaryai.workers.dev (không đổi API lần này; đây là deployment 22/09)
-- Web: `49e4cd34-6686-4bd0-a359-ffaed8ca2f81` — https://imgstore-web.xlabaryai.workers.dev
-- Bundle: `/assets/index-oLjf790F.js` (~796 KB, gzip ~244 KB; cảnh báo kích thước còn có).
+- Web: `28a9b44b-acdf-4ca5-b8ca-41cab3884cb8` — https://imgstore-web.xlabaryai.workers.dev
+- Bundle: `/assets/index-C6Hodat_.js` (~802 KB, gzip ~244 KB).

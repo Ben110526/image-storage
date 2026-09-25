@@ -3,15 +3,25 @@ import {
   Alert,
   Box,
   Button,
+  Divider,
   MenuItem,
-  TextField,
+  OutlinedInput,
+  Select,
   Typography,
-  Stack,
 } from '@mui/material';
+import {
+  Folder as FolderIcon,
+  CreateNewFolder as CreateNewFolderIcon,
+  Close as CloseIcon,
+  SubdirectoryArrowRight as SubdirectoryArrowRightIcon,
+  Add as AddIcon,
+} from '@mui/icons-material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ensureFolderPath, fetchFolders } from '../api/client';
 import type { FolderMetadata } from '../types';
 import { haptics } from '../lib/haptics';
+
+/* Hallmark · component: upload-folder-picker · macrostructure: Workbench toolbar · theme: Terminal */
 
 interface Props {
   scope: string;
@@ -20,7 +30,7 @@ interface Props {
 }
 
 // New uploads default to an automatically dated subfolder ("uploads/2026-09"),
-// created on demand by the server — no manual folder setup at all.
+// created on demand by the server — no manual folder setup required.
 const autoPath = () => `uploads/${new Date().toISOString().slice(0, 7)}`;
 
 // Backslash and control characters are forbidden; "/" is allowed because the
@@ -36,7 +46,18 @@ export function UploadFolderPicker({ scope, value, onChange }: Props) {
   // beats the automatic "uploads/YYYY-MM" default if it resolves later.
   const userChosen = useRef(false);
 
+  const [isCreating, setIsCreating] = useState(false);
   const [newPath, setNewPath] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isCreating) {
+      const timer = setTimeout(() => {
+        inputRef.current?.focus();
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [isCreating]);
 
   const ensure = useMutation({
     mutationFn: ensureFolderPath,
@@ -74,6 +95,7 @@ export function UploadFolderPicker({ scope, value, onChange }: Props) {
         ? { ...previous, folders: [...previous.folders.filter(f => f.id !== folder.id), folder] } : previous);
       onChange(folder);
       setNewPath('');
+      setIsCreating(false);
       void queryClient.invalidateQueries({ queryKey: ['folders', scope] });
     },
   });
@@ -92,58 +114,433 @@ export function UploadFolderPicker({ scope, value, onChange }: Props) {
   const children = folders.data?.folders.filter(f => !f.is_root) || [];
   // Retain the selected option even during a stale refetch after creation.
   if (value && !children.some(f => f.id === value.id)) children.push(value);
-  return (
-    <Box sx={{ mb: 2 }}>
-      <TextField select label="Upload folder" size="small" value={value?.id || ''}
-        slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true } }}
-        disabled={ensure.isPending} sx={{ minWidth: 260 }}
-        onChange={event => {
-          autoSelected.current = scope; // a manual pick stops the auto default
-          userChosen.current = true;
-          onChange(children.find(f => f.id === event.target.value));
-        }}>
-        <MenuItem value="">My folder (root)</MenuItem>
-        {children.map(folder => <MenuItem key={folder.id} value={folder.id}>/{folder.path}</MenuItem>)}
-      </TextField>
 
-      <Stack direction="row" spacing={1} sx={{ mt: 1, maxWidth: 460 }}>
-        <TextField
-          size="small"
-          label="New subfolder path"
-          placeholder={value ? 'products' : 'products or products/2026'}
-          value={newPath}
-          onChange={e => setNewPath(e.target.value)}
-          onKeyDown={e => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              if (newPath.trim() && !create.isPending) create.mutate(newPath);
-            }
+  return (
+    <Box
+      className="spatial-card"
+      sx={{
+        p: { xs: 1.5, sm: 2 },
+        mb: 2.5,
+        borderRadius: 'var(--radius-sm)',
+        backgroundColor: 'var(--color-paper-2)',
+        border: '1px solid var(--color-border)',
+        transition: 'border-color var(--dur-base) var(--ease-out)',
+        '&:hover': {
+          borderColor: 'var(--color-border-strong)',
+        },
+      }}
+    >
+      {/* Primary Toolbar Row */}
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: { xs: 'column', sm: 'row' },
+          alignItems: { xs: 'stretch', sm: 'center' },
+          justifyContent: 'space-between',
+          gap: 1.5,
+        }}
+      >
+        {/* Left: Destination Selector */}
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.25,
+            flex: 1,
+            minWidth: 0,
           }}
-          disabled={folders.isPending || ensure.isPending || create.isPending}
-          fullWidth
-          slotProps={{ inputLabel: { shrink: true } }}
-        />
+        >
+          <Typography
+            sx={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: '0.72rem',
+              fontWeight: 700,
+              letterSpacing: '0.06em',
+              color: 'var(--color-ink-3)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0.5,
+              whiteSpace: 'nowrap',
+              lineHeight: 1,
+              userSelect: 'none',
+            }}
+          >
+            <Box component="span" sx={{ color: 'var(--color-accent-emerald)', fontWeight: 800 }}>$</Box>
+            DEST:
+          </Typography>
+
+          <Select
+            size="small"
+            value={value?.id || ''}
+            displayEmpty
+            disabled={ensure.isPending}
+            onChange={event => {
+              const val = event.target.value;
+              if (val === '__NEW_SUBFOLDER__') {
+                haptics.playClick();
+                setIsCreating(true);
+                return;
+              }
+              autoSelected.current = scope; // a manual pick stops the auto default
+              userChosen.current = true;
+              onChange(children.find(f => f.id === val));
+            }}
+            renderValue={selectedId => {
+              if (!selectedId) {
+                return (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+                    <FolderIcon sx={{ fontSize: 16, color: 'var(--color-ink-3)', flexShrink: 0 }} />
+                    <Typography
+                      component="span"
+                      sx={{
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: 'var(--text-sm)',
+                        color: 'var(--color-ink)',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      My folder (root)
+                    </Typography>
+                  </Box>
+                );
+              }
+              const current = children.find(f => f.id === selectedId) || value;
+              return (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+                  <FolderIcon sx={{ fontSize: 16, color: 'var(--color-accent-emerald)', flexShrink: 0 }} />
+                  <Typography
+                    component="span"
+                    sx={{
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: 'var(--text-sm)',
+                      fontWeight: 600,
+                      color: 'var(--color-ink)',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    /{current?.path || selectedId}
+                  </Typography>
+                </Box>
+              );
+            }}
+            MenuProps={{
+              slotProps: {
+                paper: {
+                  sx: {
+                    backgroundColor: 'var(--color-paper-2)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: 'var(--radius-xs)',
+                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.6)',
+                    mt: 0.5,
+                    maxHeight: 320,
+                    '& .MuiMenuItem-root': {
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: 'var(--text-sm)',
+                      py: 0.8,
+                      px: 1.5,
+                      color: 'var(--color-ink)',
+                      '&:hover': {
+                        backgroundColor: 'var(--color-paper-3)',
+                      },
+                      '&.Mui-selected': {
+                        backgroundColor: 'var(--color-accent-emerald-subtle)',
+                        color: 'var(--color-accent-emerald)',
+                        fontWeight: 600,
+                        '&:hover': {
+                          backgroundColor: 'var(--color-accent-emerald-subtle)',
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            }}
+            sx={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: 'var(--text-sm)',
+              color: 'var(--color-ink)',
+              backgroundColor: 'var(--color-paper)',
+              border: '1px solid var(--color-border)',
+              borderRadius: 'var(--radius-xs)',
+              minWidth: { xs: '100%', sm: 260 },
+              maxWidth: { xs: '100%', sm: 460 },
+              flex: { xs: 1, sm: '0 1 auto' },
+              '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
+              '&:hover': { borderColor: 'var(--color-accent-emerald)' },
+              '&.Mui-focused': {
+                borderColor: 'var(--color-accent-emerald)',
+                boxShadow: '0 0 0 2px var(--color-accent-emerald-subtle)',
+              },
+              '& .MuiSelect-select': {
+                py: 0.75,
+                px: 1.25,
+                display: 'flex',
+                alignItems: 'center',
+              },
+            }}
+          >
+            <MenuItem value="">
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <FolderIcon sx={{ fontSize: 16, color: 'var(--color-ink-3)' }} />
+                <span>My folder (root)</span>
+              </Box>
+            </MenuItem>
+            {children.map(folder => (
+              <MenuItem key={folder.id} value={folder.id}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+                  <FolderIcon sx={{ fontSize: 16, color: 'var(--color-accent-emerald)', flexShrink: 0 }} />
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    /{folder.path}
+                  </span>
+                </Box>
+              </MenuItem>
+            ))}
+            <Divider sx={{ my: 0.5, borderColor: 'var(--color-border)' }} />
+            <MenuItem value="__NEW_SUBFOLDER__" sx={{ color: 'var(--color-accent-emerald) !important' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <AddIcon sx={{ fontSize: 16, color: 'var(--color-accent-emerald)' }} />
+                <span>+ Create new subfolder…</span>
+              </Box>
+            </MenuItem>
+          </Select>
+        </Box>
+
+        {/* Right: Toggle Create Button */}
         <Button
           variant="outlined"
           size="small"
-          onClick={() => { haptics.playClick(); create.mutate(newPath); }}
-          disabled={!newPath.trim() || folders.isPending || ensure.isPending || create.isPending}
-          sx={{ flexShrink: 0, px: 2, alignSelf: 'flex-start' }}
+          onClick={() => {
+            haptics.playClick();
+            setIsCreating(prev => !prev);
+          }}
+          disabled={folders.isPending || ensure.isPending}
+          startIcon={isCreating ? <CloseIcon sx={{ fontSize: 14 }} /> : <CreateNewFolderIcon sx={{ fontSize: 15 }} />}
+          sx={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: 'var(--text-xs)',
+            fontWeight: 600,
+            textTransform: 'none',
+            borderColor: isCreating ? 'var(--color-border-strong)' : 'var(--color-border)',
+            color: isCreating ? 'var(--color-ink-2)' : 'var(--color-ink)',
+            backgroundColor: isCreating ? 'var(--color-paper-3)' : 'transparent',
+            borderRadius: 'var(--radius-xs)',
+            px: 1.5,
+            py: 0.65,
+            minHeight: 34,
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
+            '&:hover': {
+              borderColor: 'var(--color-accent-emerald)',
+              backgroundColor: 'var(--color-accent-emerald-subtle)',
+              color: 'var(--color-accent-emerald)',
+            },
+          }}
         >
-          Create folder
+          {isCreating ? 'Cancel' : '+ New subfolder'}
         </Button>
-      </Stack>
+      </Box>
 
-      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-        Everything uploads to your own private folder, created automatically — new files go to "{autoPath()}" by default.
-        {' '}Pick another folder above, or type a name to create one inside the selected folder
-        {value ? <> (new folder goes under <strong>/{value.path}</strong>)</> : <> at the top level</>}.
-        {' '}Separators like "a/b" create nested folders. Queued files keep their destination.
-      </Typography>
-      {folders.isPending && <Typography variant="caption" sx={{ display: 'block' }}>Loading your folders…</Typography>}
-      {(folders.error || ensure.error || create.error) && <Alert severity="error" sx={{ mt: 1 }} action={<Button color="inherit" onClick={() => { autoSelected.current = ''; userChosen.current = false; ensure.reset(); create.reset(); void folders.refetch(); }}>Retry</Button>}>
-        {(create.error || ensure.error || folders.error)?.message}
-      </Alert>}
+      {/* Expandable Inline Subfolder Creator */}
+      {isCreating && (
+        <Box
+          sx={{
+            mt: 1.5,
+            pt: 1.5,
+            borderTop: '1px dashed var(--color-border)',
+            display: 'flex',
+            flexDirection: { xs: 'column', sm: 'row' },
+            alignItems: { xs: 'stretch', sm: 'center' },
+            gap: 1,
+            animation: 'fadeIn 180ms var(--ease-out)',
+            '@keyframes fadeIn': {
+              from: { opacity: 0, transform: 'translateY(-4px)' },
+              to: { opacity: 1, transform: 'translateY(0)' },
+            },
+          }}
+        >
+          {/* Target directory indicator prefix */}
+          <Box
+            sx={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              px: 1.25,
+              py: 0.65,
+              borderRadius: 'var(--radius-xs)',
+              backgroundColor: 'var(--color-paper)',
+              border: '1px solid var(--color-border)',
+              color: 'var(--color-accent-emerald)',
+              fontFamily: 'var(--font-mono)',
+              fontSize: 'var(--text-xs)',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+              userSelect: 'none',
+            }}
+          >
+            <SubdirectoryArrowRightIcon sx={{ fontSize: 14, mr: 0.5, opacity: 0.7 }} />
+            <span>{value?.path ? `/${value.path}/` : '/'}</span>
+          </Box>
+
+          {/* Subfolder input field */}
+          <OutlinedInput
+            inputRef={inputRef}
+            size="small"
+            placeholder={value ? 'subfolder or nested/path (e.g. products or 2026/q3)…' : 'folder name or nested path (e.g. products/2026)…'}
+            value={newPath}
+            onChange={e => setNewPath(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                if (newPath.trim() && !create.isPending) create.mutate(newPath);
+              } else if (e.key === 'Escape') {
+                setIsCreating(false);
+                setNewPath('');
+              }
+            }}
+            disabled={create.isPending}
+            fullWidth
+            sx={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: 'var(--text-sm)',
+              backgroundColor: 'var(--color-paper)',
+              border: '1px solid var(--color-border)',
+              borderRadius: 'var(--radius-xs)',
+              '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
+              '&:hover': { borderColor: 'var(--color-accent-emerald)' },
+              '&.Mui-focused': {
+                borderColor: 'var(--color-accent-emerald)',
+                boxShadow: '0 0 0 2px var(--color-accent-emerald-subtle)',
+              },
+              '& .MuiInputBase-input': {
+                py: 0.65,
+                px: 1.25,
+                fontFamily: 'var(--font-mono)',
+              },
+            }}
+          />
+
+          {/* Action button */}
+          <Button
+            variant="contained"
+            size="small"
+            className="bevel-button"
+            onClick={() => {
+              haptics.playClick();
+              create.mutate(newPath);
+            }}
+            disabled={!newPath.trim() || create.isPending}
+            sx={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: 'var(--text-xs)',
+              fontWeight: 600,
+              textTransform: 'none',
+              backgroundColor: 'var(--color-accent-emerald)',
+              color: '#000',
+              px: 2,
+              py: 0.75,
+              minHeight: 34,
+              flexShrink: 0,
+              whiteSpace: 'nowrap',
+              '&:hover': {
+                backgroundColor: 'var(--color-accent-emerald)',
+                filter: 'brightness(1.1)',
+              },
+              '&.Mui-disabled': {
+                backgroundColor: 'var(--color-paper-3)',
+                color: 'var(--color-ink-3)',
+              },
+            }}
+          >
+            {create.isPending ? 'Creating…' : 'Create ⏎'}
+          </Button>
+        </Box>
+      )}
+
+      {/* Status & Helper Breadcrumb */}
+      <Box
+        sx={{
+          mt: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 1,
+        }}
+      >
+        <Typography
+          variant="caption"
+          sx={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: '0.72rem',
+            color: 'var(--color-ink-3)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 0.5,
+          }}
+        >
+          <Box component="span" sx={{ color: 'var(--color-accent-emerald)', fontWeight: 700 }}>↳</Box>
+          {isCreating ? (
+            <>
+              Creating inside <Box component="span" sx={{ color: 'var(--color-ink)', fontWeight: 600 }}>{value ? `/${value.path}` : 'root'}</Box> • Accepts "a/b" paths • [Enter ⏎] to create, [Esc] to cancel
+            </>
+          ) : (
+            <>
+              Uploads land in <Box component="span" sx={{ color: 'var(--color-ink)', fontWeight: 600 }}>{value ? `/${value.path}` : 'root'}</Box> • Auto-provisioned &amp; edge-cached per user
+            </>
+          )}
+        </Typography>
+
+        {folders.isPending && (
+          <Typography
+            variant="caption"
+            sx={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: '0.72rem',
+              color: 'var(--color-ink-3)',
+            }}
+          >
+            Syncing folders…
+          </Typography>
+        )}
+      </Box>
+
+      {/* Error Alert with Terminal Styling */}
+      {(folders.error || ensure.error || create.error) && (
+        <Alert
+          severity="error"
+          sx={{
+            mt: 1.5,
+            fontFamily: 'var(--font-mono)',
+            fontSize: 'var(--text-xs)',
+            backgroundColor: 'var(--color-destructive-subtle)',
+            color: 'var(--color-ink)',
+            border: '1px solid var(--color-destructive)',
+            borderRadius: 'var(--radius-xs)',
+            '& .MuiAlert-icon': { color: 'var(--color-destructive)' },
+          }}
+          action={
+            <Button
+              color="inherit"
+              size="small"
+              sx={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', textTransform: 'none' }}
+              onClick={() => {
+                autoSelected.current = '';
+                userChosen.current = false;
+                ensure.reset();
+                create.reset();
+                void folders.refetch();
+              }}
+            >
+              Retry
+            </Button>
+          }
+        >
+          {(create.error || ensure.error || folders.error)?.message}
+        </Alert>
+      )}
     </Box>
   );
 }
