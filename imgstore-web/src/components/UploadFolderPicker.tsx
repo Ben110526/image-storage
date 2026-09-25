@@ -9,7 +9,7 @@ import {
   Stack,
 } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ensureFolderPath, fetchFolders, createFolder } from '../api/client';
+import { ensureFolderPath, fetchFolders } from '../api/client';
 import type { FolderMetadata } from '../types';
 import { haptics } from '../lib/haptics';
 
@@ -23,14 +23,17 @@ interface Props {
 // created on demand by the server — no manual folder setup at all.
 const autoPath = () => `uploads/${new Date().toISOString().slice(0, 7)}`;
 
-const invalidNameChars = () => /[\\/]/;
+// Backslash and control characters are forbidden; "/" is allowed because the
+// create input also accepts nested paths ("products/2026"). Kept as an
+// explicit list so oxlint's no-control-regex rule stays quiet.
+const FORBIDDEN_CHARS = /[\\\n\r\t]/;
 
 export function UploadFolderPicker({ scope, value, onChange }: Props) {
   const queryClient = useQueryClient();
   const folders = useQuery({ queryKey: ['folders', scope], queryFn: fetchFolders, retry: 1 });
   const autoSelected = useRef('');
 
-  const [newName, setNewName] = useState('');
+  const [newPath, setNewPath] = useState('');
 
   const ensure = useMutation({
     mutationFn: ensureFolderPath,
@@ -43,20 +46,27 @@ export function UploadFolderPicker({ scope, value, onChange }: Props) {
   });
 
   const create = useMutation({
-    mutationFn: async (name: string) => {
-      const trimmed = name.trim();
-      if (!trimmed) throw new Error('Folder name is empty.');
-      if (trimmed.length > 100) throw new Error('Folder name must be at most 100 characters.');
-      if (invalidNameChars().test(trimmed)) throw new Error('Folder name cannot contain "/" or "\\".');
-      if (trimmed === '.' || trimmed === '..') throw new Error('Folder name cannot be "." or "..".');
-      return createFolder(trimmed);
+    mutationFn: async (input: string) => {
+      // Accept a single name ("products") or a nested path ("products/2026").
+      // Trim edge slashes and collapse duplicate separators before validation.
+      const raw = input.trim().replace(/^\/+|\/+$/g, '').replace(/\/{2,}/g, '/');
+      if (!raw) throw new Error('Folder name is empty.');
+      if (raw.length > 100) throw new Error('Folder path must be at most 100 characters.');
+      const segments = raw.split('/');
+      if (segments.some(s => !s || s === '.' || s === '..' || FORBIDDEN_CHARS.test(s))) {
+        throw new Error('Folder name cannot contain "\\", "." or ".." path segments.');
+      }
+      // The new folder is created under the currently selected folder — the
+      // parent is implied by value, not passed through the UI.
+      const parentPath = value?.path ?? '';
+      return ensureFolderPath(parentPath ? `${parentPath}/${raw}` : raw);
     },
     onSuccess: folder => {
       haptics.playSuccess();
       queryClient.setQueryData<Awaited<ReturnType<typeof fetchFolders>>>(['folders', scope], previous => previous
         ? { ...previous, folders: [...previous.folders.filter(f => f.id !== folder.id), folder] } : previous);
       onChange(folder);
-      setNewName('');
+      setNewPath('');
       void queryClient.invalidateQueries({ queryKey: ['folders', scope] });
     },
   });
@@ -91,32 +101,36 @@ export function UploadFolderPicker({ scope, value, onChange }: Props) {
       <Stack direction="row" spacing={1} sx={{ mt: 1, maxWidth: 460 }}>
         <TextField
           size="small"
-          placeholder="New subfolder name…"
-          value={newName}
-          onChange={e => setNewName(e.target.value)}
+          label="New subfolder path"
+          placeholder={value ? 'products' : 'products or products/2026'}
+          value={newPath}
+          onChange={e => setNewPath(e.target.value)}
           onKeyDown={e => {
             if (e.key === 'Enter') {
               e.preventDefault();
-              if (newName.trim() && !create.isPending) create.mutate(newName);
+              if (newPath.trim() && !create.isPending) create.mutate(newPath);
             }
           }}
-          disabled={create.isPending}
+          disabled={folders.isPending || create.isPending}
           fullWidth
           slotProps={{ inputLabel: { shrink: true } }}
         />
         <Button
           variant="outlined"
           size="small"
-          onClick={() => { haptics.playClick(); create.mutate(newName); }}
-          disabled={!newName.trim() || create.isPending}
-          sx={{ flexShrink: 0, px: 2 }}
+          onClick={() => { haptics.playClick(); create.mutate(newPath); }}
+          disabled={!newPath.trim() || folders.isPending || create.isPending}
+          sx={{ flexShrink: 0, px: 2, alignSelf: 'flex-start' }}
         >
           Create folder
         </Button>
       </Stack>
 
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-        Everything uploads to your own private folder, created automatically — new files go to "{autoPath()}" by default. Pick another folder above, or type a name to create one. Queued files keep their destination.
+        Everything uploads to your own private folder, created automatically — new files go to "{autoPath()}" by default.
+        {' '}Pick another folder above, or type a name to create one inside the selected folder
+        {value ? <> (new folder goes under <strong>/{value.path}</strong>)</> : <> at the top level</>}.
+        {' '}Separators like "a/b" create nested folders. Queued files keep their destination.
       </Typography>
       {folders.isPending && <Typography variant="caption" sx={{ display: 'block' }}>Loading your folders…</Typography>}
       {(folders.error || ensure.error || create.error) && <Alert severity="error" sx={{ mt: 1 }} action={<Button color="inherit" onClick={() => { autoSelected.current = ''; ensure.reset(); create.reset(); void folders.refetch(); }}>Retry</Button>}>
