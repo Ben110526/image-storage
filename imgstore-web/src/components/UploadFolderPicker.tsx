@@ -234,7 +234,7 @@ export function UploadFolderPicker({ scope, value, onChange }: Props) {
                     backgroundColor: 'var(--color-paper-2)',
                     border: '1px solid var(--color-border)',
                     borderRadius: 'var(--radius-xs)',
-                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.6)',
+                    boxShadow: 'var(--shadow-card)',
                     mt: 0.5,
                     maxHeight: 320,
                     '& .MuiMenuItem-root': {
@@ -438,7 +438,7 @@ export function UploadFolderPicker({ scope, value, onChange }: Props) {
               fontWeight: 600,
               textTransform: 'none',
               backgroundColor: 'var(--color-accent-emerald)',
-              color: '#000',
+              color: 'var(--color-on-accent)',
               px: 2,
               py: 0.75,
               minHeight: 34,

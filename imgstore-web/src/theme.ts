@@ -1,6 +1,6 @@
 import { createTheme } from '@mui/material/styles';
 
-/* Hallmark · theme: Terminal — dark phosphor, green accent, hairline rules */
+/* Hallmark · theme: Liquid Glass — neutral slate, indigo accent, soft radii */
 
 export const getAppTheme = (mode: 'light' | 'dark') =>
   createTheme({
@@ -9,60 +9,61 @@ export const getAppTheme = (mode: 'light' | 'dark') =>
       ...(mode === 'dark'
         ? {
             primary: {
-              main: '#34d399',
-              light: '#6ee7b7',
-              dark: '#10b981',
-              contrastText: '#04120c',
+              main: '#818cf8',
+              light: '#a5b4fc',
+              dark: '#6366f1',
+              contrastText: '#1e1b4b',
             },
             secondary: {
-              main: '#a3e635',
-              light: '#bef264',
-              dark: '#65a30d',
-              contrastText: '#0a0f05',
+              main: '#38bdf8',
+              light: '#7dd3fc',
+              dark: '#0284c7',
+              contrastText: '#082f49',
             },
             background: {
-              default: '#0a120d',
-              paper: '#101a14',
+              default: '#0f172a',
+              paper: '#1e293b',
             },
             text: {
-              primary: '#e6f4ec',
-              secondary: '#8fbc9f',
+              primary: '#f1f5f9',
+              secondary: '#94a3b8',
             },
-            divider: 'rgba(148, 210, 189, 0.14)',
+            divider: 'rgba(148, 163, 184, 0.16)',
           }
         : {
             primary: {
-              main: '#15803d',
-              light: '#16a34a',
-              dark: '#166534',
+              main: '#4f46e5',
+              light: '#6366f1',
+              dark: '#4338ca',
               contrastText: '#ffffff',
             },
             secondary: {
-              main: '#4d7c0f',
-              light: '#65a30d',
-              dark: '#3f6212',
+              main: '#0ea5e9',
+              light: '#38bdf8',
+              dark: '#0284c7',
               contrastText: '#ffffff',
             },
             background: {
-              default: '#f6faf7',
+              default: '#f6f8fb',
               paper: '#ffffff',
             },
             text: {
-              primary: '#12211a',
-              secondary: '#3f5a4c',
+              primary: '#1e293b',
+              secondary: '#475569',
             },
-            divider: 'rgba(22, 101, 52, 0.16)',
+            divider: 'rgba(15, 23, 42, 0.10)',
           }),
     },
     typography: {
       fontFamily: [
-        '"JetBrains Mono"',
-        'ui-monospace',
-        'SFMono-Regular',
-        'Menlo',
-        'monospace',
+        '"Inter"',
+        'system-ui',
+        '-apple-system',
+        '"Segoe UI"',
+        'Roboto',
+        'sans-serif',
       ].join(','),
-      // Pure terminal type scale — single family, hierarchy via weight/size/tracking
+      // Glass-neutral type scale — Inter, hierarchy via weight/size/tracking
       h1: {
         fontWeight: 700,
         letterSpacing: '-0.02em',
@@ -123,21 +124,20 @@ export const getAppTheme = (mode: 'light' | 'dark') =>
       },
     },
     shape: {
-      borderRadius: 6,
+      borderRadius: 12,
     },
     components: {
       MuiButton: {
         styleOverrides: {
           root: {
-            borderRadius: 6,
+            borderRadius: 10,
             boxShadow: 'none',
             '&:hover': {
               boxShadow: 'none',
             },
           },
           contained: {
-            // Terminal: flat accent fill, no gradient, no glow
-            background: mode === 'dark' ? '#34d399' : '#15803d',
+            // Liquid Glass: soft accent fill, no heavy gradient
             boxShadow: 'none',
           },
         },
@@ -145,9 +145,10 @@ export const getAppTheme = (mode: 'light' | 'dark') =>
       MuiCard: {
         styleOverrides: {
           root: {
-            borderRadius: 6,
-            backgroundImage: 'none',
-            border: `1px solid ${mode === 'dark' ? 'rgba(148, 210, 189, 0.14)' : 'rgba(22, 101, 52, 0.16)'}`,
+            borderRadius: 12,
+            border: `1px solid ${
+              mode === 'dark' ? 'rgba(148, 163, 184, 0.16)' : 'rgba(15, 23, 42, 0.10)'
+            }`,
             boxShadow: 'none',
           },
         },
@@ -158,14 +159,14 @@ export const getAppTheme = (mode: 'light' | 'dark') =>
             backgroundImage: 'none',
           },
           rounded: {
-            borderRadius: 6,
+            borderRadius: 12,
           },
         },
       },
       MuiChip: {
         styleOverrides: {
           root: {
-            borderRadius: 4,
+            borderRadius: 8,
             fontWeight: 500,
             fontFamily: 'JetBrains Mono, monospace',
           },

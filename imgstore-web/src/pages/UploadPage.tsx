@@ -3,7 +3,7 @@ import { Box, Typography, Chip } from '@mui/material';
 import { StorageTelemetryDeck } from '../components/StorageTelemetryDeck';
 import { DropZone } from '../components/DropZone';
 
-/* Hallmark · page: upload · macrostructure: Workbench · theme: Terminal */
+/* Hallmark · page: upload · macrostructure: Workbench · theme: Liquid Glass */
 
 export const UploadPage: React.FC = () => {
   return (
@@ -14,17 +14,17 @@ export const UploadPage: React.FC = () => {
           variant="h4"
           component="h1"
           sx={{
-            fontFamily: 'var(--font-mono)',
+            fontFamily: 'var(--font-body)',
             fontWeight: 700,
             fontSize: { xs: '1.25rem', sm: '1.5rem', md: '1.75rem' },
-            letterSpacing: '-0.01em',
+            letterSpacing: '-0.02em',
             overflowWrap: 'anywhere',
             minWidth: 0,
           }}
         >
-          <Box component="span" sx={{ color: 'var(--color-accent-emerald)', mr: 1 }}>$</Box>
+          <Box component="span" sx={{ color: 'var(--color-accent)', mr: 1, fontFamily: 'var(--font-mono)' }}>$</Box>
           imgstore upload
-          <Box component="span" sx={{ color: 'var(--color-ink-3)', fontWeight: 400 }}>
+          <Box component="span" sx={{ color: 'var(--color-ink-3)', fontWeight: 400, fontFamily: 'var(--font-mono)', fontSize: '0.78em' }}>
             {' '}--to uploads/{new Date().toISOString().slice(0, 7)}
           </Box>
         </Typography>

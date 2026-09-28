@@ -120,3 +120,34 @@ Link phải trỏ tới dữ liệu công khai. Không bảo đảm import đư�
 - API: `f1504e95-d3e8-4a44-8f3d-ebc7478bc0fd` — https://imgstore-api.xlabaryai.workers.dev (không đổi API lần này; đây là deployment 22/09)
 - Web: `28a9b44b-acdf-4ca5-b8ca-41cab3884cb8` — https://imgstore-web.xlabaryai.workers.dev
 - Bundle: `/assets/index-C6Hodat_.js` (~802 KB, gzip ~244 KB).
+
+## Liquid Glass redesign toàn bộ giao diện web — 28/09/2026
+
+### Chuyển đổi thiết kế
+
+- Chuyển toàn bộ `imgstore-web` từ theme **Hallmark Terminal** (dark phosphor emerald, JetBrains Mono toàn bộ, scanlines) sang **Liquid Glass (glassmorphism)** — palette trung tính slate + indigo/sky, **default = light** (nhạt, không tối hẳn như trước), giữ toggle phím `T`.
+- **Typography**: Inter (sans) cho toàn bộ UI; giữ JetBrains Mono riêng cho code/ID/telemetry/bytes/hiển thị mono.
+- **Accent**: Indigo `oklch(55% 0.20 265)` light / `oklch(72% 0.16 265)` dark; bỏ emerald phosphor. `--color-accent-emerald` giữ làm alias = indigo để các tham chiếu cũ không vỡ.
+- **Glass recipe**: `--backdrop-blur: blur(20px) saturate(160%)` (light) / `150%` (dark); card/paper dùng `var(--color-paper-glass)` rgba 15–30% + border hairline `var(--color-border-light)` + `--shadow-card` frosted; contrast text trên card glass đạt ~13:1 (dark) / ≥4.5:1 (light).
+
+### Files đã sửa (17)
+
+`index.html` (fonts Inter + JetBrains Mono), `tokens.css` (bộ token Liquid Glass light/dark), `src/index.css` (ambient gradient blobs thay scanlines, `.spatial-card` frosted glass, `.bevel-button` → glass, `.liquid-glass-dialog` glass), `src/theme.ts` (MUI palette indigo/sky, borderRadius 12), `src/App.tsx` (footer glass, default light), và 12 component/page: `Navbar`, `DropZone`, `UploadFolderPicker`, `FolderTree`, `StorageTelemetryDeck`, `ImageCard`, `ImageGallery`, `ApiKeyDialog`, `SettingsModal`, `ImagePreviewModal`, `ConfirmDialog`, `KeyboardShortcutsModal`, `ApiDocsSection`, `UploadPage`, `DocsPage`.
+
+### Fix responsive navbar (Hallmark: không h-scroll 320/375/414/768)
+
+- Tách terminal tab strip (`./upload ./library ./api docs`) thành **hàng riêng trên mobile** (nav strip shared JSX, inline md+), không tràn ngang tại 320–414 px.
+- Siết right cluster trên xs: gap `0.5`, icon button `p: 0.6`, Connect `px: 1.1`; **Connect button thành icon-only ⌘ tại xs** (giữ `aria-label="Connect with API key"`) để 320 px không tràn.
+- Kết quả verify Playwright ở cả 4 mốc 320/375/414/768 × 3 page (upload/library/docs): `noScroll: true`, `overflowX: clip` trên html+body, nav 1 dòng mobile, tab active `./upload` underline indigo.
+
+### Kiểm chứng
+
+- `npm run build`: đạt (tsc -b + vite build, 11785 modules). `npm run lint`: không lỗi, chỉ 5 cảnh báo React có sẵn ngoài phần sửa.
+- Deploy web lên production `imgstore-web.xlabaryai.workers.dev` thành công; verify HTTP 200 cho `/`, bundle JS mới và CSS mới.
+- Chưa kiểm thử thao tác chuột trên Safari/iOS thiết bị thật; không đổi API, không chạm dữ liệu production.
+
+### Phiên bản hiện tại
+
+- API: `f1504e95-d3e8-4a44-8f3d-ebc7478bc0fd` — https://imgstore-api.xlabaryai.workers.dev (không đổi API lần này)
+- Web: **Version ID `6ca15481-9064-49ce-add3-9c735c4f7c47`** — https://imgstore-web.xlabaryai.workers.dev
+- Bundle: `/assets/index-DYEOlEif.js` (~803 KB, gzip ~244 KB) + `/assets/index-CEurAAZv.css`.

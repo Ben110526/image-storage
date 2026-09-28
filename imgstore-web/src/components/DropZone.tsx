@@ -90,16 +90,16 @@ async function dataUrlToFile(dataUrl: string, fallbackName?: string): Promise<Fi
 
 function getFileIcon(mime: string, name: string) {
   if (mime.startsWith('image/')) return <ImageIcon color="primary" fontSize="small" />;
-  if (mime.startsWith('video/')) return <VideoIcon sx={{ color: '#8b5cf6' }} fontSize="small" />;
-  if (mime.startsWith('audio/')) return <AudioIcon sx={{ color: '#ec4899' }} fontSize="small" />;
+  if (mime.startsWith('video/')) return <VideoIcon sx={{ color: 'var(--color-type-video)' }} fontSize="small" />;
+  if (mime.startsWith('audio/')) return <AudioIcon sx={{ color: 'var(--color-type-audio)' }} fontSize="small" />;
   if (mime === 'application/pdf' || mime.includes('document') || mime.includes('text/')) {
-    return <DocumentIcon sx={{ color: '#f59e0b' }} fontSize="small" />;
+    return <DocumentIcon sx={{ color: 'var(--color-type-document)' }} fontSize="small" />;
   }
   const ext = name.split('.').pop()?.toLowerCase();
   if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext || '')) {
-    return <ArchiveIcon sx={{ color: '#10b981' }} fontSize="small" />;
+    return <ArchiveIcon sx={{ color: 'var(--color-type-archive)' }} fontSize="small" />;
   }
-  return <FileIcon sx={{ color: '#06b6d4' }} fontSize="small" />;
+  return <FileIcon sx={{ color: 'var(--color-type-file)' }} fontSize="small" />;
 }
 
 export const DropZone: React.FC = () => {
@@ -622,11 +622,9 @@ export const DropZone: React.FC = () => {
           overflow: 'hidden',
           borderStyle: 'dashed !important',
           borderWidth: '2px !important',
-          borderColor: isDragActive ? '#34d399 !important' : theme.palette.divider,
+          borderColor: isDragActive ? 'var(--color-accent) !important' : theme.palette.divider,
           backgroundColor: isDragActive
-            ? theme.palette.mode === 'dark'
-              ? 'rgba(52, 211, 153, 0.12) !important'
-              : 'rgba(22, 163, 74, 0.06) !important'
+            ? 'var(--color-accent-subtle) !important'
             : undefined,
           transform: isDragActive ? 'scale(1.008)' : 'none',
         }}
@@ -640,11 +638,8 @@ export const DropZone: React.FC = () => {
             borderRadius: 1.5,
             border: '1px solid',
             borderColor: 'divider',
-            backgroundColor:
-              theme.palette.mode === 'dark'
-                ? 'rgba(52, 211, 153, 0.08)'
-                : 'rgba(22, 163, 74, 0.06)',
-            color: '#34d399',
+            backgroundColor: 'var(--color-accent-subtle)',
+            color: 'var(--color-accent)',
             mb: 2,
           }}
         >
@@ -654,7 +649,7 @@ export const DropZone: React.FC = () => {
         <Typography
           variant="h6"
           sx={{
-            fontFamily: 'JetBrains Mono, monospace',
+            fontFamily: 'var(--font-body)',
             fontWeight: 700,
             fontSize: '1.25rem',
             mb: 0.75,
@@ -735,7 +730,7 @@ export const DropZone: React.FC = () => {
             }}
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, fontFamily: 'JetBrains Mono, monospace' }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, fontFamily: 'var(--font-body)' }}>
                 Active Uploads & Tasks
               </Typography>
               <Chip
@@ -827,7 +822,7 @@ export const DropZone: React.FC = () => {
                         />
                       )}
                       {item.speedText && (
-                        <Typography variant="caption" sx={{ fontFamily: 'JetBrains Mono, monospace', color: '#10b981' }}>
+                        <Typography variant="caption" sx={{ fontFamily: 'var(--font-mono)', color: 'var(--color-accent)' }}>
                           ⚡ {item.speedText}
                         </Typography>
                       )}
@@ -854,7 +849,7 @@ export const DropZone: React.FC = () => {
                               background:
                                 item.status === 'paused'
                                   ? '#94a3b8'
-                                  : '#34d399',
+                                  : 'var(--color-accent)',
                             },
                           }}
                         />
@@ -872,7 +867,7 @@ export const DropZone: React.FC = () => {
                         {item.error}
                       </Typography>
                     ) : item.status === 'success' ? (
-                      <Typography variant="caption" sx={{ color: '#10b981', fontFamily: 'JetBrains Mono, monospace' }}>
+                      <Typography variant="caption" sx={{ color: 'var(--color-success)', fontFamily: 'var(--font-mono)' }}>
                         ✓ Ready on Cloudflare CDN Edge
                       </Typography>
                     ) : item.status === 'pending' ? (

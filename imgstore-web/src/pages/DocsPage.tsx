@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { ApiDocsSection } from '../components/ApiDocsSection';
 
-/* Hallmark · page: docs · macrostructure: Workbench · theme: Terminal */
+/* Hallmark · page: docs · macrostructure: Workbench · theme: Liquid Glass */
 
 export const DocsPage: React.FC = () => {
   return (
@@ -12,13 +12,13 @@ export const DocsPage: React.FC = () => {
           variant="h4"
           component="h1"
           sx={{
-            fontFamily: 'var(--font-mono)',
+            fontFamily: 'var(--font-body)',
             fontWeight: 700,
             fontSize: { xs: '1.25rem', sm: '1.5rem', md: '1.75rem' },
-            letterSpacing: '-0.01em',
+            letterSpacing: '-0.02em',
           }}
         >
-          <Box component="span" sx={{ color: 'var(--color-accent-emerald)', mr: 1 }}>$</Box>
+          <Box component="span" sx={{ color: 'var(--color-accent)', mr: 1, fontFamily: 'var(--font-mono)' }}>$</Box>
           imgstore api --docs
         </Typography>
         <Typography

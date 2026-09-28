@@ -130,8 +130,7 @@ export const ImageCard: React.FC<ImageCardProps> = ({
         sx={{
           position: 'relative',
           paddingTop: '62.5%', // 16:10 aspect
-          backgroundColor:
-            theme.palette.mode === 'dark' ? '#090d16' : '#f1f5f9',
+          backgroundColor: 'var(--color-paper-2)',
           overflow: 'hidden',
         }}
       >
@@ -169,12 +168,12 @@ export const ImageCard: React.FC<ImageCardProps> = ({
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              background: 'linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%)',
-              color: '#8b5cf6',
+              background: 'linear-gradient(135deg, var(--color-type-video-subtle) 0%, var(--color-paper-glass) 100%)',
+              color: 'var(--color-type-video)',
             }}
           >
-            <PlayIcon sx={{ fontSize: 54, color: '#a78bfa', filter: 'drop-shadow(0 4px 12px rgba(139,92,246,0.5))' }} />
-            <Typography variant="caption" sx={{ mt: 1, color: '#cbd5e1', fontWeight: 600 }}>
+            <PlayIcon sx={{ fontSize: 54, color: 'var(--color-type-video)', filter: 'drop-shadow(0 4px 12px var(--color-type-video-glass))' }} />
+            <Typography variant="caption" sx={{ mt: 1, color: 'var(--color-ink-2)', fontWeight: 600 }}>
               Video Stream
             </Typography>
           </Box>
@@ -190,12 +189,12 @@ export const ImageCard: React.FC<ImageCardProps> = ({
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              background: 'linear-gradient(135deg, #4a044e 0%, #180d28 100%)',
-              color: '#f472b6',
+              background: 'linear-gradient(135deg, var(--color-type-audio-subtle) 0%, var(--color-paper-glass) 100%)',
+              color: 'var(--color-type-audio)',
             }}
           >
-            <AudioIcon sx={{ fontSize: 50, color: '#f472b6' }} />
-            <Typography variant="caption" sx={{ mt: 1, color: '#cbd5e1', fontWeight: 600 }}>
+            <AudioIcon sx={{ fontSize: 50, color: 'var(--color-type-audio)' }} />
+            <Typography variant="caption" sx={{ mt: 1, color: 'var(--color-ink-2)', fontWeight: 600 }}>
               Audio Track
             </Typography>
           </Box>
@@ -211,12 +210,12 @@ export const ImageCard: React.FC<ImageCardProps> = ({
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              background: 'linear-gradient(135deg, #451a03 0%, #1c1917 100%)',
-              color: '#fbbf24',
+              background: 'linear-gradient(135deg, var(--color-type-document-subtle) 0%, var(--color-paper-glass) 100%)',
+              color: 'var(--color-type-document)',
             }}
           >
-            <DocumentIcon sx={{ fontSize: 50, color: '#fbbf24' }} />
-            <Typography variant="caption" sx={{ mt: 1, color: '#cbd5e1', fontWeight: 600 }}>
+            <DocumentIcon sx={{ fontSize: 50, color: 'var(--color-type-document)' }} />
+            <Typography variant="caption" sx={{ mt: 1, color: 'var(--color-ink-2)', fontWeight: 600 }}>
               PDF Document
             </Typography>
           </Box>
@@ -232,16 +231,16 @@ export const ImageCard: React.FC<ImageCardProps> = ({
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              background: 'linear-gradient(135deg, #064e3b 0%, #0f172a 100%)',
-              color: '#34d399',
+              background: 'linear-gradient(135deg, var(--color-type-archive-subtle) 0%, var(--color-paper-glass) 100%)',
+              color: 'var(--color-type-archive)',
             }}
           >
             {['ZIP', 'RAR', '7Z', 'TAR', 'GZ'].includes(extension) ? (
-              <ArchiveIcon sx={{ fontSize: 50, color: '#34d399' }} />
+              <ArchiveIcon sx={{ fontSize: 50, color: 'var(--color-type-archive)' }} />
             ) : (
-              <FileIcon sx={{ fontSize: 50, color: '#38bdf8' }} />
+              <FileIcon sx={{ fontSize: 50, color: 'var(--color-type-file)' }} />
             )}
-            <Typography variant="caption" sx={{ mt: 1, color: '#cbd5e1', fontWeight: 600 }}>
+            <Typography variant="caption" sx={{ mt: 1, color: 'var(--color-ink-2)', fontWeight: 600 }}>
               {extension} File
             </Typography>
           </Box>
@@ -264,10 +263,10 @@ export const ImageCard: React.FC<ImageCardProps> = ({
               fontSize: '0.65rem',
               fontWeight: 700,
               fontFamily: 'JetBrains Mono, monospace',
-              backgroundColor: 'rgba(0, 0, 0, 0.65)',
+              backgroundColor: 'var(--color-paper-elevated)',
               backdropFilter: 'blur(8px)',
-              color: '#ffffff',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
+              color: 'var(--color-ink)',
+              border: '1px solid var(--glass-border-light)',
             }}
           />
         </Box>
@@ -288,10 +287,10 @@ export const ImageCard: React.FC<ImageCardProps> = ({
               sx={{
                 width: 26,
                 height: 26,
-                backgroundColor: 'rgba(0,0,0,0.5)',
+                backgroundColor: 'var(--color-paper-elevated)',
                 backdropFilter: 'blur(8px)',
-                color: '#fff',
-                '&:hover': { backgroundColor: 'rgba(0,0,0,0.8)' },
+                color: 'var(--color-ink)',
+                '&:hover': { backgroundColor: 'var(--color-paper-3)' },
               }}
               onClick={(e) => {
                 e.stopPropagation();
@@ -343,10 +342,7 @@ export const ImageCard: React.FC<ImageCardProps> = ({
           py: 1,
           borderTop: `1px solid ${theme.palette.divider}`,
           justifyContent: 'space-between',
-          backgroundColor:
-            theme.palette.mode === 'dark'
-              ? 'rgba(0,0,0,0.15)'
-              : 'rgba(0,0,0,0.02)',
+          backgroundColor: 'var(--color-paper-glass)',
         }}
         onClick={(e) => e.stopPropagation()}
       >

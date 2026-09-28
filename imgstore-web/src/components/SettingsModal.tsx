@@ -73,10 +73,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) =
           sx: {
             backgroundColor: (theme) =>
               theme.palette.mode === 'dark'
-                ? 'rgba(5, 8, 16, 0.78)'
-                : 'rgba(15, 23, 42, 0.45)',
-            backdropFilter: 'blur(10px)',
-            WebkitBackdropFilter: 'blur(10px)',
+                ? 'rgba(15, 23, 42, 0.45)'
+                : 'rgba(15, 23, 42, 0.28)',
+            backdropFilter: 'blur(14px)',
+            WebkitBackdropFilter: 'blur(14px)',
           },
         },
         paper: {

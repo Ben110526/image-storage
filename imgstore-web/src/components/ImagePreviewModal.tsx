@@ -97,10 +97,10 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
           sx: {
             backgroundColor: (theme) =>
               theme.palette.mode === 'dark'
-                ? 'rgba(5, 8, 16, 0.78)'
-                : 'rgba(15, 23, 42, 0.45)',
-            backdropFilter: 'blur(10px)',
-            WebkitBackdropFilter: 'blur(10px)',
+                ? 'rgba(15, 23, 42, 0.45)'
+                : 'rgba(15, 23, 42, 0.28)',
+            backdropFilter: 'blur(14px)',
+            WebkitBackdropFilter: 'blur(14px)',
           },
         },
         paper: {
@@ -126,13 +126,13 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
           {isImage ? (
             <ImageIcon color="primary" />
           ) : isVideo ? (
-            <VideoIcon sx={{ color: '#8b5cf6' }} />
+            <VideoIcon sx={{ color: 'var(--color-type-video)' }} />
           ) : isAudio ? (
-            <AudioIcon sx={{ color: '#ec4899' }} />
+            <AudioIcon sx={{ color: 'var(--color-type-audio)' }} />
           ) : isPdf ? (
-            <DocumentIcon sx={{ color: '#f59e0b' }} />
+            <DocumentIcon sx={{ color: 'var(--color-type-document)' }} />
           ) : (
-            <FileIcon sx={{ color: '#10b981' }} />
+            <FileIcon sx={{ color: 'var(--color-type-file)' }} />
           )}
           <Typography
             variant="h6"
@@ -169,8 +169,7 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
             alignItems: 'center',
             minHeight: 200,
             maxHeight: { xs: 300, sm: 400, md: 500 },
-            backgroundColor:
-              theme.palette.mode === 'dark' ? '#090d16' : '#f8fafc',
+            backgroundColor: 'var(--color-paper-glass)',
             borderRadius: 2.5,
             border: `1px solid ${theme.palette.divider}`,
             p: { xs: 1.5, sm: 2 },
@@ -218,7 +217,7 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
                 width: '100%',
               }}
             >
-              <AudioIcon sx={{ fontSize: 64, color: '#ec4899', mb: 2 }} />
+              <AudioIcon sx={{ fontSize: 64, color: 'var(--color-type-audio)', mb: 2 }} />
               <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
                 {image.name} ({formatBytes(image.size)})
               </Typography>
@@ -248,7 +247,7 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
                 textAlign: 'center',
               }}
             >
-              <FileIcon sx={{ fontSize: 64, color: '#38bdf8', mb: 1.5 }} />
+              <FileIcon sx={{ fontSize: 64, color: 'var(--color-type-file)', mb: 1.5 }} />
               <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5 }}>
                 {image.name}
               </Typography>
@@ -440,8 +439,7 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
             gap: 2,
             mt: 3,
             p: 2,
-            backgroundColor:
-              theme.palette.mode === 'dark' ? '#090d16' : '#f8fafc',
+            backgroundColor: 'var(--color-paper-glass)',
             borderRadius: 2,
             border: `1px solid ${theme.palette.divider}`,
             fontSize: '0.8rem',

@@ -21,7 +21,7 @@ import { haptics } from './lib/haptics';
 import { useHashRoute, type Route } from './lib/router';
 import { useAuth } from './context/AuthContext';
 
-/* Hallmark · macrostructure: Workbench (sidebar tree + canvas) · theme: Terminal
+/* Hallmark · macrostructure: Workbench (sidebar tree + canvas) · theme: Liquid Glass
  * routes: #/upload · #/library · #/docs · hash router, no dependency
  */
 
@@ -40,7 +40,7 @@ export const AppContent: React.FC = () => {
   const [colorMode, setColorMode] = useState<'light' | 'dark'>(() => {
     const saved = localStorage.getItem('imgstore_theme');
     if (saved === 'dark' || saved === 'light') return saved;
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    return 'light';
   });
 
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -163,15 +163,15 @@ export const AppContent: React.FC = () => {
               textAlign: 'center',
               borderTop: '1px solid',
               borderColor: 'divider',
-              backgroundColor:
-                colorMode === 'dark' ? 'rgba(10, 14, 23, 0.8)' : 'rgba(255, 255, 255, 0.8)',
-              backdropFilter: 'blur(16px)',
+              backgroundColor: 'var(--color-paper-glass)',
+              backdropFilter: 'var(--backdrop-blur)',
+              WebkitBackdropFilter: 'var(--backdrop-blur)',
             }}
           >
             <Typography
               variant="body2"
               color="text.secondary"
-              sx={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.8rem' }}
+              sx={{ fontFamily: 'var(--font-body)', fontSize: '0.8rem' }}
             >
               ImgStore · Shared Image Storage &amp; Cloudflare CDN
             </Typography>

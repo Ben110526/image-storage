@@ -128,8 +128,8 @@ console.log('High-speed Edge CDN Link:', result.data.proxy_url);`;
                 width: { xs: 32, sm: 38 },
                 height: { xs: 32, sm: 38 },
                 borderRadius: 2,
-                backgroundColor: 'rgba(52, 211, 153, 0.14)',
-                color: '#34d399',
+                backgroundColor: 'var(--color-accent-subtle)',
+                color: 'var(--color-accent)',
                 flexShrink: 0,
               }}
             >
@@ -185,8 +185,7 @@ console.log('High-speed Edge CDN Link:', result.data.proxy_url);`;
               sx={{
                 p: { xs: 1.75, sm: 2.5 },
                 borderRadius: 2,
-                backgroundColor:
-                  theme.palette.mode === 'dark' ? '#090d16' : '#f8fafc',
+                backgroundColor: 'var(--color-paper-glass)',
                 border: `1px solid ${theme.palette.divider}`,
               }}
             >
@@ -219,14 +218,15 @@ console.log('High-speed Edge CDN Link:', result.data.proxy_url);`;
                   m: 0,
                   p: { xs: 1.5, sm: 2 },
                   borderRadius: 1.5,
-                  backgroundColor:
-                    theme.palette.mode === 'dark' ? '#030712' : '#f1f5f9',
+                  backgroundColor: 'var(--color-code-bg)',
+                  backdropFilter: 'var(--backdrop-blur)',
+                  WebkitBackdropFilter: 'var(--backdrop-blur)',
                   overflowX: 'auto',
                   WebkitOverflowScrolling: 'touch',
                   fontFamily: 'JetBrains Mono, monospace',
                   fontSize: { xs: '0.74rem', sm: '0.8rem' },
                   lineHeight: 1.5,
-                  color: theme.palette.mode === 'dark' ? '#38bdf8' : '#0284c7',
+                  color: 'var(--color-code-syntax)',
                 }}
               >
                 {curlUploadSnippet}
@@ -238,8 +238,7 @@ console.log('High-speed Edge CDN Link:', result.data.proxy_url);`;
               sx={{
                 p: { xs: 1.75, sm: 2.5 },
                 borderRadius: 2,
-                backgroundColor:
-                  theme.palette.mode === 'dark' ? '#090d16' : '#f8fafc',
+                backgroundColor: 'var(--color-paper-glass)',
                 border: `1px solid ${theme.palette.divider}`,
               }}
             >
@@ -272,14 +271,15 @@ console.log('High-speed Edge CDN Link:', result.data.proxy_url);`;
                   m: 0,
                   p: { xs: 1.5, sm: 2 },
                   borderRadius: 1.5,
-                  backgroundColor:
-                    theme.palette.mode === 'dark' ? '#030712' : '#f1f5f9',
+                  backgroundColor: 'var(--color-code-bg)',
+                  backdropFilter: 'var(--backdrop-blur)',
+                  WebkitBackdropFilter: 'var(--backdrop-blur)',
                   overflowX: 'auto',
                   WebkitOverflowScrolling: 'touch',
                   fontFamily: 'JetBrains Mono, monospace',
                   fontSize: { xs: '0.74rem', sm: '0.8rem' },
                   lineHeight: 1.5,
-                  color: theme.palette.mode === 'dark' ? '#38bdf8' : '#0284c7',
+                  color: 'var(--color-code-syntax)',
                 }}
               >
                 {curlListSnippet}
@@ -291,8 +291,7 @@ console.log('High-speed Edge CDN Link:', result.data.proxy_url);`;
               sx={{
                 p: { xs: 1.75, sm: 2.5 },
                 borderRadius: 2,
-                backgroundColor:
-                  theme.palette.mode === 'dark' ? '#090d16' : '#f8fafc',
+                backgroundColor: 'var(--color-paper-glass)',
                 border: `1px solid ${theme.palette.divider}`,
               }}
             >
@@ -325,14 +324,15 @@ console.log('High-speed Edge CDN Link:', result.data.proxy_url);`;
                   m: 0,
                   p: { xs: 1.5, sm: 2 },
                   borderRadius: 1.5,
-                  backgroundColor:
-                    theme.palette.mode === 'dark' ? '#030712' : '#f1f5f9',
+                  backgroundColor: 'var(--color-code-bg)',
+                  backdropFilter: 'var(--backdrop-blur)',
+                  WebkitBackdropFilter: 'var(--backdrop-blur)',
                   overflowX: 'auto',
                   WebkitOverflowScrolling: 'touch',
                   fontFamily: 'JetBrains Mono, monospace',
                   fontSize: { xs: '0.74rem', sm: '0.8rem' },
                   lineHeight: 1.5,
-                  color: theme.palette.mode === 'dark' ? '#f87171' : '#dc2626',
+                  color: 'var(--color-code-destructive)',
                 }}
               >
                 {curlDeleteSnippet}
@@ -344,8 +344,7 @@ console.log('High-speed Edge CDN Link:', result.data.proxy_url);`;
               sx={{
                 p: { xs: 1.75, sm: 2.5 },
                 borderRadius: 2,
-                backgroundColor:
-                  theme.palette.mode === 'dark' ? '#090d16' : '#f8fafc',
+                backgroundColor: 'var(--color-paper-glass)',
                 border: `1px solid ${theme.palette.divider}`,
               }}
             >
@@ -378,14 +377,15 @@ console.log('High-speed Edge CDN Link:', result.data.proxy_url);`;
                   m: 0,
                   p: { xs: 1.5, sm: 2 },
                   borderRadius: 1.5,
-                  backgroundColor:
-                    theme.palette.mode === 'dark' ? '#030712' : '#f1f5f9',
+                  backgroundColor: 'var(--color-code-bg)',
+                  backdropFilter: 'var(--backdrop-blur)',
+                  WebkitBackdropFilter: 'var(--backdrop-blur)',
                   overflowX: 'auto',
                   WebkitOverflowScrolling: 'touch',
                   fontFamily: 'JetBrains Mono, monospace',
                   fontSize: { xs: '0.74rem', sm: '0.8rem' },
                   lineHeight: 1.5,
-                  color: theme.palette.mode === 'dark' ? '#34d399' : '#059669',
+                  color: 'var(--color-code-success)',
                 }}
               >
                 {jsUploadSnippet}

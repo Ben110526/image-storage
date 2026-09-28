@@ -76,10 +76,10 @@ export const ApiKeyDialog: React.FC<ApiKeyDialogProps> = ({
           sx: {
             backgroundColor: (theme) =>
               theme.palette.mode === 'dark'
-                ? 'rgba(5, 8, 16, 0.78)'
-                : 'rgba(15, 23, 42, 0.45)',
-            backdropFilter: 'blur(10px)',
-            WebkitBackdropFilter: 'blur(10px)',
+                ? 'rgba(15, 23, 42, 0.45)'
+                : 'rgba(15, 23, 42, 0.28)',
+            backdropFilter: 'blur(14px)',
+            WebkitBackdropFilter: 'blur(14px)',
           },
         },
         paper: {
@@ -270,19 +270,16 @@ export const ApiKeyDialog: React.FC<ApiKeyDialogProps> = ({
                     theme.palette.mode === 'dark'
                       ? 'rgba(255, 255, 255, 0.3)'
                       : 'rgba(15, 23, 42, 0.3)',
-                  backgroundColor: (theme) =>
-                    theme.palette.mode === 'dark'
-                      ? 'rgba(15, 23, 42, 0.85)'
-                      : '#ffffff',
+                  backgroundColor: 'var(--color-paper-glass-strong)',
                 },
                 '&.Mui-focused': {
-                  borderColor: '#34d399',
+                  borderColor: 'var(--color-accent)',
                   backgroundColor: (theme) =>
                     theme.palette.mode === 'dark'
-                      ? 'rgba(15, 23, 42, 0.95)'
+                      ? 'var(--color-paper-glass-strong)'
                       : '#ffffff',
                   boxShadow:
-                    '0 0 0 3px rgba(52, 211, 153, 0.28), inset 0 1px 2px rgba(0, 0, 0, 0.3)',
+                    '0 0 0 3px var(--color-accent-subtle), inset 0 1px 2px rgba(0, 0, 0, 0.3)',
                 },
                 '& .MuiInputBase-input': {
                   py: 1.2,
@@ -339,7 +336,7 @@ export const ApiKeyDialog: React.FC<ApiKeyDialogProps> = ({
             }}
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.85, mb: 0.6 }}>
-              <SuccessIcon sx={{ fontSize: 16, color: '#10b981' }} />
+              <SuccessIcon sx={{ fontSize: 16, color: 'var(--color-success)' }} />
               <Typography
                 variant="caption"
                 sx={{

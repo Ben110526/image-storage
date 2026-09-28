@@ -25,57 +25,59 @@ html, body {
   position: relative;
 }
 
-/* Hallmark · theme: Terminal — phosphor scanlines instead of color glow */
+/* Hallmark · theme: Liquid Glass — soft neutral pastel light source instead of scanlines.
+ * Frosted glass needs a lively backdrop behind it, so the "glow" becomes a trio of
+ * blurred pastel blobs (indigo / sky / soft violet) at low opacity. */
 .ambient-glow-bg {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   pointer-events: none;
   z-index: 0;
   background:
-    repeating-linear-gradient(
-      0deg,
-      rgba(148, 210, 189, 0.022) 0px,
-      rgba(148, 210, 189, 0.022) 1px,
-      transparent 1px,
-      transparent 3px
-    );
+    radial-gradient(38% 34% at 12% 8%, rgba(129, 140, 248, 0.26) 0%, transparent 70%),
+    radial-gradient(42% 40% at 88% 16%, rgba(56, 189, 248, 0.22) 0%, transparent 72%),
+    radial-gradient(50% 46% at 72% 92%, rgba(196, 181, 253, 0.20) 0%, transparent 74%),
+    radial-gradient(36% 32% at 24% 88%, rgba(165, 243, 252, 0.16) 0%, transparent 70%);
+  filter: blur(48px);
 }
 
-[data-theme='light'] .ambient-glow-bg {
+[data-theme='dark'] .ambient-glow-bg {
   background:
-    repeating-linear-gradient(
-      0deg,
-      rgba(22, 101, 52, 0.03) 0px,
-      rgba(22, 101, 52, 0.03) 1px,
-      transparent 1px,
-      transparent 3px
-    );
+    radial-gradient(38% 34% at 12% 8%, rgba(99, 102, 241, 0.20) 0%, transparent 70%),
+    radial-gradient(42% 40% at 88% 16%, rgba(14, 165, 233, 0.16) 0%, transparent 72%),
+    radial-gradient(50% 46% at 72% 92%, rgba(139, 92, 246, 0.14) 0%, transparent 74%),
+    radial-gradient(36% 32% at 24% 88%, rgba(34, 211, 238, 0.10) 0%, transparent 70%);
+  filter: blur(56px);
 }
 
-/* Terminal panel — flat, hairline rule, no glass */
+/* Liquid glass card — frosted translucent panel */
 .spatial-card {
-  background-color: var(--color-paper-2) !important;
-  border: 1px solid var(--color-border) !important;
-  box-shadow: none !important;
+  background: var(--color-paper-glass) !important;
+  backdrop-filter: var(--backdrop-blur) !important;
+  -webkit-backdrop-filter: var(--backdrop-blur) !important;
+  border: 1px solid var(--glass-border-light) !important;
+  box-shadow: var(--shadow-card) !important;
   border-radius: var(--radius-sm) !important;
-  transition: border-color var(--dur-base) var(--ease-out) !important;
+  transition: border-color var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out) !important;
 }
 
 .spatial-card:hover {
   border-color: var(--color-border-strong) !important;
+  box-shadow: var(--shadow-glass) !important;
 }
 
-/* Interactive Bevel Button */
+/* Glass Action Button */
 .bevel-button {
-  font-family: var(--font-display) !important;
+  font-family: var(--font-body) !important;
   font-weight: 600 !important;
   letter-spacing: -0.01em !important;
-  border-radius: var(--radius-sm) !important;
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.2), inset 0 -1px 0 0 rgba(0, 0, 0, 0.25) !important;
-  transition: transform var(--dur-fast) var(--ease-out), filter var(--dur-fast) var(--ease-out) !important;
+  border-radius: var(--radius-xs) !important;
+  box-shadow: var(--glass-highlight) !important;
+  transition: transform var(--dur-fast) var(--ease-out), filter var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out) !important;
+}
+
+.bevel-button:hover {
+  box-shadow: var(--glass-highlight), 0 8px 24px -8px rgba(79, 70, 229, 0.28) !important;
 }
 
 .bevel-button:active {
@@ -98,7 +100,7 @@ html, body {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-paper);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -126,17 +128,14 @@ textarea:focus-visible,
   outline: none !important;
 }
 
-/* Terminal dialog — flat panel, hairline border */
+/* Liquid glass dialog — frosted panel over blurred backdrop */
 .liquid-glass-dialog {
-  background: var(--color-paper-2) !important;
-  border: 1px solid var(--color-border-strong) !important;
-  box-shadow: 0 24px 64px -12px rgba(0, 0, 0, 0.6) !important;
-  border-radius: var(--radius-sm) !important;
-}
-
-[data-theme='light'] .liquid-glass-dialog {
-  background: var(--color-paper) !important;
-  box-shadow: 0 24px 50px -10px rgba(15, 23, 42, 0.18) !important;
+  background: var(--color-paper-glass-strong) !important;
+  backdrop-filter: var(--backdrop-blur) !important;
+  -webkit-backdrop-filter: var(--backdrop-blur) !important;
+  border: 1px solid var(--glass-border-light) !important;
+  box-shadow: var(--shadow-glass) !important;
+  border-radius: var(--radius-md) !important;
 }
 
 /* Reduced Motion Override */

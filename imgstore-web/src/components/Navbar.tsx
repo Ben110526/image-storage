@@ -83,12 +83,76 @@ export const Navbar: React.FC<NavbarProps> = ({
     await logout();
   };
 
+  // Shared terminal tab strip. Rendered inline on sm+; moved to its own
+  // toolbar row on xs so the navbar never overflows 320–414 px.
+  const navStrip = (
+    <Box
+      component="nav"
+      aria-label="Pages"
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 0.25,
+        ml: { xs: 1, sm: 2.5 },
+        pl: { xs: 1, sm: 2.5 },
+        borderLeft: '1px solid',
+        borderColor: 'divider',
+      }}
+    >
+      {NAV_ITEMS.map(item => {
+        const active = route === item.route;
+        return (
+          <Tooltip key={item.route} title={item.hint}>
+            <Box
+              component="button"
+              onClick={() => {
+                haptics.playTick();
+                onNavigate(item.route);
+              }}
+              aria-current={active ? 'page' : undefined}
+              sx={{
+                border: 'none',
+                borderRadius: 1,
+                px: { xs: 0.9, sm: 1.4 },
+                py: 0.55,
+                cursor: 'pointer',
+                fontFamily: 'var(--font-body)',
+                fontSize: '0.8rem',
+                fontWeight: active ? 700 : 500,
+                whiteSpace: 'nowrap',
+                color: active
+                  ? 'var(--color-accent)'
+                  : theme.palette.text.secondary,
+                backgroundColor: active
+                  ? 'var(--color-accent-subtle)'
+                  : 'transparent',
+                boxShadow: active ? 'inset 0 -2px 0 0 var(--color-accent)' : 'none',
+                transition: 'background-color 150ms, color 150ms',
+                '&:hover': {
+                  color: theme.palette.text.primary,
+                  backgroundColor:
+                    colorMode === 'dark'
+                      ? 'rgba(255, 255, 255, 0.06)'
+                      : 'rgba(0, 0, 0, 0.05)',
+                },
+              }}
+            >
+              ./{item.label}
+            </Box>
+          </Tooltip>
+        );
+      })}
+    </Box>
+  );
+
   return (
     <AppBar
       position="sticky"
       elevation={0}
       sx={{
-        backgroundColor: theme.palette.background.default,
+        backgroundColor: 'var(--color-paper-glass-strong)',
+        backdropFilter: 'var(--backdrop-blur)',
+        WebkitBackdropFilter: 'var(--backdrop-blur)',
         borderBottom: `1px solid ${theme.palette.divider}`,
         color: theme.palette.text.primary,
         zIndex: 1100,
@@ -120,7 +184,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <Typography
                   variant="h6"
                   sx={{
-                    fontFamily: 'JetBrains Mono, monospace',
+                    fontFamily: 'var(--font-body)',
                     fontWeight: 700,
                     fontSize: '1.25rem',
                     letterSpacing: '-0.02em',
@@ -134,7 +198,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 variant="caption"
                 sx={{
                   color: 'text.secondary',
-                  fontFamily: 'JetBrains Mono, monospace',
+                  fontFamily: 'var(--font-body)',
                   fontSize: '0.72rem',
                   display: { xs: 'none', sm: 'block' },
                 }}
@@ -143,70 +207,23 @@ export const Navbar: React.FC<NavbarProps> = ({
               </Typography>
             </Box>
 
-            {/* Primary page nav — terminal tab strip */}
+            {/* Primary page nav — terminal tab strip (inline md+) */}
             <Box
-              component="nav"
-              aria-label="Pages"
               sx={{
-                display: 'flex',
+                display: { xs: 'none', md: 'flex' },
                 alignItems: 'center',
-                gap: 0.25,
-                ml: { xs: 1, sm: 2.5 },
-                pl: { xs: 1, sm: 2.5 },
+                ml: 2.5,
+                pl: 2.5,
                 borderLeft: '1px solid',
                 borderColor: 'divider',
               }}
             >
-              {NAV_ITEMS.map(item => {
-                const active = route === item.route;
-                return (
-                  <Tooltip key={item.route} title={item.hint}>
-                    <Box
-                      component="button"
-                      onClick={() => {
-                        haptics.playTick();
-                        onNavigate(item.route);
-                      }}
-                      aria-current={active ? 'page' : undefined}
-                      sx={{
-                        border: 'none',
-                        borderRadius: 1,
-                        px: { xs: 0.9, sm: 1.4 },
-                        py: 0.55,
-                        cursor: 'pointer',
-                        fontFamily: 'JetBrains Mono, monospace',
-                        fontSize: '0.8rem',
-                        fontWeight: active ? 700 : 500,
-                        whiteSpace: 'nowrap',
-                        color: active
-                          ? '#10b981'
-                          : theme.palette.text.secondary,
-                        backgroundColor: active
-                          ? colorMode === 'dark'
-                            ? 'rgba(16, 185, 129, 0.12)'
-                            : 'rgba(5, 150, 105, 0.1)'
-                          : 'transparent',
-                        boxShadow: active ? 'inset 0 -2px 0 0 #10b981' : 'none',
-                        transition: 'background-color 150ms, color 150ms',
-                        '&:hover': {
-                          color: theme.palette.text.primary,
-                          backgroundColor:
-                            colorMode === 'dark'
-                              ? 'rgba(255, 255, 255, 0.06)'
-                              : 'rgba(0, 0, 0, 0.05)',
-                        },
-                      }}
-                    >
-                      ./{item.label}
-                    </Box>
-                  </Tooltip>
-                );
-              })}
+              {navStrip}
             </Box>
           </Box>
 
           {/* Action icons, API Key & Status */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 1 } }}>
             {/* Health Status Beacon */}
             {!healthLoading && !isError && health && (
               <Tooltip title="Service Operational & Ready">
@@ -215,7 +232,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <HealthyIcon
                       sx={{
                         fontSize: '14px !important',
-                        color: '#10b981 !important',
+                        color: 'var(--color-success) !important',
                       }}
                     />
                   }
@@ -226,9 +243,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                     display: { xs: 'none', lg: 'inline-flex' },
                     height: 26,
                     fontSize: '0.75rem',
-                    fontFamily: 'JetBrains Mono, monospace',
-                    borderColor: 'rgba(16, 185, 129, 0.4)',
-                    color: '#10b981',
+                    fontFamily: 'var(--font-body)',
+                    borderColor: 'color-mix(in srgb, var(--color-success) 40%, transparent)',
+                    color: 'var(--color-success)',
                   }}
                 />
               </Tooltip>
@@ -246,7 +263,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     display: { xs: 'none', lg: 'inline-flex' },
                     height: 26,
                     fontSize: '0.75rem',
-                    fontFamily: 'JetBrains Mono, monospace',
+                    fontFamily: 'var(--font-body)',
                   }}
                 />
               </Tooltip>
@@ -262,14 +279,21 @@ export const Navbar: React.FC<NavbarProps> = ({
                   showApiKeyDialog();
                 }}
                 disabled={authLoading}
+                aria-label="Connect with API key"
                 startIcon={<span aria-hidden="true">⌘</span>}
                 sx={{
                   textTransform: 'none',
                   fontWeight: 600,
                   borderRadius: 2,
-                  px: 1.75,
+                  px: { xs: 1.1, sm: 1.75 },
                   py: 0.6,
                   fontSize: '0.82rem',
+                  whiteSpace: 'nowrap',
+                  minWidth: 0,
+                  '& .MuiButton-startIcon': {
+                    mx: { xs: 0, sm: 0.5 },
+                    ml: { xs: 0, sm: -0.5 },
+                  },
                   borderColor: colorMode === 'dark' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)',
                   color: 'text.primary',
                   backgroundColor:
@@ -277,11 +301,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                   '&:hover': {
                     backgroundColor:
                       colorMode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
-                    borderColor: '#34d399',
+                    borderColor: 'var(--color-accent)',
                   },
                 }}
               >
-                Connect with API key
+                <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+                  Connect with API key
+                </Box>
               </Button>
             ) : (
               <>
@@ -300,7 +326,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     backgroundColor:
                       colorMode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
                     '&:hover': {
-                      borderColor: '#34d399',
+                      borderColor: 'var(--color-accent)',
                       backgroundColor:
                         colorMode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
                     },
@@ -309,7 +335,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <Avatar
                     src={user?.picture}
                     alt={user?.name || user?.email}
-                    sx={{ width: 28, height: 28, fontSize: '0.8rem', bgcolor: '#34d399' }}
+                    sx={{ width: 28, height: 28, fontSize: '0.8rem', bgcolor: 'var(--color-accent)' }}
                   >
                     {(user?.name || user?.email || 'U').charAt(0).toUpperCase()}
                   </Avatar>
@@ -331,7 +357,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       sx={{
                         fontSize: '0.68rem',
                         color: 'text.secondary',
-                        fontFamily: 'JetBrains Mono, monospace',
+                        fontFamily: 'var(--font-body)',
                       }}
                     >
                       Storage Connected
@@ -363,19 +389,19 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <Typography variant="subtitle2" sx={{ fontWeight: 700 }} noWrap>
                       {user?.name}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontFamily: 'JetBrains Mono, monospace' }} noWrap>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontFamily: 'var(--font-body)' }} noWrap>
                       {user?.email}
                     </Typography>
                   </Box>
                   <Divider />
                   <MenuItem disabled>
                     <ListItemIcon>
-                      <FolderIcon fontSize="small" sx={{ color: '#34d399' }} />
+                      <FolderIcon fontSize="small" sx={{ color: 'var(--color-accent)' }} />
                     </ListItemIcon>
                     <ListItemText
                       primary={<Typography sx={{ fontSize: '0.85rem' }}>Storage Folder</Typography>}
                       secondary={
-                        <Typography sx={{ fontSize: '0.72rem', fontFamily: 'JetBrains Mono, monospace', color: 'text.secondary' }}>
+                        <Typography sx={{ fontSize: '0.72rem', fontFamily: 'var(--font-body)', color: 'text.secondary' }}>
                           Shared ImgStore Storage
                         </Typography>
                       }
@@ -383,12 +409,12 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </MenuItem>
                   <MenuItem disabled>
                     <ListItemIcon>
-                      <VerifiedIcon fontSize="small" sx={{ color: '#10b981' }} />
+                      <VerifiedIcon fontSize="small" sx={{ color: 'var(--color-success)' }} />
                     </ListItemIcon>
                     <ListItemText
                       primary={<Typography sx={{ fontSize: '0.85rem' }}>OAuth Scope</Typography>}
                       secondary={
-                        <Typography sx={{ fontSize: '0.72rem', fontFamily: 'JetBrains Mono, monospace', color: 'text.secondary' }}>
+                        <Typography sx={{ fontSize: '0.72rem', fontFamily: 'var(--font-body)', color: 'text.secondary' }}>
                           cloud storage (Scoped Access)
                         </Typography>
                       }
@@ -420,11 +446,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                   border: '1px solid',
                   borderColor: 'divider',
                   borderRadius: 1.5,
-                  p: 0.8,
+                  p: { xs: 0.6, sm: 0.8 },
                 }}
               >
                 {soundEnabled ? (
-                  <SoundOnIcon fontSize="small" sx={{ color: '#10b981' }} />
+                  <SoundOnIcon fontSize="small" sx={{ color: 'var(--color-success)' }} />
                 ) : (
                   <SoundOffIcon fontSize="small" color="action" />
                 )}
@@ -465,7 +491,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   border: '1px solid',
                   borderColor: 'divider',
                   borderRadius: 1.5,
-                  p: 0.8,
+                  p: { xs: 0.6, sm: 0.8 },
                 }}
               >
                 {colorMode === 'dark' ? (
@@ -489,7 +515,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   border: '1px solid',
                   borderColor: 'divider',
                   borderRadius: 1.5,
-                  p: 0.8,
+                  p: { xs: 0.6, sm: 0.8 },
                 }}
               >
                 <SettingsIcon fontSize="small" />
@@ -497,6 +523,23 @@ export const Navbar: React.FC<NavbarProps> = ({
             </Tooltip>
           </Box>
         </Toolbar>
+
+        {/* Mobile nav row — tab strip on its own line so the navbar
+            never overflows at 320–414 px (Hallmark: no h-scroll). */}
+        <Box
+          sx={{
+            display: { xs: 'flex', md: 'none' },
+            alignItems: 'center',
+            gap: 0.5,
+            px: { xs: 1, sm: 2 },
+            pb: 1,
+            overflowX: 'auto',
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, width: '100%' }}>
+            {navStrip}
+          </Box>
+        </Box>
       </Container>
     </AppBar>
   );

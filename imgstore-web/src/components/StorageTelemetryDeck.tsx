@@ -149,7 +149,7 @@ export const StorageTelemetryDeck: React.FC = () => {
                 borderColor: 'divider',
                 '& .MuiLinearProgress-bar': {
                   borderRadius: 5,
-                  background: '#34d399',
+                  background: 'var(--color-accent)',
                 },
               }}
             />
@@ -187,12 +187,9 @@ export const StorageTelemetryDeck: React.FC = () => {
                 mt: 1.5,
                 p: 1.25,
                 borderRadius: 1.5,
-                backgroundColor:
-                  theme.palette.mode === 'dark'
-                    ? 'rgba(52, 211, 153, 0.08)'
-                    : 'rgba(52, 211, 153, 0.05)',
+                backgroundColor: 'var(--color-accent-subtle)',
                 border: '1px dashed',
-                borderColor: 'rgba(52, 211, 153, 0.28)',
+                borderColor: 'color-mix(in srgb, var(--color-accent) 28%, transparent)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -235,10 +232,9 @@ export const StorageTelemetryDeck: React.FC = () => {
             sx={{
               p: { xs: 1.75, sm: 2 },
               borderRadius: 2,
-              backgroundColor:
-                theme.palette.mode === 'dark'
-                  ? 'rgba(15, 23, 42, 0.6)'
-                  : 'rgba(241, 245, 249, 0.7)',
+              backgroundColor: 'var(--color-paper-glass)',
+              backdropFilter: 'var(--backdrop-blur)',
+              WebkitBackdropFilter: 'var(--backdrop-blur)',
               border: '1px solid',
               borderColor: 'divider',
             }}
@@ -271,7 +267,7 @@ export const StorageTelemetryDeck: React.FC = () => {
                     width: 7,
                     height: 7,
                     borderRadius: '50%',
-                    backgroundColor: '#10b981',
+                    backgroundColor: 'var(--color-success)',
                     
                   }}
                 />
@@ -295,7 +291,7 @@ export const StorageTelemetryDeck: React.FC = () => {
                   Delivery
                 </Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.2 }}>
-                  <TimerIcon sx={{ fontSize: 13, color: '#34d399' }} />
+                  <TimerIcon sx={{ fontSize: 13, color: 'var(--color-accent)' }} />
                   <Typography
                     variant="body2"
                     sx={{ fontFamily: 'JetBrains Mono, monospace', fontWeight: 600 }}
@@ -313,7 +309,7 @@ export const StorageTelemetryDeck: React.FC = () => {
                   Cache Retention
                 </Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.2 }}>
-                  <SyncIcon sx={{ fontSize: 13, color: '#10b981' }} />
+                  <SyncIcon sx={{ fontSize: 13, color: 'var(--color-success)' }} />
                   <Typography
                     variant="body2"
                     sx={{ fontFamily: 'JetBrains Mono, monospace', fontWeight: 600 }}
@@ -346,13 +342,13 @@ export const StorageTelemetryDeck: React.FC = () => {
                   Streaming
                 </Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.2 }}>
-                  <BoltIcon sx={{ fontSize: 13, color: '#10b981' }} />
+                  <BoltIcon sx={{ fontSize: 13, color: 'var(--color-success)' }} />
                   <Typography
                     variant="caption"
                     sx={{
                       fontFamily: 'JetBrains Mono, monospace',
                       fontWeight: 600,
-                      color: '#10b981',
+                      color: 'var(--color-success)',
                     }}
                   >
                     Direct CDN Link

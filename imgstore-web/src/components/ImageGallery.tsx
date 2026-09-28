@@ -11,7 +11,6 @@ import {
   IconButton,
   Tooltip,
   Paper,
-  useTheme,
   Chip,
 } from '@mui/material';
 import {
@@ -36,7 +35,6 @@ interface ImageGalleryProps {
 }
 
 export const ImageGallery: React.FC<ImageGalleryProps> = ({ folderId, folderLabel }) => {
-  const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -137,7 +135,7 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({ folderId, folderLabe
           <Typography
             variant="h5"
             sx={{
-              fontFamily: 'JetBrains Mono, monospace',
+              fontFamily: 'var(--font-body)',
               fontWeight: 700,
               letterSpacing: '-0.02em',
             }}
@@ -152,10 +150,7 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({ folderId, folderLabe
                 fontFamily: 'JetBrains Mono, monospace',
                 fontSize: '0.72rem',
                 fontWeight: 600,
-                backgroundColor:
-                  theme.palette.mode === 'dark'
-                    ? 'rgba(255, 255, 255, 0.06)'
-                    : 'rgba(0, 0, 0, 0.05)',
+                backgroundColor: 'var(--color-paper-glass)',
               }}
             />
           )}
@@ -179,10 +174,9 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({ folderId, folderLabe
                   sx: {
                     borderRadius: 2,
                     fontSize: '0.875rem',
-                    backgroundColor:
-                      theme.palette.mode === 'dark'
-                        ? 'rgba(15, 23, 42, 0.5)'
-                        : '#ffffff',
+                    backgroundColor: 'var(--color-paper-glass-strong)',
+                    backdropFilter: 'var(--backdrop-blur)',
+                    WebkitBackdropFilter: 'var(--backdrop-blur)',
                   },
                   startAdornment: (
                     <InputAdornment position="start">
@@ -264,8 +258,7 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({ folderId, folderLabe
               display: 'inline-flex',
               p: 3,
               borderRadius: '50%',
-              backgroundColor:
-                theme.palette.mode === 'dark' ? 'rgba(52, 211, 153, 0.1)' : 'rgba(52, 211, 153, 0.08)',
+              backgroundColor: 'var(--color-accent-subtle)',
               color: 'primary.main',
               mb: 2,
             }}
@@ -274,7 +267,7 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({ folderId, folderLabe
           </Box>
           <Typography
             variant="h6"
-            sx={{ fontFamily: 'JetBrains Mono, monospace', fontWeight: 700, mb: 1 }}
+            sx={{ fontFamily: 'var(--font-body)', fontWeight: 700, mb: 1 }}
           >
             {activeSearch ? 'No images found' : 'Media library is empty'}
           </Typography>
