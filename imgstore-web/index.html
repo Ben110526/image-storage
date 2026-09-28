@@ -14,6 +14,29 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- Liquid glass refraction: feTurbulence noise + feDisplacementMap bends the
+         backdrop at the glass edges. Referenced from CSS as url(#glass-refraction);
+         browsers without backdrop-filter url() support (Safari/Firefox) ignore it
+         and keep the frosted pane. -->
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true" focusable="false">
+      <filter id="glass-refraction" x="0%" y="0%" width="100%" height="100%">
+        <feTurbulence
+          type="fractalNoise"
+          baseFrequency="0.012 0.012"
+          numOctaves="2"
+          seed="7"
+          result="noise"
+        />
+        <feGaussianBlur in="noise" stdDeviation="1.5" result="blurredNoise" />
+        <feDisplacementMap
+          in="SourceGraphic"
+          in2="blurredNoise"
+          scale="14"
+          xChannelSelector="R"
+          yChannelSelector="G"
+        />
+      </filter>
+    </svg>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

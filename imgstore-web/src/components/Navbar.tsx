@@ -149,14 +149,28 @@ export const Navbar: React.FC<NavbarProps> = ({
     <AppBar
       position="sticky"
       elevation={0}
+      className="navbar-glass"
       sx={{
-        backgroundColor: 'var(--color-paper-glass-strong)',
-        backdropFilter: 'var(--backdrop-blur)',
-        WebkitBackdropFilter: 'var(--backdrop-blur)',
-        borderBottom: `1px solid ${theme.palette.divider}`,
+        position: 'relative',
+        isolation: 'isolate',
+        backgroundColor: 'var(--color-paper-glass)',
+        backdropFilter: 'blur(16px) saturate(165%)',
+        WebkitBackdropFilter: 'blur(16px) saturate(165%)',
+        borderBottom: '1px solid',
+        borderColor: 'var(--color-border-glass)',
+        // Refractive rim: lit top edge, softer bottom — reads as a thick pane.
+        boxShadow:
+          'inset 0 1px 1px 0 rgba(255,255,255,0.55), inset 0 -1px 1px 0 rgba(255,255,255,0.20), 0 12px 32px -12px rgba(15,23,42,0.10)',
         color: theme.palette.text.primary,
         zIndex: 1100,
-        boxShadow: 'none',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          inset: 0,
+          pointerEvents: 'none',
+          background: 'var(--glass-sheen)',
+          mixBlendMode: 'screen',
+        },
       }}
     >
       <Container maxWidth="xl" disableGutters sx={{ px: { xs: 1.5, sm: 3, md: 4 } }}>

@@ -151,3 +151,28 @@ Link phải trỏ tới dữ liệu công khai. Không bảo đảm import đư�
 - API: `f1504e95-d3e8-4a44-8f3d-ebc7478bc0fd` — https://imgstore-api.xlabaryai.workers.dev (không đổi API lần này)
 - Web: **Version ID `6ca15481-9064-49ce-add3-9c735c4f7c47`** — https://imgstore-web.xlabaryai.workers.dev
 - Bundle: `/assets/index-DYEOlEif.js` (~803 KB, gzip ~244 KB) + `/assets/index-CEurAAZv.css`.
+
+## Liquid Glass redo: refraction thật cho card + navbar — 28/09/2026
+
+Sau khi user nhận xét giao diện "chưa glass lắm" (tham khảo ảnh Liquid Glass của Apple), rà soát theo web và **làm lại hiệu ứng cho đúng 4 lớp** của Liquid Glass thật thay vì chỉ frosted blur.
+
+### Đã làm
+
+- **Cốt lõi Liquid Glass thật** (tổng hợp từ hướng dẫn glassmorphism của Apple/Figrdesign): (1) **tint thấp** rgba 15–30% để backdrop xuyên qua (không phải card mờ đục); (2) **refractive rim** = inset box-shadow, highlight top mạnh `inset 0 1px 1px 0 rgba(255,255,255,0.55)` (đọc như "tấm kính dày"); (3) **gloss sheen** `::before` gradient 135° + `mix-blend-mode: screen` (bề mặt bóng, không phẳng plastic); (4) **refraction thật** qua SVG `feTurbulence` + `feDisplacementMap` dùng `backdrop-filter: url(#glass-refraction)` — backdrop bị bẻ cong tại mép kính.
+- `tokens.css`: bổ sung `--glass-rim` (4 hướng inset highlight), `--glass-sheen` (diagonal gloss), `--shadow-card` = drop mềm + rim; tint glass light hạ xuống `rgba(255,255,255,0.24)` để blobs nền hiện rõ qua pane. Dark: rim/sheen dịu tương ứng.
+- `src/index.css`: `.spatial-card`/`.glass-surface` gộp đủ tint thấp + blur 16px saturate 165% + border glass + `--shadow-card` + sheen screen; thêm block `@supports (backdrop-filter: url(#glass-refraction))` để Chromium chạy refraction thật, Safari/Firefox giữ frosted pane (không regression).
+- `src/components/Navbar.tsx`: thêm `className="navbar-glass"` trên AppBar — vì MUI sx inline không thể đặt trong `@supports`, class này cho block refraction riêng trong index.css re-apply `backdrop-filter: blur(16px) url(#glass-refraction) saturate(165%)` lên thanh navigation. Giữ rim + sheen trên navbar.
+- `index.html`: SVG filter `#glass-refraction` đã có sẵn, giữ nguyên (feTurbulence fractalNoise 0.012, numOctaves 2, blur 1.5, displacement scale 14).
+
+### Kiểm chứng
+
+- **Verify computed styles bằng Playwright** trên dev server: `supports: true`; `navBF` và `cardBF` đều = `blur(16px) url("#glass-refraction") saturate(1.65)` — cả card ảnh lẫn navigation đều chạy refraction thật, không còn chỉ frosted blur.
+- Screenshot 1280×720 (`/tmp/imgstore-shots/nav-refraction-final-*.png`): navbar rim sáng + gloss sheen rõ, dropzone + card glass hiện qua ambient indigo/sky blobs, tint thấp cho backdrop xuyên qua — đọc kết quả đạt chuẩn Liquid Glass.
+- `npm run build`: đạt (tsc -b + vite build, 11785 modules). `npm run lint`: không lỗi, chỉ 5 cảnh báo React có sẵn ngoài phần sửa.
+- Deploy lên production thành công; verify HTTP 200 cho `/` và bundle/CSS mới trên domain.
+
+### Phiên bản hiện tại (sau redo)
+
+- API: `f1504e95-d3e8-4a44-8f3d-ebc7478bc0fd` — https://imgstore-api.xlabaryai.workers.dev (không đổi API lần này)
+- Web: **Version ID `b2b06fa0-ca17-4bf1-a332-09d27e5a6483`** — https://imgstore-web.xlabaryai.workers.dev
+- Bundle: `/assets/index-Dnf3phig.js` (~804 KB, gzip ~244 KB) + `/assets/index-ClM-pt7m.css` (9.82 KB).

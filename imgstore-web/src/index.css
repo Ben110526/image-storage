@@ -26,44 +26,119 @@ html, body {
 }
 
 /* Hallmark · theme: Liquid Glass — soft neutral pastel light source instead of scanlines.
- * Frosted glass needs a lively backdrop behind it, so the "glow" becomes a trio of
- * blurred pastel blobs (indigo / sky / soft violet) at low opacity. */
+ * Frosted glass only reads as "glass" when the backdrop behind it is lively —
+ * so the glow is a trio of clearly-visible blurred pastel blobs (indigo / sky /
+ * soft violet). The panes then refract + blur these blobs through their surface. */
 .ambient-glow-bg {
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 0;
   background:
-    radial-gradient(38% 34% at 12% 8%, rgba(129, 140, 248, 0.26) 0%, transparent 70%),
-    radial-gradient(42% 40% at 88% 16%, rgba(56, 189, 248, 0.22) 0%, transparent 72%),
-    radial-gradient(50% 46% at 72% 92%, rgba(196, 181, 253, 0.20) 0%, transparent 74%),
-    radial-gradient(36% 32% at 24% 88%, rgba(165, 243, 252, 0.16) 0%, transparent 70%);
-  filter: blur(48px);
+    radial-gradient(44% 38% at 10% 6%, rgba(129, 140, 248, 0.55) 0%, transparent 72%),
+    radial-gradient(50% 46% at 90% 12%, rgba(56, 189, 248, 0.45) 0%, transparent 74%),
+    radial-gradient(56% 52% at 74% 94%, rgba(196, 181, 253, 0.42) 0%, transparent 76%),
+    radial-gradient(40% 36% at 20% 90%, rgba(165, 243, 252, 0.34) 0%, transparent 72%),
+    linear-gradient(160deg, rgba(255, 255, 255, 0.35) 0%, transparent 45%, rgba(255, 255, 255, 0.2) 100%);
+  filter: blur(40px);
 }
 
 [data-theme='dark'] .ambient-glow-bg {
   background:
-    radial-gradient(38% 34% at 12% 8%, rgba(99, 102, 241, 0.20) 0%, transparent 70%),
-    radial-gradient(42% 40% at 88% 16%, rgba(14, 165, 233, 0.16) 0%, transparent 72%),
-    radial-gradient(50% 46% at 72% 92%, rgba(139, 92, 246, 0.14) 0%, transparent 74%),
-    radial-gradient(36% 32% at 24% 88%, rgba(34, 211, 238, 0.10) 0%, transparent 70%);
-  filter: blur(56px);
+    radial-gradient(44% 38% at 10% 6%, rgba(99, 102, 241, 0.40) 0%, transparent 72%),
+    radial-gradient(50% 46% at 90% 12%, rgba(14, 165, 233, 0.32) 0%, transparent 74%),
+    radial-gradient(56% 52% at 74% 94%, rgba(139, 92, 246, 0.30) 0%, transparent 76%),
+    radial-gradient(40% 36% at 20% 90%, rgba(34, 211, 238, 0.22) 0%, transparent 72%);
+  filter: blur(48px);
 }
 
-/* Liquid glass card — frosted translucent panel */
-.spatial-card {
+/* Liquid glass surface — the "thick pane": low-tint frosted backdrop,
+ * refractive rim (strong top highlight + softer edges) and a diagonal gloss
+ * sheen. Refraction of the backdrop is handled by the SVG displacement filter
+ * in index.html when the browser supports backdrop-filter: url() (Chromium);
+ * Safari/Firefox fall back to the same frosted pane — still quality glass. */
+.glass-surface {
+  position: relative;
+  isolation: isolate;
   background: var(--color-paper-glass) !important;
-  backdrop-filter: var(--backdrop-blur) !important;
-  -webkit-backdrop-filter: var(--backdrop-blur) !important;
-  border: 1px solid var(--glass-border-light) !important;
+  backdrop-filter: blur(16px) saturate(165%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(165%) !important;
+  border: 1px solid var(--color-border-glass) !important;
+  box-shadow: var(--shadow-card) !important;
+  border-radius: var(--radius-sm) !important;
+  transition: border-color var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out) !important;
+}
+
+/* Refraction layer (Chromium): bends the backdrop at the glass edges. */
+.glass-surface.refract {
+  backdrop-filter: blur(16px) url(#glass-refraction) saturate(165%) brightness(1.02) !important;
+  -webkit-backdrop-filter: blur(16px) url(#glass-refraction) saturate(165%) brightness(1.02) !important;
+}
+
+.glass-surface::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--glass-sheen);
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+.glass-surface:hover {
+  border-color: var(--glass-border-light) !important;
+  box-shadow: var(--shadow-glass) !important;
+}
+
+/* Frosted panel used by cards, dialogs, telemetry deck, search — same recipe.
+ * Low-tint pane + refractive rim (from --shadow-card) + gloss sheen. */
+.spatial-card {
+  position: relative;
+  isolation: isolate;
+  background: var(--color-paper-glass) !important;
+  backdrop-filter: blur(16px) saturate(165%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(165%) !important;
+  border: 1px solid var(--color-border-glass) !important;
   box-shadow: var(--shadow-card) !important;
   border-radius: var(--radius-sm) !important;
   transition: border-color var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out) !important;
 }
 
+.spatial-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--glass-sheen);
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
 .spatial-card:hover {
-  border-color: var(--color-border-strong) !important;
+  border-color: var(--glass-border-light) !important;
   box-shadow: var(--shadow-glass) !important;
+}
+
+/* Chromium-only: real refraction — the backdrop bends at the glass edges via
+ * the SVG feDisplacementMap in index.html. Safari/Firefox ignore the url()
+ * value and keep the frosted pane (same tint/rim/sheen, just no lensing). */
+@supports (backdrop-filter: url(#glass-refraction)) {
+  .spatial-card,
+  .glass-surface {
+    backdrop-filter: blur(16px) url(#glass-refraction) saturate(165%) !important;
+    -webkit-backdrop-filter: blur(16px) url(#glass-refraction) saturate(165%) !important;
+  }
+}
+
+/* Chromium-only: upgrade the navbar from frosted blur to a real refractive
+ * lens too. The AppBar applies blur+saturate inline via MUI sx (which can't
+ * live inside @supports), so it carries a class that this block re-applies
+ * with url(). Non-supporting browsers keep the frosted pane — no regression. */
+@supports (backdrop-filter: url(#glass-refraction)) {
+  .navbar-glass {
+    backdrop-filter: blur(16px) url(#glass-refraction) saturate(165%) !important;
+    -webkit-backdrop-filter: blur(16px) url(#glass-refraction) saturate(165%) !important;
+  }
 }
 
 /* Glass Action Button */
@@ -131,9 +206,9 @@ textarea:focus-visible,
 /* Liquid glass dialog — frosted panel over blurred backdrop */
 .liquid-glass-dialog {
   background: var(--color-paper-glass-strong) !important;
-  backdrop-filter: var(--backdrop-blur) !important;
-  -webkit-backdrop-filter: var(--backdrop-blur) !important;
-  border: 1px solid var(--glass-border-light) !important;
+  backdrop-filter: blur(16px) saturate(165%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(165%) !important;
+  border: 1px solid var(--color-border-glass) !important;
   box-shadow: var(--shadow-glass) !important;
   border-radius: var(--radius-md) !important;
 }

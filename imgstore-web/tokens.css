@@ -49,19 +49,29 @@
   --dur-base: 220ms;
   --dur-slow: 350ms;
 
-  /* Glass recipe */
-  --glass-blur: 20px;
-  --glass-saturate: 160%;
-  --glass-border-light: rgba(255, 255, 255, 0.6);
+  /* Glass recipe — Liquid Glass: low-tint frosted pane + refractive rim + gloss */
+  --glass-blur: 16px;
+  --glass-saturate: 165%;
+  --glass-border-light: rgba(255, 255, 255, 0.8);
   --glass-highlight: inset 0 1px 0 0 rgba(255, 255, 255, 0.7);
+  /* Refractive rim — strong top highlight, softer bottom/sides (the "thick pane" cue) */
+  --glass-rim:
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -1px 1px 0 rgba(255, 255, 255, 0.20),
+    inset 1px 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset -1px 0 1px 0 rgba(255, 255, 255, 0.28);
+  /* Diagonal gloss sheen laid over the tint so the surface reads as shiny */
+  --glass-sheen: linear-gradient(135deg, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.10) 32%, transparent 58%);
 
-  /* Light Theme (Liquid Glass, neutral slate + indigo) — Default */
+  /* Light Theme (Liquid Glass, neutral slate + indigo) — Default.
+     Tint is intentionally LOW so the ambient backdrop shows through the pane —
+     a flat opaque card reads as plastic, not glass. */
   --color-paper: oklch(97.5% 0.010 240);
   --color-paper-2: oklch(94.5% 0.015 240);
   --color-paper-3: oklch(90.5% 0.020 240);
-  --color-paper-glass: rgba(255, 255, 255, 0.55);
-  --color-paper-glass-strong: rgba(255, 255, 255, 0.72);
-  --color-paper-elevated: rgba(255, 255, 255, 0.85);
+  --color-paper-glass: rgba(255, 255, 255, 0.24);
+  --color-paper-glass-strong: rgba(255, 255, 255, 0.42);
+  --color-paper-elevated: rgba(255, 255, 255, 0.6);
 
   --color-ink: oklch(22.0% 0.025 255);
   --color-ink-2: oklch(42.0% 0.028 255);
@@ -80,6 +90,8 @@
   --color-border: rgba(15, 23, 42, 0.10);
   --color-border-subtle: rgba(15, 23, 42, 0.06);
   --color-border-strong: rgba(15, 23, 42, 0.18);
+  --color-border-glass: rgba(255, 255, 255, 0.55);
+  --color-ink-mix: rgba(15, 23, 42, 0.18);
   --color-focus: oklch(55.0% 0.200 265);
 
   /* Type-tinted media accents (neutral pastel, light mode) */
@@ -100,11 +112,17 @@
   --color-code-destructive: oklch(55.0% 0.200 25);
   --color-code-success: oklch(55.0% 0.150 150);
 
-  /* Frosted glass shadows — soft, neutral */
-  --shadow-card: 0 8px 32px -12px rgba(15, 23, 42, 0.12);
-  --shadow-glass: 0 4px 24px rgba(15, 23, 42, 0.06), inset 0 1px 0 0 rgba(255, 255, 255, 0.7);
+  /* Frosted glass shadows — soft drop + refractive rim inset */
+  --shadow-card:
+    0 18px 40px -14px rgba(15, 23, 42, 0.18),
+    var(--glass-rim);
+  --shadow-glass:
+    0 10px 36px -12px rgba(15, 23, 42, 0.16),
+    var(--glass-rim);
   --shadow-specular: var(--shadow-glass);
-  --shadow-specular-accent: 0 12px 32px -10px rgba(79, 70, 229, 0.28), inset 0 1px 0 0 rgba(255, 255, 255, 0.7);
+  --shadow-specular-accent:
+    0 14px 40px -12px rgba(79, 70, 229, 0.30),
+    var(--glass-rim);
   --backdrop-blur: blur(var(--glass-blur)) saturate(var(--glass-saturate));
 }
 
@@ -113,9 +131,9 @@
   --color-paper: oklch(16.0% 0.018 255);
   --color-paper-2: oklch(20.0% 0.020 255);
   --color-paper-3: oklch(26.0% 0.022 255);
-  --color-paper-glass: rgba(30, 41, 59, 0.5);
-  --color-paper-glass-strong: rgba(51, 65, 85, 0.6);
-  --color-paper-elevated: rgba(71, 85, 105, 0.5);
+  --color-paper-glass: rgba(30, 41, 59, 0.24);
+  --color-paper-glass-strong: rgba(30, 41, 59, 0.40);
+  --color-paper-elevated: rgba(51, 65, 85, 0.5);
 
   --color-ink: oklch(93.0% 0.012 255);
   --color-ink-2: oklch(75.0% 0.020 255);
@@ -134,10 +152,19 @@
   --color-border: rgba(148, 163, 184, 0.16);
   --color-border-subtle: rgba(148, 163, 184, 0.08);
   --color-border-strong: rgba(148, 163, 184, 0.30);
+  --color-border-glass: rgba(255, 255, 255, 0.12);
+  --color-ink-mix: rgba(148, 163, 184, 0.22);
   --color-focus: oklch(72.0% 0.160 265);
 
-  --glass-border-light: rgba(255, 255, 255, 0.12);
+  --glass-border-light: rgba(255, 255, 255, 0.16);
   --glass-highlight: inset 0 1px 0 0 rgba(255, 255, 255, 0.10);
+  /* Dark rim — top lit, sides/bottom softer */
+  --glass-rim:
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -1px 1px 0 rgba(255, 255, 255, 0.06),
+    inset 1px 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset -1px 0 1px 0 rgba(255, 255, 255, 0.08);
+  --glass-sheen: linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.04) 32%, transparent 58%);
 
   --color-type-video: oklch(70.0% 0.130 275);
   --color-type-video-subtle: color-mix(in srgb, var(--color-type-video) 18%, var(--color-paper-2));
@@ -156,9 +183,15 @@
   --color-code-destructive: oklch(72.0% 0.180 25);
   --color-code-success: oklch(72.0% 0.140 150);
 
-  --shadow-card: 0 16px 40px -14px rgba(0, 0, 0, 0.55);
-  --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.35), inset 0 1px 0 0 rgba(255, 255, 255, 0.10);
+  --shadow-card:
+    0 24px 56px -16px rgba(0, 0, 0, 0.55),
+    var(--glass-rim);
+  --shadow-glass:
+    0 16px 40px -14px rgba(0, 0, 0, 0.45),
+    var(--glass-rim);
   --shadow-specular: var(--shadow-glass);
-  --shadow-specular-accent: 0 14px 40px -12px rgba(129, 140, 248, 0.35), inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
-  --backdrop-blur: blur(var(--glass-blur)) saturate(150%);
+  --shadow-specular-accent:
+    0 16px 44px -14px rgba(129, 140, 248, 0.35),
+    var(--glass-rim);
+  --backdrop-blur: blur(var(--glass-blur)) saturate(155%);
 }
