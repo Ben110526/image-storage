@@ -53,8 +53,10 @@
   /* Glass recipe — Liquid Glass: LOW blur, LOW tint, bright Fresnel rim.
      Apple's glass is nearly "clear": the backdrop shows through and is bent
      at the rim; legibility comes from a subtle dim/brighten layer, not frost.
-     Heavy blur = frosted plastic (the old look). */
-  --glass-blur: 9px;
+     Heavy blur = frosted plastic (the old look).
+     NOTE: tint must be strong enough that the pane has a visible "body" —
+     below ~0.25 alpha it degenerates into plain blur (the user's complaint). */
+  --glass-blur: 12px;
   --glass-saturate: 180%;
   --glass-border-light: rgba(255, 255, 255, 0.9);
   --glass-highlight: inset 0 1px 0 0 rgba(255, 255, 255, 0.85);
@@ -66,6 +68,10 @@
     inset 1.5px 0 1px 0 rgba(255, 255, 255, 0.45),
     inset -1.5px 0 1px 0 rgba(255, 255, 255, 0.45),
     inset 0 0 0 0.5px rgba(255, 255, 255, 0.25);
+  /* Glass body tint — a vertical gradient, bright at the top where light
+     enters the pane, slightly dimmer at the bottom. This is what gives the
+     pane a visible "thickness" so it reads as glass instead of bare blur. */
+  --glass-body: linear-gradient(180deg, rgba(255, 255, 255, 0.52) 0%, rgba(255, 255, 255, 0.30) 46%, rgba(255, 255, 255, 0.38) 100%);
   /* Gloss sheen — a narrow diagonal glint near the top, NOT a full-surface
      white wash (that + screen blend was what made the panes look milky). */
   --glass-sheen: linear-gradient(165deg, rgba(255, 255, 255, 0.38) 0%, rgba(255, 255, 255, 0.08) 18%, transparent 34%);
@@ -76,9 +82,10 @@
   --color-paper: oklch(97.5% 0.010 240);
   --color-paper-2: oklch(94.5% 0.015 240);
   --color-paper-3: oklch(90.5% 0.020 240);
-  /* Clear glass: barely-there tints so the ambient backdrop reads THROUGH.
+  /* Clear glass: a low base tint + the --glass-body gradient on top give the
+     pane a visible body while the ambient backdrop still reads THROUGH.
      "strong" is only for stacked surfaces (dialogs) that need more cover. */
-  --color-paper-glass: rgba(255, 255, 255, 0.14);
+  --color-paper-glass: rgba(255, 255, 255, 0.26);
   --color-paper-glass-strong: rgba(255, 255, 255, 0.36);
   --color-paper-elevated: rgba(255, 255, 255, 0.55);
 
@@ -140,8 +147,8 @@
   --color-paper: oklch(16.0% 0.018 255);
   --color-paper-2: oklch(20.0% 0.020 255);
   --color-paper-3: oklch(26.0% 0.022 255);
-  --color-paper-glass: rgba(30, 41, 59, 0.16);
-  --color-paper-glass-strong: rgba(30, 41, 59, 0.34);
+  --color-paper-glass: rgba(30, 41, 59, 0.34);
+  --color-paper-glass-strong: rgba(30, 41, 59, 0.50);
   --color-paper-elevated: rgba(51, 65, 85, 0.45);
 
   --color-ink: oklch(93.0% 0.012 255);
@@ -174,6 +181,9 @@
     inset 1.5px 0 1px 0 rgba(255, 255, 255, 0.14),
     inset -1.5px 0 1px 0 rgba(255, 255, 255, 0.14),
     inset 0 0 0 0.5px rgba(255, 255, 255, 0.08);
+  /* Dark glass body — a lighter slate sheet at the top so the pane has a
+     visible body against the dark page (a bare 0.16 tint reads as plain blur). */
+  --glass-body: linear-gradient(180deg, rgba(148, 163, 184, 0.28) 0%, rgba(100, 116, 139, 0.14) 46%, rgba(148, 163, 184, 0.18) 100%);
   --glass-sheen: linear-gradient(165deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.03) 18%, transparent 34%);
 
   --color-type-video: oklch(70.0% 0.130 275);

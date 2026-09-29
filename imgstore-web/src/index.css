@@ -41,7 +41,9 @@ html, body {
     radial-gradient(44% 40% at 22% 88%, rgba(165, 243, 252, 0.50) 0%, transparent 70%),
     radial-gradient(36% 32% at 50% 50%, rgba(224, 231, 255, 0.30) 0%, transparent 80%),
     linear-gradient(160deg, rgba(255, 255, 255, 0.40) 0%, transparent 50%, rgba(255, 255, 255, 0.22) 100%);
-  filter: blur(48px);
+  /* Lower blur = sharper edges behind the panes, so the #glass-refraction
+     displacement has detail to bend (heavy blur made refraction invisible). */
+  filter: blur(26px);
 }
 
 [data-theme='dark'] .ambient-glow-bg {
@@ -50,19 +52,19 @@ html, body {
     radial-gradient(54% 50% at 88% 10%, rgba(14,  165, 233, 0.45) 0%, transparent 72%),
     radial-gradient(60% 56% at 72% 92%, rgba(139,  92, 246, 0.42) 0%, transparent 74%),
     radial-gradient(44% 40% at 22% 88%, rgba(34,  211, 238, 0.32) 0%, transparent 70%);
-  filter: blur(56px);
+  filter: blur(32px);
 }
 
-/* Liquid glass surface — a near-clear pane: LOW blur (Apple's glass barely
- * frosts — legibility comes from the tint + rim, heavy blur reads as plastic),
- * bright Fresnel rim (strong top bezel + side catch-lights) and a narrow
- * diagonal glint near the top. Refraction of the backdrop is handled by the
- * SVG displacement filter in index.html when the browser supports
- * backdrop-filter: url() (Chromium); Safari/Firefox keep the clear pane. */
+/* Liquid glass surface — a pane with a visible body: the --glass-body vertical
+ * gradient (bright top, dimmer bottom) supplies the "thickness" of the glass,
+ * the base tint + saturate keep the backdrop reading through, and the bright
+ * Fresnel rim + diagonal glint sell the edge. Refraction of the backdrop is
+ * handled by the SVG displacement filter in index.html when the browser
+ * supports backdrop-filter: url() (Chromium); Safari/Firefox keep the pane. */
 .glass-surface {
   position: relative;
   isolation: isolate;
-  background: var(--color-paper-glass) !important;
+  background: var(--glass-body), var(--color-paper-glass) !important;
   backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)) !important;
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)) !important;
   border: 1px solid var(--color-border-glass) !important;
@@ -128,7 +130,7 @@ html, body {
 .spatial-card {
   position: relative;
   isolation: isolate;
-  background: var(--color-paper-glass) !important;
+  background: var(--glass-body), var(--color-paper-glass) !important;
   backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)) !important;
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)) !important;
   border: 1px solid var(--color-border-glass) !important;
@@ -161,7 +163,8 @@ html, body {
 }
 
 @supports (backdrop-filter: url(#glass-refraction)) {
-  .navbar-glass {
+  .navbar-glass,
+  .liquid-glass-dialog {
     backdrop-filter: blur(var(--glass-blur)) url(#glass-refraction) saturate(var(--glass-saturate)) !important;
     -webkit-backdrop-filter: blur(var(--glass-blur)) url(#glass-refraction) saturate(var(--glass-saturate)) !important;
   }
