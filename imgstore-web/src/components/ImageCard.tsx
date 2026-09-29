@@ -109,16 +109,8 @@ export const ImageCard: React.FC<ImageCardProps> = ({
         position: 'relative',
         overflow: 'hidden',
         cursor: 'pointer',
-        '&:hover .media-thumb': {
-          transform: 'scale(1.04)',
-        },
-        '&:hover': {
-          transform: 'translateY(-4px)',
-          boxShadow:
-            theme.palette.mode === 'dark'
-              ? 'inset 0 1px 0 0 rgba(255, 255, 255, 0.2), 0 16px 32px -8px rgba(0, 0, 0, 0.6) !important'
-              : 'inset 0 1px 0 0 rgba(255, 255, 255, 0.9), 0 16px 32px -8px rgba(15, 23, 42, 0.12) !important',
-        },
+        /* Hover/springy-lift + glass rim are provided by the shared
+         * .glass-surface/.spatial-card rules in index.css — no overrides here. */
       }}
       onClick={() => {
         haptics.playClick();

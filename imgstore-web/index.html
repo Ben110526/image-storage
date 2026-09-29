@@ -14,27 +14,74 @@
   </head>
   <body>
     <div id="root"></div>
-    <!-- Liquid glass refraction: feTurbulence noise + feDisplacementMap bends the
-         backdrop at the glass edges. Referenced from CSS as url(#glass-refraction);
-         browsers without backdrop-filter url() support (Safari/Firefox) ignore it
-         and keep the frosted pane. -->
+    <!--
+      Liquid Glass refraction — Apple-style lens, not noise.
+
+      Real glass is FLAT in the middle and only bends light at its curved rim.
+      The old filter used feTurbulence (random noise) which warps the whole
+      surface uniformly and reads as "grainy plastic". Instead, this filter
+      derives the displacement map from the element's OWN silhouette:
+
+        SourceAlpha → blur → slope of that blur = distance-to-edge field
+
+      so the backdrop stays untouched in the flat center and magnifies/lenses
+      toward the rim — the actual "liquid" look. The map automatically follows
+      whatever border-radius the element has (pill navbar, card, dialog).
+      Negative scale = magnifying lens (Apple direction); positive = fish-eye.
+    -->
     <svg width="0" height="0" style="position: absolute" aria-hidden="true" focusable="false">
-      <filter id="glass-refraction" x="0%" y="0%" width="100%" height="100%">
-        <feTurbulence
-          type="fractalNoise"
-          baseFrequency="0.012 0.012"
-          numOctaves="2"
-          seed="7"
-          result="noise"
-        />
-        <feGaussianBlur in="noise" stdDeviation="1.5" result="blurredNoise" />
+      <filter id="glass-refraction" x="-4%" y="-4%" width="108%" height="108%" color-interpolation-filters="sRGB">
+        <!-- 1. distance-to-edge field: alpha blurred inward from the rim.
+             This is the glass "height map" — flat center, curved rim. -->
+        <feGaussianBlur in="SourceAlpha" stdDeviation="10" result="edgeField" />
+        <feComponentTransfer in="edgeField" result="lensMap">
+          <feFuncR type="gamma" amplitude="1" exponent="0.45" offset="0" />
+          <feFuncG type="gamma" amplitude="1" exponent="0.45" offset="0" />
+          <feFuncB type="gamma" amplitude="1" exponent="0.45" offset="0" />
+        </feComponentTransfer>
+
+        <!-- 2. Refraction: lens the backdrop — flat center, magnified rim.
+             Stronger scale = the visible iOS "bulge" at the pane edges. -->
         <feDisplacementMap
           in="SourceGraphic"
-          in2="blurredNoise"
-          scale="14"
+          in2="lensMap"
+          scale="52"
           xChannelSelector="R"
           yChannelSelector="G"
+          result="refracted"
         />
+
+        <!-- 3. Chromatic aberration: R/B split ~0.7px opposite ways at the rim -->
+        <feOffset in="refracted" dx="0.7" dy="0" result="rShift" />
+        <feOffset in="refracted" dx="-0.7" dy="0" result="bShift" />
+        <feColorMatrix in="rShift" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="rChan" />
+        <feColorMatrix in="refracted" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="gChan" />
+        <feColorMatrix in="bShift" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="bChan" />
+        <feBlend in="rChan" in2="gChan" mode="screen" result="rg" />
+        <feBlend in="rg" in2="bChan" mode="screen" result="lensed" />
+
+        <!-- 4. Specular rim light: the edge field lit by a distant light from
+             top-left. This is the bright "wet" bezel of iOS 26 — a real
+             lighting computation, not a painted inset shadow. -->
+        <feSpecularLighting
+          in="edgeField"
+          surfaceScale="7"
+          specularConstant="1.1"
+          specularExponent="16"
+          lighting-color="#ffffff"
+          result="spec"
+        >
+          <feDistantLight azimuth="230" elevation="48" />
+        </feSpecularLighting>
+        <!-- keep the light only on the rim band (subtract the flat center) -->
+        <feComponentTransfer in="edgeField" result="rimBand">
+          <feFuncA type="linear" slope="2.2" intercept="-0.85" />
+        </feComponentTransfer>
+        <feComposite in="spec" in2="rimBand" operator="in" result="specRim" />
+        <feComposite in="specRim" in2="SourceAlpha" operator="in" result="specClipped" />
+
+        <!-- 5. Composite: refracted backdrop + specular rim -->
+        <feComposite in="lensed" in2="specClipped" operator="arithmetic" k1="0" k2="1" k3="0.75" k4="0" />
       </filter>
     </svg>
     <script type="module" src="/src/main.tsx"></script>

@@ -154,22 +154,28 @@ export const Navbar: React.FC<NavbarProps> = ({
         position: 'relative',
         isolation: 'isolate',
         backgroundColor: 'var(--color-paper-glass)',
-        backdropFilter: 'blur(16px) saturate(165%)',
-        WebkitBackdropFilter: 'blur(16px) saturate(165%)',
-        borderBottom: '1px solid',
+        backdropFilter: 'blur(var(--glass-blur)) saturate(var(--glass-saturate))',
+        WebkitBackdropFilter: 'blur(var(--glass-blur)) saturate(var(--glass-saturate))',
+        // Floating pill: detached from viewport edges so the glass rim is
+        // visible on ALL four sides — the signature Liquid Glass nav look.
+        mt: 1.5,
+        mx: { xs: 1.5, sm: 3, md: 4 },
+        width: 'auto',
+        borderRadius: 'var(--radius-full)',
+        border: '1px solid',
         borderColor: 'var(--color-border-glass)',
-        // Refractive rim: lit top edge, softer bottom — reads as a thick pane.
-        boxShadow:
-          'inset 0 1px 1px 0 rgba(255,255,255,0.55), inset 0 -1px 1px 0 rgba(255,255,255,0.20), 0 12px 32px -12px rgba(15,23,42,0.10)',
+        // Bright Fresnel rim: lit top bezel, side catch-lights, soft bottom +
+        // a float shadow so the pill reads as hovering over the content.
+        boxShadow: 'var(--glass-rim), 0 16px 40px -14px rgba(15,23,42,0.22)',
         color: theme.palette.text.primary,
         zIndex: 1100,
         '&::before': {
           content: '""',
           position: 'absolute',
           inset: 0,
+          borderRadius: 'inherit',
           pointerEvents: 'none',
           background: 'var(--glass-sheen)',
-          mixBlendMode: 'screen',
         },
       }}
     >
