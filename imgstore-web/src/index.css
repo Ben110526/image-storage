@@ -265,6 +265,11 @@ textarea:focus-visible,
   outline: none !important;
 }
 
+/* Smaller-radius variant for compact panes (code blocks, inner papers) */
+.glass-surface-sm {
+  border-radius: var(--radius-sm) !important;
+}
+
 /* Liquid glass dialog — clear pane over blurred backdrop */
 .liquid-glass-dialog {
   background: var(--color-paper-glass-strong) !important;
@@ -273,6 +278,47 @@ textarea:focus-visible,
   border: 1px solid var(--color-border-glass) !important;
   box-shadow: var(--shadow-glass) !important;
   border-radius: var(--radius-lg) !important;
+}
+
+/* Glass for overlay surfaces that MUI renders in a portal (no className hook
+ * from our components): dropdown menus, autocomplete listboxes, tooltips,
+ * snackbars. All are descendants of <body>, not #root. */
+.MuiMenu-paper,
+.MuiPopover-paper,
+.MuiAutocomplete-listbox {
+  background: var(--glass-body), var(--color-paper-glass-strong) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)) !important;
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)) !important;
+  border: 1px solid var(--color-border-glass) !important;
+  box-shadow: var(--shadow-glass) !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+.MuiTooltip-tooltip {
+  background: var(--glass-body), var(--color-paper-glass-strong) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)) !important;
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)) !important;
+  border: 1px solid var(--color-border-glass) !important;
+  box-shadow: var(--shadow-glass) !important;
+  border-radius: var(--radius-xs) !important;
+  color: var(--color-ink) !important;
+  font-family: var(--font-body) !important;
+}
+
+.MuiTooltip-arrow::before {
+  background: var(--color-paper-glass-strong) !important;
+  border: 1px solid var(--color-border-glass) !important;
+}
+
+/* notistack renders its snackbars with these classes */
+.notistack-SnackbarContainer .notistack-MuiContent,
+.notistack-SnackbarContainer .MuiPaper-root {
+  background: var(--glass-body), var(--color-paper-glass-strong) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)) !important;
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)) !important;
+  border: 1px solid var(--color-border-glass) !important;
+  box-shadow: var(--shadow-glass) !important;
+  border-radius: var(--radius-sm) !important;
 }
 
 /* Reduced Motion Override */

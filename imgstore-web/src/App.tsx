@@ -158,14 +158,13 @@ export const AppContent: React.FC = () => {
           {/* Footer */}
           <Box
             component="footer"
+            className="glass-surface"
             sx={{
               py: 3.5,
               textAlign: 'center',
-              borderTop: '1px solid',
-              borderColor: 'divider',
-              backgroundColor: 'var(--color-paper-glass)',
-              backdropFilter: 'var(--backdrop-blur)',
-              WebkitBackdropFilter: 'var(--backdrop-blur)',
+              borderRadius: '0 !important',
+              border: 'none !important',
+              borderTop: '1px solid var(--color-border-glass) !important',
             }}
           >
             <Typography

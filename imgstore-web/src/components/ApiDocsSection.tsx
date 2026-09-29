@@ -9,7 +9,6 @@ import {
   Tooltip,
   Paper,
   Chip,
-  useTheme,
 } from '@mui/material';
 import {
   ExpandMore as ExpandIcon,
@@ -22,7 +21,6 @@ import { ApiKeyManager } from './ApiKeyManager';
 import { haptics } from '../lib/haptics';
 
 export const ApiDocsSection: React.FC = () => {
-  const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
   const [expanded, setExpanded] = useState(false);
 
@@ -170,7 +168,7 @@ console.log('High-speed Edge CDN Link:', result.data.proxy_url);`;
         <AccordionDetails sx={{ px: { xs: 1.5, sm: 2.5, md: 3.5 }, pb: { xs: 2.5, md: 4 }, pt: 1 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             <ApiKeyManager />
-            <Paper sx={{ p: 2 }}>
+            <Paper className="glass-surface glass-surface-sm" sx={{ p: 2 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Typography variant="subtitle2">Per-user folders — /folders</Typography>
                 <Tooltip title="Copy folder API examples"><IconButton onClick={() => copyCode(folderSnippet, 'Folder API')}><CopyIcon fontSize="small" /></IconButton></Tooltip>
@@ -182,11 +180,9 @@ console.log('High-speed Edge CDN Link:', result.data.proxy_url);`;
             </Paper>
             {/* cURL Upload */}
             <Paper
+              className="glass-surface glass-surface-sm"
               sx={{
                 p: { xs: 1.75, sm: 2.5 },
-                borderRadius: 2,
-                backgroundColor: 'var(--color-paper-glass)',
-                border: `1px solid ${theme.palette.divider}`,
               }}
             >
               <Box
@@ -235,11 +231,9 @@ console.log('High-speed Edge CDN Link:', result.data.proxy_url);`;
 
             {/* List Images */}
             <Paper
+              className="glass-surface glass-surface-sm"
               sx={{
                 p: { xs: 1.75, sm: 2.5 },
-                borderRadius: 2,
-                backgroundColor: 'var(--color-paper-glass)',
-                border: `1px solid ${theme.palette.divider}`,
               }}
             >
               <Box
@@ -288,11 +282,9 @@ console.log('High-speed Edge CDN Link:', result.data.proxy_url);`;
 
             {/* Delete Image */}
             <Paper
+              className="glass-surface glass-surface-sm"
               sx={{
                 p: { xs: 1.75, sm: 2.5 },
-                borderRadius: 2,
-                backgroundColor: 'var(--color-paper-glass)',
-                border: `1px solid ${theme.palette.divider}`,
               }}
             >
               <Box
@@ -341,11 +333,9 @@ console.log('High-speed Edge CDN Link:', result.data.proxy_url);`;
 
             {/* JavaScript / TypeScript Example */}
             <Paper
+              className="glass-surface glass-surface-sm"
               sx={{
                 p: { xs: 1.75, sm: 2.5 },
-                borderRadius: 2,
-                backgroundColor: 'var(--color-paper-glass)',
-                border: `1px solid ${theme.palette.divider}`,
               }}
             >
               <Box

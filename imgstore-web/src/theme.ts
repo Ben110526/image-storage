@@ -140,6 +140,12 @@ export const getAppTheme = (mode: 'light' | 'dark') =>
             // Liquid Glass: soft accent fill, no heavy gradient
             boxShadow: 'none',
           },
+          outlined: {
+            backgroundColor: 'var(--color-paper-glass)',
+            backdropFilter: 'blur(calc(var(--glass-blur) * 0.6)) saturate(var(--glass-saturate))',
+            WebkitBackdropFilter: 'blur(calc(var(--glass-blur) * 0.6)) saturate(var(--glass-saturate))',
+            borderColor: 'var(--color-border-glass)',
+          },
         },
       },
       MuiCard: {
@@ -163,12 +169,60 @@ export const getAppTheme = (mode: 'light' | 'dark') =>
           },
         },
       },
+      MuiAccordion: {
+        styleOverrides: {
+          root: {
+            backgroundColor: 'transparent',
+            boxShadow: 'none',
+          },
+        },
+      },
+      /* Liquid Glass: outlined inputs are panes, not boxes */
+      MuiOutlinedInput: {
+        styleOverrides: {
+          root: {
+            backgroundColor: 'var(--color-paper-glass)',
+            backdropFilter: 'var(--backdrop-blur)',
+            WebkitBackdropFilter: 'var(--backdrop-blur)',
+            borderRadius: 'var(--radius-sm)',
+            '& .MuiOutlinedInput-notchedOutline': {
+              borderColor: 'var(--color-border)',
+            },
+            '&:hover .MuiOutlinedInput-notchedOutline': {
+              borderColor: 'var(--color-border-strong)',
+            },
+            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+              borderColor: 'var(--color-focus)',
+            },
+          },
+        },
+      },
       MuiChip: {
         styleOverrides: {
           root: {
             borderRadius: 8,
             fontWeight: 500,
             fontFamily: 'JetBrains Mono, monospace',
+          },
+          outlined: {
+            backgroundColor: 'var(--color-paper-glass)',
+            backdropFilter: 'blur(calc(var(--glass-blur) * 0.6)) saturate(var(--glass-saturate))',
+            WebkitBackdropFilter: 'blur(calc(var(--glass-blur) * 0.6)) saturate(var(--glass-saturate))',
+            borderColor: 'var(--color-border-glass)',
+          },
+        },
+      },
+      MuiTooltip: {
+        defaultProps: {
+          arrow: true,
+        },
+      },
+      MuiAlert: {
+        styleOverrides: {
+          root: {
+            borderRadius: 'var(--radius-sm)',
+            backdropFilter: 'var(--backdrop-blur)',
+            WebkitBackdropFilter: 'var(--backdrop-blur)',
           },
         },
       },
