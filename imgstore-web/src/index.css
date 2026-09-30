@@ -270,6 +270,11 @@ textarea:focus-visible,
   border-radius: var(--radius-sm) !important;
 }
 
+/* Docs TOC targets — land below the sticky navbar when scrolled to */
+[id^="api-"] {
+  scroll-margin-top: 90px;
+}
+
 /* Liquid glass dialog — clear pane over blurred backdrop */
 .liquid-glass-dialog {
   background: var(--color-paper-glass-strong) !important;

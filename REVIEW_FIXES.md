@@ -206,3 +206,24 @@ Nâng cấp trang `#/api docs` từ accordion đóng sẵn + 4 snippet placehold
 - API: `f1504e95-d3e8-4a44-8f3d-ebc7478bc0fd` — https://imgstore-api.xlabaryai.workers.dev (không đổi API lần này)
 - Web: **Version ID `040df5d3-d7d2-49d7-a36a-c6a9b017f237`** — https://imgstore-web.xlabaryai.workers.dev
 - Bundle: `/assets/index-CLmVCSot.js` (~818 KB, gzip ~249 KB) + `/assets/index-CxWJq79H.css` (12.69 KB).
+
+## API docs: TOC scrollspy + active state — 30/09/2026
+
+Sau khi user nhận xét mục lục bên trái "không active khi scroll hoặc nhấn" — TOC trước chỉ là nút click thuần, không highlight.
+
+### Đã sửa
+
+- **`DocsPage.tsx`**: thêm scrollspy bằng `IntersectionObserver` (rootMargin `-90px 0px -55% 0px` — đường active nằm ngay dưới navbar sticky); khi scroll, TOC tự highlight section trên cùng đang thấy. Click TOC: set active ngay + `scrollIntoView({smooth})`. Item active có `aria-current="location"` + style riêng: text accent indigo `oklch(0.55 0.2 265)`, nền `--color-accent-subtle`, gạch trái 2px accent, fontWeight 600, transition 150ms.
+- **`index.css`**: thêm `[id^="api-"] { scroll-margin-top: 90px }` — `scrollIntoView` dừng đúng dưới navbar, không bị che tiêu đề.
+
+### Kiểm chứng
+
+- `npm run build`: đạt (bundle `index-F65zN2vA.js` 818.93 kB gzip 249.51 kB + `index-nEk6Y8fp.css` 12.73 kB). `npm run lint`: không lỗi mới (chỉ 5 cảnh báo React có sẵn).
+- Playwright: mặc định active `01 Quickstart`; scroll tới Reference → `07 Reference`; click Files → `02 Files`. Computed style item active đúng accent/nền/gạch/fontWeight. Mobile 375: TOC `display:none`, không h-scroll, scrollspy vẫn hoạt động.
+- Deploy production `06dd17ce-24ab-43e0-9b75-cb4f06d4c506`; verify HTTP 200 + bundle mới; scrollspy hoạt động đúng trên domain (`01Quickstart → 07Reference → 02Files`).
+
+### Phiên bản hiện tại
+
+- API: `f1504e95-d3e8-4a44-8f3d-ebc7478bc0fd` — https://imgstore-api.xlabaryai.workers.dev (không đổi API lần này)
+- Web: **Version ID `06dd17ce-24ab-43e0-9b75-cb4f06d4c506`** — https://imgstore-web.xlabaryai.workers.dev
+- Bundle: `/assets/index-F65zN2vA.js` (~819 KB, gzip ~250 KB) + `/assets/index-nEk6Y8fp.css` (12.73 KB).

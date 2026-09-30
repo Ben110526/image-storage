@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Box, Typography } from '@mui/material';
 import { ApiDocsSection } from '../components/ApiDocsSection';
 import { haptics } from '../lib/haptics';
@@ -15,12 +15,40 @@ const TOC_ITEMS = [
   { id: 'api-reference', label: 'Reference' },
 ] as const;
 
-const scrollToSection = (id: string) => {
-  haptics.playTick();
-  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-};
-
 export const DocsPage: React.FC = () => {
+  const [activeId, setActiveId] = useState<string>(TOC_ITEMS[0].id);
+
+  // Scrollspy: highlight the TOC entry whose section is in view.
+  // rootMargin pins the "active line" just under the sticky navbar.
+  useEffect(() => {
+    const sections = TOC_ITEMS.map(i => document.getElementById(i.id)).filter(
+      (el): el is HTMLElement => el !== null
+    );
+    if (sections.length === 0) return;
+
+    const visible = new Map<string, IntersectionObserverEntry>();
+    const observer = new IntersectionObserver(
+      entries => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) visible.set(entry.target.id, entry);
+          else visible.delete(entry.target.id);
+        }
+        // Pick the topmost visible section as active
+        const ordered = TOC_ITEMS.find(i => visible.has(i.id));
+        if (ordered) setActiveId(ordered.id);
+      },
+      { rootMargin: '-90px 0px -55% 0px', threshold: 0 }
+    );
+    sections.forEach(s => observer.observe(s));
+    return () => observer.disconnect();
+  }, []);
+
+  const scrollToSection = (id: string) => {
+    haptics.playTick();
+    setActiveId(id);
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   return (
     <Box>
       <Box sx={{ mb: { xs: 3, md: 4 } }}>
@@ -78,47 +106,57 @@ export const DocsPage: React.FC = () => {
           >
             On this page
           </Typography>
-          {TOC_ITEMS.map((item, i) => (
-            <Box
-              key={item.id}
-              component="button"
-              onClick={() => scrollToSection(item.id)}
-              aria-label={`Jump to ${item.label}`}
-              sx={{
-                display: 'flex',
-                alignItems: 'baseline',
-                gap: 1,
-                width: '100%',
-                px: 1.5,
-                py: 0.75,
-                textAlign: 'left',
-                cursor: 'pointer',
-                border: 'none',
-                background: 'transparent',
-                color: 'text.secondary',
-                borderRadius: 1.5,
-                fontSize: '0.8rem',
-                fontFamily: 'var(--font-body)',
-                '&:hover': {
-                  color: 'var(--color-accent)',
-                  backgroundColor: 'var(--color-accent-subtle)',
-                },
-              }}
-            >
+          {TOC_ITEMS.map((item, i) => {
+            const isActive = item.id === activeId;
+            return (
               <Box
-                component="span"
+                key={item.id}
+                component="button"
+                onClick={() => scrollToSection(item.id)}
+                aria-label={`Jump to ${item.label}`}
+                aria-current={isActive ? 'location' : undefined}
                 sx={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: '0.68rem',
-                  color: 'var(--color-accent)',
-                  opacity: 0.75,
+                  display: 'flex',
+                  alignItems: 'baseline',
+                  gap: 1,
+                  width: '100%',
+                  px: 1.5,
+                  py: 0.75,
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  border: 'none',
+                  borderLeft: '2px solid',
+                  borderLeftColor: isActive ? 'var(--color-accent)' : 'transparent',
+                  background: isActive ? 'var(--color-accent-subtle)' : 'transparent',
+                  color: isActive ? 'var(--color-accent)' : 'text.secondary',
+                  fontWeight: isActive ? 600 : 400,
+                  borderRadius: 0,
+                  borderTopRightRadius: 8,
+                  borderBottomRightRadius: 8,
+                  fontSize: '0.8rem',
+                  fontFamily: 'var(--font-body)',
+                  transition: 'color 150ms ease, background-color 150ms ease, border-color 150ms ease',
+                  '&:hover': {
+                    color: 'var(--color-accent)',
+                    backgroundColor: 'var(--color-accent-subtle)',
+                  },
                 }}
               >
-                {String(i + 1).padStart(2, '0')}
+                <Box
+                  component="span"
+                  sx={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '0.68rem',
+                    color: 'var(--color-accent)',
+                    opacity: isActive ? 1 : 0.75,
+                  }}
+                >
+                  {String(i + 1).padStart(2, '0')}
+                </Box>
+                {item.label}
               </Box>
-              {item.label}
-            </Box>
-          ))}
+            );
+          })}
         </Box>
 
         {/* Docs content */}
