@@ -176,3 +176,33 @@ Sau khi user nhận xét giao diện "chưa glass lắm" (tham khảo ảnh Liqu
 - API: `f1504e95-d3e8-4a44-8f3d-ebc7478bc0fd` — https://imgstore-api.xlabaryai.workers.dev (không đổi API lần này)
 - Web: **Version ID `b2b06fa0-ca17-4bf1-a332-09d27e5a6483`** — https://imgstore-web.xlabaryai.workers.dev
 - Bundle: `/assets/index-Dnf3phig.js` (~804 KB, gzip ~244 KB) + `/assets/index-ClM-pt7m.css` (9.82 KB).
+
+## API docs → playground thật — 30/09/2026
+
+Nâng cấp trang `#/api docs` từ accordion đóng sẵn + 4 snippet placeholder thành playground đầy đủ, ngang tầm API thật. User đề xuất 5 nhóm/12 điểm, thứ tự đã duyệt.
+
+### Đã sửa
+
+- **Bỏ accordion đóng sẵn + phím `[C]`**: nội dung render thẳng, không `useState(false)`; người mới vào thấy ngay toàn bộ docs.
+- **TOC sticky bên trái** (sm+, ẩn dưới 600px) trong `DocsPage.tsx`: 7 anchor Quickstart · Files · Folders · Import URL · Resumable · Limits · Reference, click = `scrollIntoView({smooth})` + `haptics.playTick()`. Sắp lại thứ tự: nâng cao (Folders) chuyển xuống sau upload/list cơ bản.
+- **Response mẫu** đúng shape thật: upload → `{id,name,size,mime_type,url,proxy_url,thumbnail_url,folder_id,folder_path,created_at}`; list → `{images,pagination:{page,limit,total,total_pages}}`; nhắc `pagination`, `limit ≤100`, `search`.
+- **Nút "Run with my key" + "Upload a file"**: đọc key từ `getApiKey()`/`getSessionToken()`, runner dùng fetch trực tiếp với header X-API-Key hoặc Bearer; GET `/images?limit=5` in JSON; chọn file → `uploadImageFile` in metadata; chưa connect → Alert hướng dẫn xin key từ chủ kho. Banner trạng thái Connected · `isk_ab12…` / Not connected.
+- **Sửa lỗi vặt #5**: card Folders thiếu style code block — trích `CODE_PRE_STYLE` chung (nền `--color-code-bg` + padding + `overflow-x:auto`) dùng cho mọi `<pre>`; câu "cached copies may take time to expire" sửa đúng: **xoá file = purge cache ngay** (khớp `deleteImage.ts:65` `waitUntil(purgeCache)`), link 404 ngay lập tức.
+- **Thiếu nội dung**: card Import URL (`POST /upload/url`: ≤50MB, 8MB nếu nguồn không báo Content-Length, URL ≤8192 ký tự, chặn HTML/captcha, response = ImageMetadata); bộ resumable 4 endpoint (init → PUT chunk `Content-Range` → GET status 308/`Range` → DELETE abort, session 24h, chunk 10MB bội 256KB, tới 5GB); bảng giới hạn 7 hàng (15MB / 50MB·8MB / 5GB / 5 phiên·key / quota 50GB·key / 1000 folder·8 cấp / tên 1–100 ký tự); bảng mã lỗi 12 mã kèm HTTP status (UNAUTHORIZED 401, FILE_TOO_LARGE 400/413, UNSUPPORTED_TYPE 400, QUOTA_EXCEEDED 403, TOO_MANY_SESSIONS 429, OFFSET_MISMATCH 409, SIZE_MISMATCH 400, INVALID_CHUNK_SIZE 400, SESSION_NOT_FOUND 404, FOLDER_NOT_FOUND 404, FOLDER_CHANGED 409, UPLOAD_PROCESSING 409).
+- **Auth rõ ràng**: `X-API-Key` hoặc `Authorization: Bearer`, format `isk_`+64 hex, hạn 1 năm, KV trễ ~1 phút khi cấp/thu hồi, cảnh báo không nhúng key vào frontend công khai; nhắc "xin key từ chủ kho" cho user thường.
+- **`/serve/:id`** được tài liệu: link công khai không cần auth, `Range`/`HEAD` seek video, `?download=1` attachment, cache edge 5 phút cho file ≤25MB, SVG luôn tải về, cảnh báo file công khai.
+- **Endpoint phụ**: `GET /auth/me`, `GET /image/:id`, `GET /storage`, `GET /health` + `/` JSON index.
+- **Ví dụ Python** (đúng tiêu đề "Python bots"): 3 snippet — upload multipart dùng `requests`, list dùng `requests`, vòng lặp resumable chunk.
+
+### Kiểm chứng
+
+- `npm run build`: đạt (tsc -b + vite build, 11785 modules); bundle `index-CLmVCSot.js` 818.16 kB (gzip 249.21 kB) + `index-CxWJq79H.css` 12.69 kB.
+- `npm run lint`: không lỗi; chỉ 5 cảnh báo React có sẵn ngoài phần sửa.
+- Playwright trên dev server: 7 section đủ anchor, TOC `position:sticky` (block ở 768+, ẩn ở 320/375/414), `accordionCount: 0`, `overflow-x: clip` html+body, không h-scroll ở cả 4 mốc; 15 pre block cuộn nội bộ (worstPreOverflow 512 tại 320, không tràn trang). Assert DOM: nút Run/Upload/Connect có, 2 bảng (Limits + mã lỗi) render đúng, response mẫu upload/list full text đủ shape, snippet Python + resumable + `/serve/:id` hiện diện.
+- Deploy lên production `imgstore-web.xlabaryai.workers.dev` thành công; verify HTTP 200 cho `/`, bundle JS/CSS mới trên domain, JS 818164 bytes khớp build.
+
+### Phiên bản hiện tại
+
+- API: `f1504e95-d3e8-4a44-8f3d-ebc7478bc0fd` — https://imgstore-api.xlabaryai.workers.dev (không đổi API lần này)
+- Web: **Version ID `040df5d3-d7d2-49d7-a36a-c6a9b017f237`** — https://imgstore-web.xlabaryai.workers.dev
+- Bundle: `/assets/index-CLmVCSot.js` (~818 KB, gzip ~249 KB) + `/assets/index-CxWJq79H.css` (12.69 KB).

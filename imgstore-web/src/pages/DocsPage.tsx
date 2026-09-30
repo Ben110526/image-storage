@@ -1,8 +1,24 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { ApiDocsSection } from '../components/ApiDocsSection';
+import { haptics } from '../lib/haptics';
 
 /* Hallmark · page: docs · macrostructure: Workbench · theme: Liquid Glass */
+
+const TOC_ITEMS = [
+  { id: 'api-quickstart', label: 'Quickstart' },
+  { id: 'api-files', label: 'Files' },
+  { id: 'api-folders', label: 'Folders' },
+  { id: 'api-import', label: 'Import URL' },
+  { id: 'api-resumable', label: 'Resumable' },
+  { id: 'api-limits', label: 'Limits' },
+  { id: 'api-reference', label: 'Reference' },
+] as const;
+
+const scrollToSection = (id: string) => {
+  haptics.playTick();
+  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
 
 export const DocsPage: React.FC = () => {
   return (
@@ -29,7 +45,87 @@ export const DocsPage: React.FC = () => {
           # everything the web UI does, scriptable over plain HTTPS + API key.
         </Typography>
       </Box>
-      <ApiDocsSection />
+
+      <Box sx={{ display: 'flex', gap: { md: 4 }, alignItems: 'flex-start' }}>
+        {/* Sticky TOC — hidden below 600px; the section cards carry their own headers */}
+        <Box
+          component="nav"
+          aria-label="API docs sections"
+          sx={{
+            display: { xs: 'none', sm: 'block' },
+            width: 190,
+            flexShrink: 0,
+            position: 'sticky',
+            top: 88,
+            maxHeight: 'calc(100vh - 120px)',
+            overflowY: 'auto',
+            py: 1,
+          }}
+        >
+          <Typography
+            variant="caption"
+            sx={{
+              display: 'block',
+              mb: 1.25,
+              px: 1.5,
+              color: 'var(--color-accent)',
+              fontWeight: 700,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              fontSize: '0.65rem',
+              fontFamily: 'var(--font-mono)',
+            }}
+          >
+            On this page
+          </Typography>
+          {TOC_ITEMS.map((item, i) => (
+            <Box
+              key={item.id}
+              component="button"
+              onClick={() => scrollToSection(item.id)}
+              aria-label={`Jump to ${item.label}`}
+              sx={{
+                display: 'flex',
+                alignItems: 'baseline',
+                gap: 1,
+                width: '100%',
+                px: 1.5,
+                py: 0.75,
+                textAlign: 'left',
+                cursor: 'pointer',
+                border: 'none',
+                background: 'transparent',
+                color: 'text.secondary',
+                borderRadius: 1.5,
+                fontSize: '0.8rem',
+                fontFamily: 'var(--font-body)',
+                '&:hover': {
+                  color: 'var(--color-accent)',
+                  backgroundColor: 'var(--color-accent-subtle)',
+                },
+              }}
+            >
+              <Box
+                component="span"
+                sx={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '0.68rem',
+                  color: 'var(--color-accent)',
+                  opacity: 0.75,
+                }}
+              >
+                {String(i + 1).padStart(2, '0')}
+              </Box>
+              {item.label}
+            </Box>
+          ))}
+        </Box>
+
+        {/* Docs content */}
+        <Box sx={{ flex: 1, minWidth: 0, maxWidth: { sm: 720, lg: 760 } }}>
+          <ApiDocsSection />
+        </Box>
+      </Box>
     </Box>
   );
 };
