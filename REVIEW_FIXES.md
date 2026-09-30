@@ -222,8 +222,22 @@ Sau khi user nhận xét mục lục bên trái "không active khi scroll hoặc
 - Playwright: mặc định active `01 Quickstart`; scroll tới Reference → `07 Reference`; click Files → `02 Files`. Computed style item active đúng accent/nền/gạch/fontWeight. Mobile 375: TOC `display:none`, không h-scroll, scrollspy vẫn hoạt động.
 - Deploy production `06dd17ce-24ab-43e0-9b75-cb4f06d4c506`; verify HTTP 200 + bundle mới; scrollspy hoạt động đúng trên domain (`01Quickstart → 07Reference → 02Files`).
 
+## Navbar sticky khi cuộn — 30/09/2026
+
+User nhận xét navbar không "dính" theo khi cuộn — trước đó MUI prop `position="sticky"` trên `<AppBar>` bị `sx={{ position: 'relative' }}` ghi đè thành relative, nên navbar cuộn trôi theo trang.
+
+### Đã sửa
+
+- **`Navbar.tsx`**: sửa root cause — đổi `sx.position` từ `'relative'` → `'sticky'` + thêm `top: 0`. MUI `position="sticky"` prop giờ không bị ghi đè; navbar dính đỉnh viewport, giữ nguyên floating pill glass (mt 1.5, mx, borderRadius full, rim + sheen + float shadow, zIndex 1100).
+
+### Kiểm chứng
+
+- `npm run build`: đạt (bundle `index-Co_5WGdw.js` 818.94 kB gzip 249.52 kB — CSS không đổi). `npm run lint`: không lỗi mới (chỉ 5 cảnh báo React có sẵn).
+- Playwright dev server: `position: sticky` trước và sau scroll 1500px; `getBoundingClientRect().top = 0` sau scroll; mobile 375 không h-scroll.
+- Deploy production `943e8caf-3d13-4d57-9277-8843c9e63d94`; verify HTTP 200: index.html ref bundle mới `index-Co_5WGdw.js`, bundle JS 200; trên domain: navbar sticky (top 0 sau scroll), scrollspy TOC vẫn hoạt động đúng (`07 Reference` khi scroll tới Reference, đủ 7 section, TOC hiện).
+
 ### Phiên bản hiện tại
 
 - API: `f1504e95-d3e8-4a44-8f3d-ebc7478bc0fd` — https://imgstore-api.xlabaryai.workers.dev (không đổi API lần này)
-- Web: **Version ID `06dd17ce-24ab-43e0-9b75-cb4f06d4c506`** — https://imgstore-web.xlabaryai.workers.dev
-- Bundle: `/assets/index-F65zN2vA.js` (~819 KB, gzip ~250 KB) + `/assets/index-nEk6Y8fp.css` (12.73 KB).
+- Web: **Version ID `943e8caf-3d13-4d57-9277-8843c9e63d94`** — https://imgstore-web.xlabaryai.workers.dev
+- Bundle: `/assets/index-Co_5WGdw.js` (~819 KB, gzip ~250 KB) + `/assets/index-nEk6Y8fp.css` (12.73 KB).

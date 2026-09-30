@@ -151,7 +151,8 @@ export const Navbar: React.FC<NavbarProps> = ({
       elevation={0}
       className="navbar-glass"
       sx={{
-        position: 'relative',
+        position: 'sticky',
+        top: 0,
         isolation: 'isolate',
         backgroundColor: 'var(--color-paper-glass)',
         backdropFilter: 'blur(var(--glass-blur)) saturate(var(--glass-saturate))',
