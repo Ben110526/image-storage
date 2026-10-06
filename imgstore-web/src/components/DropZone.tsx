@@ -506,7 +506,7 @@ export const DropZone: React.FC = () => {
               required
               autoFocus
               slotProps={{
-                input: { sx: { fontFamily: 'var(--font-mono)', fontSize: '0.85rem' } },
+                input: { sx: { fontFamily: 'var(--font-mono)', fontSize: { xs: '1rem', sm: '0.85rem' } } },
               }}
             />
             <TextField
@@ -517,7 +517,7 @@ export const DropZone: React.FC = () => {
               size="small"
               fullWidth
               slotProps={{
-                input: { sx: { fontFamily: 'var(--font-mono)', fontSize: '0.85rem' } },
+                input: { sx: { fontFamily: 'var(--font-mono)', fontSize: { xs: '1rem', sm: '0.85rem' } } },
               }}
             />
             <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>

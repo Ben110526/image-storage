@@ -1,21 +1,34 @@
 # FIX-11 — QA Evidence (Corrections Plan Liquid Glass iOS 27)
 
-Ngày cập nhật: **2026-10-06** (sau đợt sửa C1–C5 theo vòng review thứ hai trong [REVIEW_LIQUID_GLASS_RECHECK.md](./REVIEW_LIQUID_GLASS_RECHECK.md), revision `2ed592b` + C5 doc commit).
-Môi trường: macOS (Darwin 27), dev server Vite 8 (localhost:5173), Playwright 1.63.0 / Chromium headless, Chrome 154.0.8037.59.
+Ngày cập nhật: **2026-10-06**, working tree trên `e3a20d0`, sau sửa D1 (toast/URL reduced motion) và font input URL mobile. Các evidence C1–C5/đợt trước được giữ với phạm vi riêng; không coi đó là replay toàn bộ trên working tree mới.
+Môi trường lượt sửa D1: macOS, Vite tại `127.0.0.1:5191`, browser tích hợp Codex; fixture read-only tại `127.0.0.1:8811`, viewport 375×852 và kiểm tra font desktop 1024×900. Không đo browser engine/version trong lượt này. Version Playwright/Chrome ở matrix phía dưới là metadata của các đợt trước.
 
 **Nguyên tắc báo cáo (R6):** mỗi hạng mục ghi rõ `code present` (đã đọc source, chưa chạy) / `manual pass` (đã thao tác/đo trên browser thật) / `automated pass` (có test hoặc script chạy được) / `not-run` (chưa chạy — KHÔNG gọi là PASS).
 
-## Kết quả checks thực tế (chạy lại sau R1–R8)
+## Kết quả checks thực tế sau sửa D1
 
 | Command | Kết quả |
 | --- | --- |
 | `npm run tokens:check` (imgstore-web) | PASS (`tokens: up to date` + `appearance bootstrap: up to date` — drift guard của bootstrap generated, C4) |
 | `npm run check` (từ `test/`) | **PASS, exit 0** — typecheck api + **76/76** api tests + build web + oxlint. Trước R2 lệnh này **FAIL exit 1** (chunk-uploader mock thiếu `snapshotCredential`); đã sửa ở commit `13e3d92` |
 | `imgstore-api` tests | **76 pass / 0 fail**: 18 uploader (FIX-03 credential snapshot) + **5 case R1** (`auth-refresh.test.mjs`) + **14 case C4** (`appearance-parity.test.mjs` — inline script THẬT trích từ index.html chạy trong node:vm đối chiếu shared module trên 13 fixture + legacy persistence) |
-| Frontend build | PASS — tại revision này: `index-*.js` **875.16 kB / gzip 266.37 kB**, CSS **16.41 kB / gzip 3.68 kB**. Warning chunk >500 kB vẫn tồn tại |
-| Frontend lint (oxlint) | Exit 0, **18 warnings / 0 errors** (tăng từ 16 vì R7 thêm re-export block trong AppearanceContext — xem bảng disposition) |
+| Frontend build | PASS — tại revision này: `index-*.js` **875.25 kB / gzip 266.41 kB**, CSS **17.07 kB / gzip 3.77 kB**. Warning chunk >500 kB vẫn tồn tại |
+| Frontend lint (oxlint) | Exit 0, **17 warnings / 0 errors** — 9 export + 5 effect ở Context/dialog + 2 dependency + 1 effect Library; bảng cũ đếm Library hai lần |
 
-**Bundle honesty:** 851 kB (evidence gốc) và 875.13 kB (bản R1–R8) đều là số của các revision cũ — review vòng hai đo 875.43/266.45 tại `23fda09`, build tại revision này là 875.16/266.37 (CSS tăng 0.21 kB do rule C1 opacity-only). Sai lệch vài trăm byte giữa các lần đo là do hash tên chunk/nội dung generated thay đổi theo commit; mọi con số trong file này ghi kèm revision đo. **Chưa có baseline trước redesign** nên không khẳng định được ngân sách toàn redesign — đây là khoản nợ profiling, không phải PASS.
+**Bundle honesty:** build mới nhất sau chỉnh font URL mobile là 875.25/266.41 kB JS và 17.07/3.77 kB CSS (working tree trên `e3a20d0`). `npm run check` đã PASS sau sửa motion; sau chỉnh font responsive, chạy lại frontend build và lint. Các số 851 kB, 875.13 kB, 875.43 kB và 875.16 kB thuộc các revision cũ. **Chưa có baseline trước redesign** nên không khẳng định ngân sách toàn redesign đã đạt.
+
+## D1 — evidence bổ sung của lượt sửa cuối
+
+| Hạng mục | Trạng thái | Bằng chứng |
+| --- | --- | --- |
+| Toast mới, reduced ON | manual pass | Info Reset, success Save và error do paste data-image giả không hợp lệ: content `transform: none`, `transition: opacity 0.08s`; height wrapper và padding wrapper `transition: none` |
+| Toast đã enqueue bằng Slide, sau toggle ON | manual pass | Cùng toast success đang hiện: OFF `transform 0.225s`, height/padding 0.3s → ON opacity 0.08s/transform none/wrappers none; không reload |
+| Stack và tự đóng | manual pass giới hạn | Đo stack từ 2 toast trở lên: mọi wrapper none khi reduced; toast tự biến mất khỏi DOM. Chưa ghi frame trace đầy đủ của exit hoặc eviction maxSnack |
+| URL form mở/đóng và toggle | manual pass | ON: inline duration 0ms/computed transition none, bấm Hủy rồi root Collapse/input đã unmount. OFF: height 0.3s trở lại. Bật ON khi form đang mở: transition none ngay, đóng vẫn unmount |
+| URL/tên file mobile | manual pass | Trước sửa 13.6px, sau sửa 16px tại 375px; desktop viewport 1024px vẫn 13.6px theo thiết kế compact |
+| OS reduce guard | code present | CSS có cùng guards trong media query, provider dùng effective app OR OS. Chưa replay OS runtime độc lập |
+
+Ảnh form mobile được lưu trong artifact của lượt làm việc; không suy ra Safari chống zoom đã được kiểm thử trên iPhone thật. Fixture từ chối POST auto-provision bằng 405 theo chủ đích; không upload hoặc tạo folder thật. Browser console capture sau thao tác không có warn/error. Không có UI automation spec mới trong repo.
 
 ## Bảng acceptance theo FIX — trạng thái thật
 
@@ -38,7 +51,7 @@ Môi trường: macOS (Darwin 27), dev server Vite 8 (localhost:5173), Playwrigh
 | FIX-06 | H1 Library; sheet <900px; reset folder; search a11y; row 44px | manual pass (đợt trước) | iPhone 13 (390px) sheet đúng; 1280px sidebar 240px; chưa đo lại sau R5 |
 | FIX-07 | TOC ≥900px; copy không success giả; admin masked; revoke pending | manual pass (đợt trước) cho TOC/copy; còn lại code present | Admin revoke chưa chạy thật; clipboard-denied chưa mô phỏng |
 | FIX-07 | cURL delete comment khớp prose (R8) | code present | Comment mới: API ngừng phục vụ ngay + purge bắt đầu, CDN propagation có thể trễ, bản đã tải không thu hồi (commit `28cc106`) |
-| FIX-08 | Confirm pending chặn đóng; input ≥16px; footer wrap; slider marks | manual pass (đợt trước) + code present | Settings R5: footer wrap ở 320px PASS sau adaptive sheet. **C2**: nút X disabled khi saving, Reset giữ pending cho verification của chính nó (commit `00fa920`) — code present, **chưa replay slow-fixture 12s của review** |
+| FIX-08 | Confirm pending chặn đóng; input ≥16px; footer wrap; slider marks | manual pass (đợt trước) + code present | Settings R5: footer wrap ở 320px PASS sau adaptive sheet. **C2**: nút X disabled khi saving, Reset giữ pending cho verification của chính nó (commit `00fa920`) — code present, **Save đã replay ở review `e3a20d0`; chính Reset chưa replay slow-fixture** |
 | FIX-05/08 | Settings dialog adaptive bottom-sheet + C0 (R5) | manual pass | Playwright 320px: paperWidth 320 (full-width sheet), alignSelf flex-end, borderRadius top-only, `pb: env(safe-area-inset-bottom)`; mọi nút 44px (MuiButton minHeight 44 ở theme, commit `e513ffe`) |
 | FIX-09 | Preview adaptive mobile | manual pass (đợt trước) | full-bleed 100dvh xs; chưa đo lại sau R5 |
 | FIX-10 | Default Light; bootstrap=provider một nguồn (R7 + C4) | automated pass | Bootstrap không còn chép tay: `generate-appearance-bootstrap.mjs` bundle `appearanceShared.ts` THẬT vào index.html (marker comments + `--check` drift guard trong `tokens:check`). `parseAppearance` phân biệt chưa-lưu (→ legacy) vs corrupt (→ defaults) — hai case review probe FAIL (`{broken`+legacy, null+legacy) giờ đồng nhất. 14/14 parity tests pass (commit `2ed592b`) |
@@ -46,12 +59,12 @@ Môi trường: macOS (Darwin 27), dev server Vite 8 (localhost:5173), Playwrigh
 | FIX-10 | MUI palette derive từ semantic tokens (R7) | automated pass | `deriveMuiPalette()` trong generator; `--check` PASS; output value-identical với block `mui` thủ công đã xóa (commit `b7b5965`) |
 | FIX-10 | Privacy tokens + print + deviation note (R7) | code present | privacy.html dùng đúng giá trị tokens.json; **deviation note đã ghi rõ: trang tĩnh cố ý theo `prefers-color-scheme`, không theo app preference**; print QA thật CHƯA chạy |
 
-## Lint disposition (oxlint, 18 warnings / 0 errors)
+## Lint disposition (oxlint, 17 warnings / 0 errors)
 
 | Nhóm | Số | Quyết định |
 | --- | --- | --- |
 | react(only-export-components) ở các Context | 9 | CHẤP NHẬN — context file export hook + provider là pattern chủ đích; R7 thêm re-export constants (mất granular HMR cho file đó, được đánh đổi bằng single-source validation) |
-| react(set-state-in-effect) | 6 | CHẤP NHẬN có kiểm soát — AuthContext (session restore + R1 refresh), ApiKeyManager/ApiKeyDialog (load khi mở), SettingsModal (prefill khi open), UploadQueueContext (dispatcher + generationRef sync). Đây là sync với external system (localStorage/server), đúng mục đích effect |
+| react(set-state-in-effect), không gồm Library | 5 | CHẤP NHẬN có kiểm soát — AuthContext (session restore + R1 refresh), ApiKeyManager/ApiKeyDialog (load khi mở), SettingsModal (prefill khi open), UploadQueueContext (dispatcher + generationRef sync). Đây là sync với external system (localStorage/server), đúng mục đích effect |
 | react-hooks(exhaustive-deps) App.tsx | 2 | CHẤP NHẬN — navigate/toggle stable trong thực tế |
 | LibraryPage set-state-in-effect | 1 | CHẤP NHẬN — reset folder khi external scope đổi là đúng semantics FIX-06 |
 
@@ -69,10 +82,11 @@ Môi trường: macOS (Darwin 27), dev server Vite 8 (localhost:5173), Playwrigh
 - Clipboard failure (quyền bị từ chối) — chỉ có code path
 - Admin revoke thật; key rotation cùng owner
 - Paused/active upload thật trên server (R4 guard mới chỉ verify bằng source)
-- Performance profiling / baseline trước redesign — bundle 875.16 kB tại revision này không so sánh được với trước redesign
+- Performance profiling / baseline trước redesign — bundle 875.25 kB tại working tree này không so sánh được với trước redesign
 - Deferred multipart/resumable/URL fixture xuyên scope cho C3 (enqueue A → switch B → resolve A: không toast/invalidate/refetch B)
-- Slow-fixture 12s replay cho C2 (X/Cancel/backdrop/Escape trong lúc verifying)
-- OS-level reduced-motion emulation (C1 mới đo app toggle; OS flag có test logic trong parity suite nhưng chưa đo transition runtime)
+- Slow-fixture 12s cho chính Reset, stale verification callbacks. Save đã replay ở review `e3a20d0`: X/Cancel/Reset disabled, Escape/backdrop không đóng; response xong mới đóng
+- OS-level reduced-motion runtime độc lập/app OR OS; D1 mới đo app toggle, parity suite chỉ kiểm tra logic
+- Frame trace toast exit/stack eviction maxSnack đầy đủ
 - Print QA thật cho privacy.html
 - LG-15 SVG optics: giữ OFF theo chỉ đạo plan
 

@@ -105,15 +105,32 @@ html[data-motion='reduced'] .pressable:active {
  * inline styles, which beat any non-!important rule. The theme already cuts
  * their durations to 80ms (theme.ts), but an 80ms slide is still MOTION —
  * the acceptance is opacity-only. The inline transform/opacity values
- * themselves are written by the transition component mid-flight; the moment
- * the transition settles the inline transform is removed, so pinning
- * transform: none here makes the slide portion a no-op while the 80ms
- * opacity fade (also inline) still runs. */
+ * themselves are written by the transition component mid-flight; limiting
+ * the property to opacity makes their transform changes instantaneous. */
 html[data-motion='reduced'] .MuiDrawer-paper,
 html[data-motion='reduced'] .MuiDialog-paper,
 html[data-motion='reduced'] .MuiMenu-paper,
 html[data-motion='reduced'] .MuiPopover-paper {
   transition-property: opacity !important;
+}
+
+/* notistack owns its own Slide and Collapse, independently of MuiSnackbar.
+ * Provider props fade NEW toasts. These rules also protect existing toasts
+ * whose enqueue-time transition was Slide when the preference changes.
+ * The direct container child is notistack's internal height wrapper; keep
+ * layout positioning/padding instant without pinning its measured height. */
+html[data-motion='reduced'] .notistack-SnackbarContainer,
+html[data-motion='reduced'] .notistack-SnackbarContainer > div,
+html[data-motion='reduced'] .notistack-CollapseWrapper {
+  transition: none !important;
+}
+html[data-motion='reduced'] .notistack-Snackbar > * {
+  transform: none !important;
+  transition-property: opacity !important;
+  transition-duration: 80ms !important;
+}
+html[data-motion='reduced'] .MuiCollapse-root {
+  transition: none !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -127,5 +144,16 @@ html[data-motion='reduced'] .MuiPopover-paper {
   }
   .pressable:active {
     transform: none;
+  }
+  .notistack-SnackbarContainer,
+  .notistack-SnackbarContainer > div,
+  .notistack-CollapseWrapper,
+  .MuiCollapse-root {
+    transition: none !important;
+  }
+  .notistack-Snackbar > * {
+    transform: none !important;
+    transition-property: opacity !important;
+    transition-duration: 80ms !important;
   }
 }

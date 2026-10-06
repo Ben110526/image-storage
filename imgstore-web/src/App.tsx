@@ -4,6 +4,7 @@ import {
   CssBaseline,
   Container,
   Box,
+  Fade,
 } from '@mui/material';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SnackbarProvider } from 'notistack';
@@ -117,6 +118,8 @@ export const AppContent: React.FC = () => {
         maxSnack={4}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         autoHideDuration={3000}
+        TransitionComponent={reduceMotion ? Fade : undefined}
+        transitionDuration={reduceMotion ? 80 : undefined}
       >
         {/* Upload queue controller lives above the routes so an in-flight
             upload, its File handle and its server slot survive navigation

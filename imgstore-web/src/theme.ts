@@ -8,8 +8,8 @@ import {
 
 /* R3 — reduced motion must own MUI's JS-driven transitions, not just our CSS:
  * Drawer/Slide (folder sheet, TOC sheet), Dialog/Menu (zoom/fade) and Collapse
- * (URL form) animate via inline styles, so html[data-motion="reduced"] CSS can
- * never reach their durations.
+ * (URL form) animate via inline styles. Theme props own their timing; CSS
+ * guards use !important to suppress spatial transitions, including mid-flight.
  *
  * C1 — the effective flag MUST come in as an argument, not be read from the
  * DOM: AppearanceProvider applies data-motion in an effect AFTER render, so a
@@ -24,10 +24,9 @@ import {
 
 export const getAppTheme = (mode: PaletteMode, reduceMotion = false) => {
   const palette = mode === 'dark' ? MUI_PALETTE_DARK : MUI_PALETTE_LIGHT;
-  /* Under reduced motion every MUI transition collapses to an 80ms opacity
-   * change (matches motion.css) — no slide, no zoom, no expanding height.
-   * MUI's transitionDuration/timeout accept a number or {enter,exit}; the
-   * easing stays the default cubic-bezier because at 80ms it is imperceptible. */
+  /* Reduced overlays are instant or opacity-only (motion.css). Height changes
+   * must be instant; a short Collapse timeout still animates layout. Toasts
+   * use notistack's own transition policy in App, outside MuiSnackbar. */
   const transition = reduceMotion ? 80 : undefined;
 
   return createTheme({
@@ -292,12 +291,10 @@ export const getAppTheme = (mode: PaletteMode, reduceMotion = false) => {
           },
         },
       },
-      /* R3 — the transition-owning components. timeout: 80 makes Slide/Zoom/
-       * Fade/Grow effectively instant. enter/exit share the value (tests read
-       * the entering config). MuiMenu/MuiDialog carry their override next to
-       * their styleOverrides above (one key per component). */
+      /* Overlay papers suppress transform transitions in motion.css. Collapse
+       * changes height, so both enter and exit use zero duration when reduced. */
       MuiDrawer: { defaultProps: { transitionDuration: transition } },
-      MuiCollapse: { defaultProps: { timeout: reduceMotion ? 80 : undefined } },
+      MuiCollapse: { defaultProps: { timeout: reduceMotion ? 0 : undefined } },
       MuiSnackbar: { defaultProps: { transitionDuration: transition } },
     },
   });
