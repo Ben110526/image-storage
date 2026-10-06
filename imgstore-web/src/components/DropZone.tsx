@@ -343,7 +343,7 @@ export const DropZone: React.FC = () => {
       {!canUpload && (
         <Box sx={{ textAlign: 'center', mb: 2 }}>
           <Button variant="contained" disabled={isLoading} onClick={showApiKeyDialog}>
-            Connect with API key to upload
+            Kết nối API key để upload
           </Button>
         </Box>
       )}
@@ -474,7 +474,7 @@ export const DropZone: React.FC = () => {
 
         {/* FIX-04 — inline C0 URL import form (validation inline, submit
             follows verified canUpload). */}
-        <Collapse in={urlFormOpen && canUpload} sx={{ width: '100%', maxWidth: 520 }}>
+        <Collapse in={urlFormOpen && canUpload} unmountOnExit sx={{ width: '100%', maxWidth: 520 }}>
           <Box
             component="form"
             onSubmit={handleUrlSubmit}
