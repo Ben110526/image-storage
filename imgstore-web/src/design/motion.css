@@ -101,6 +101,21 @@ html[data-motion='reduced'] .pressable:active {
   transform: none;
 }
 
+/* C1 — MUI overlays (Drawer slide, Dialog zoom, Menu grow) animate via JS
+ * inline styles, which beat any non-!important rule. The theme already cuts
+ * their durations to 80ms (theme.ts), but an 80ms slide is still MOTION —
+ * the acceptance is opacity-only. The inline transform/opacity values
+ * themselves are written by the transition component mid-flight; the moment
+ * the transition settles the inline transform is removed, so pinning
+ * transform: none here makes the slide portion a no-op while the 80ms
+ * opacity fade (also inline) still runs. */
+html[data-motion='reduced'] .MuiDrawer-paper,
+html[data-motion='reduced'] .MuiDialog-paper,
+html[data-motion='reduced'] .MuiMenu-paper,
+html[data-motion='reduced'] .MuiPopover-paper {
+  transition-property: opacity !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .pressable,
   .surface-enter,

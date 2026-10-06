@@ -52,11 +52,12 @@ export const AppContent: React.FC = () => {
     submitApiKey,
   } = useAuth();
 
-  /* R3 — the theme owns MUI transition durations, and the reduced-motion
+  /* R3/C1 — the theme owns MUI transition durations, and the reduced-motion
    * config lives in the theme: re-create it the moment the effective flag
    * (app toggle OR OS) flips, so already-mounted Drawers/Dialogs switch to
-   * instant without a reload. */
-  const theme = useMemo(() => getAppTheme(resolvedTheme), [resolvedTheme, reduceMotion]);
+   * instant without a reload. The flag is PASSED IN — reading data-motion
+   * from the DOM here would see the previous render's value (C1). */
+  const theme = useMemo(() => getAppTheme(resolvedTheme, reduceMotion), [resolvedTheme, reduceMotion]);
 
   const toggleColorMode = () => {
     setTheme(resolvedTheme === 'light' ? 'dark' : 'light');

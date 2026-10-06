@@ -9,25 +9,21 @@ import {
 /* R3 — reduced motion must own MUI's JS-driven transitions, not just our CSS:
  * Drawer/Slide (folder sheet, TOC sheet), Dialog/Menu (zoom/fade) and Collapse
  * (URL form) animate via inline styles, so html[data-motion="reduced"] CSS can
- * never reach their durations. The effective flag (app toggle OR OS) is read
- * at theme creation; AppearanceProvider re-creates the theme immediately when
- * the flag flips, so no reload is required. */
-function readEffectiveReduceMotion(): boolean {
-  if (typeof document === 'undefined' || typeof window === 'undefined') return false;
-  return (
-    document.documentElement.getAttribute('data-motion') === 'reduced' ||
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  );
-}
+ * never reach their durations.
+ *
+ * C1 — the effective flag MUST come in as an argument, not be read from the
+ * DOM: AppearanceProvider applies data-motion in an effect AFTER render, so a
+ * theme re-created during that same render would read the STALE attribute and
+ * the first toggle would keep the old 225ms slide until reload. Callers pass
+ * the effective reduceMotion (app toggle OR OS) from useAppearance(). */
 
 /* Hallmark · theme: Liquid Glass — palette, typography and shape are derived
  * from the canonical token registry (design/tokens.json via
  * tokens.generated.ts). MUI needs concrete sRGB values; CSS custom properties
  * are used only inside styleOverrides, which run in the browser. */
 
-export const getAppTheme = (mode: PaletteMode) => {
+export const getAppTheme = (mode: PaletteMode, reduceMotion = false) => {
   const palette = mode === 'dark' ? MUI_PALETTE_DARK : MUI_PALETTE_LIGHT;
-  const reduceMotion = readEffectiveReduceMotion();
   /* Under reduced motion every MUI transition collapses to an 80ms opacity
    * change (matches motion.css) — no slide, no zoom, no expanding height.
    * MUI's transitionDuration/timeout accept a number or {enter,exit}; the
