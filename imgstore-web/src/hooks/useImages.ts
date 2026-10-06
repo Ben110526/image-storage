@@ -52,8 +52,11 @@ export function useStorage() {
 }
 
 export function useUploadImage() {
-  const queryClient = useQueryClient();
-
+  /* C3 — cache invalidation is NOT done here: this hook is only used by the
+   * upload queue, whose callbacks are scope-guarded (R4). An unguarded
+   * onSuccess invalidate would let a multipart upload of scope A completing
+   * late refetch the queries of scope B (and double-invalidate when the queue
+   * does its own guarded invalidation). The queue owns invalidation. */
   return useMutation<
     ImageMetadata,
     Error,
@@ -68,11 +71,6 @@ export function useUploadImage() {
      * upload must not re-read global credentials mid-flight. */
     mutationFn: ({ file, onProgress, folderId, credential }) =>
       uploadImageFile(file, onProgress, folderId, credential),
-    onSuccess: () => {
-      // Invalidate images list and storage quota
-      queryClient.invalidateQueries({ queryKey: ['images'] });
-      queryClient.invalidateQueries({ queryKey: ['storage'] });
-    },
   });
 }
 
