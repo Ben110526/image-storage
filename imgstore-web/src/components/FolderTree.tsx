@@ -8,6 +8,7 @@ import {
 } from '@mui/icons-material';
 import { useQuery } from '@tanstack/react-query';
 import { fetchFolders } from '../api/client';
+import { useAuth } from '../context/AuthContext';
 import type { FolderMetadata } from '../types';
 import { haptics } from '../lib/haptics';
 
@@ -36,10 +37,15 @@ function flatten(folders: FolderMetadata[]): TreeRow[] {
 }
 
 export const FolderTree: React.FC<FolderTreeProps> = ({ selected, onSelect, scope }) => {
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  /* FIX-05 — never fire /folders for an anonymous visitor: the request is
+   * guaranteed 401, the error state it produces is noise, and it burns a retry
+   * budget the real user will need after connecting. */
   const folders = useQuery({
     queryKey: ['folders', scope],
     queryFn: fetchFolders,
     retry: 1,
+    enabled: !authLoading && isAuthenticated,
   });
 
   const rows = useMemo(() => flatten(folders.data?.folders ?? []), [folders.data]);
@@ -112,7 +118,12 @@ export const FolderTree: React.FC<FolderTreeProps> = ({ selected, onSelect, scop
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>all images</span>
       </Box>
 
-      {folders.isPending ? (
+      {!isAuthenticated && !authLoading ? (
+        /* FIX-05 — anonymous sidebar is a connect prompt, not a fetch error. */
+        <Typography variant="caption" sx={{ display: 'block', px: 1.5, py: 1, color: 'var(--color-ink-3)' }}>
+          Kết nối API key để xem folders
+        </Typography>
+      ) : folders.isPending ? (
         <Box sx={{ px: 1.5, pt: 1 }}>
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} variant="text" width={`${70 - i * 8}%`} height={22} />

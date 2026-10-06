@@ -31,6 +31,8 @@ export interface DataStateProps {
   secondaryAction?: { label: string; onClick: () => void };
   /** Compact mode for in-panel states (less vertical padding). */
   compact?: boolean;
+  /** Extra MUI sx for the root Box (e.g. margin when used as a banner). */
+  sx?: object;
   children?: ReactNode;
 }
 
@@ -50,6 +52,7 @@ export const DataState: React.FC<DataStateProps> = ({
   action,
   secondaryAction,
   compact = false,
+  sx,
   children,
 }) => {
   return (
@@ -67,6 +70,7 @@ export const DataState: React.FC<DataStateProps> = ({
         py: compact ? 4 : 8,
         px: 3,
         color: 'var(--color-text-secondary)',
+        ...sx,
       }}
     >
       {kind === 'loading' ? (

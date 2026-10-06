@@ -33,7 +33,11 @@ const UNKNOWN = '—';
 
 export const StorageTelemetryDeck: React.FC = () => {
   const { isError: healthError } = useHealth();
-  const { data: storageData, isLoading: storageLoading } = useStorage();
+  const {
+    data: storageData,
+    isLoading: storageLoading,
+    isError: storageError,
+  } = useStorage();
   const { user, isAuthenticated, showApiKeyDialog } = useAuth();
 
   // Only real server data — no page-sum fallback, no hardcoded quota.
@@ -44,6 +48,21 @@ export const StorageTelemetryDeck: React.FC = () => {
     usedBytes != null && limitBytes != null && limitBytes > 0
       ? Math.min(100, Math.max(0, (usedBytes / limitBytes) * 100))
       : null;
+
+  /* FIX-05 — three distinct failure modes, three distinct messages:
+   *   health down      → "Không kết nối được máy chủ" (the whole API is gone)
+   *   /storage failed  → "Không tải được dữ liệu dung lượng" (endpoint error)
+   *   limit unknown    → "Chưa có dữ liệu" (server answered but quota unset —
+   *                      NEVER presented as "unlimited"). */
+  const caption = storageLoading
+    ? 'Đang tải…'
+    : healthError
+      ? 'Không kết nối được máy chủ'
+      : storageError
+        ? 'Không tải được dữ liệu dung lượng'
+        : `${usedBytes != null ? formatStorage(usedBytes) : UNKNOWN} đã dùng · ${
+            fileCount != null ? `${fileCount} file` : UNKNOWN
+          } · ${limitBytes != null ? formatStorage(limitBytes) : 'Chưa có dữ liệu giới hạn'}`;
 
   return (
     <ContentSurface
@@ -101,13 +120,7 @@ export const StorageTelemetryDeck: React.FC = () => {
             fontVariantNumeric: 'tabular-nums',
           }}
         >
-          {storageLoading
-            ? 'Đang tải…'
-            : healthError
-              ? 'Không kết nối được máy chủ'
-              : `${usedBytes != null ? formatStorage(usedBytes) : UNKNOWN} đã dùng · ${
-                  fileCount != null ? `${fileCount} file` : UNKNOWN
-                } · ${limitBytes != null ? formatStorage(limitBytes) : 'Không giới hạn hiển thị'}`}
+          {caption}
         </Typography>
       </Box>
 

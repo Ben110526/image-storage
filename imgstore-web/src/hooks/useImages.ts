@@ -5,7 +5,6 @@ import {
   deleteImageById,
   fetchHealth,
   fetchStorage,
-  getApiKey,
   type TransportCredential,
 } from '../api/client';
 import type { ImagesListResponse, ImageMetadata, HealthResponse, StorageResponse } from '../types';
@@ -19,9 +18,12 @@ export const QUERY_KEYS = {
 
 export function useImages(page = 1, limit = 20, search = '', folderId?: string) {
   const { user, isLoading, isAuthenticated } = useAuth();
+  /* FIX-05 — gate on the VERIFIED session only. `Boolean(getApiKey())` fired
+   * protected requests for a stored key that was never verified this session,
+   * producing 401 noise that read as a data error next to the auth gate. */
   return useQuery<ImagesListResponse, Error>({
     queryKey: [...QUERY_KEYS.images(page, limit, search, folderId), user?.id],
-    enabled: !isLoading && (isAuthenticated || Boolean(getApiKey())),
+    enabled: !isLoading && isAuthenticated,
     queryFn: () => fetchImages(page, limit, search, folderId),
     staleTime: 10000,
   });
@@ -38,9 +40,11 @@ export function useHealth() {
 
 export function useStorage() {
   const { user, isLoading, isAuthenticated } = useAuth();
+  /* FIX-05 — verified session only; a stored-but-unverified key must not
+   * fetch quota (it 401s and corrupts the telemetry state). */
   return useQuery<StorageResponse, Error>({
     queryKey: [...QUERY_KEYS.storage, user?.id],
-    enabled: !isLoading && (isAuthenticated || Boolean(getApiKey())),
+    enabled: !isLoading && isAuthenticated,
     queryFn: fetchStorage,
     retry: 1,
     refetchInterval: 30000,

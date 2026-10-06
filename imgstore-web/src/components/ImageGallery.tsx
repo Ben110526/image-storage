@@ -111,8 +111,16 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({ folderId, folderLabe
   const pagination = data?.pagination;
 
   const renderBody = () => {
+    /* FIX-05 — auth restore is its own state: while the session is being
+     * verified we show a neutral loading state, never needs-auth (the user
+     * may well be logged in) and never the gallery skeleton (no fetch has
+     * been allowed to start yet). */
+    if (authLoading) {
+      return <DataState kind="loading" title="Đang kiểm tra kết nối…" compact />;
+    }
+
     // 1. Auth gate — never show "empty library" to an anonymous visitor.
-    if (!authLoading && !isAuthenticated) {
+    if (!isAuthenticated) {
       return (
         <DataState
           kind="needs-auth"
@@ -141,7 +149,36 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({ folderId, folderLabe
       );
     }
 
-    // 3. Fetch error — distinct from empty, with Retry.
+    /* FIX-05 — a failed REFETCH must not blank the grid: React Query keeps
+     * the previous `data` on error, so render it with a banner instead of
+     * dropping the user into an error state for content they already have.
+     * Only a first-load failure (no cached data) gets the full error state. */
+    if (isError && images.length > 0) {
+      return (
+        <>
+          <DataState
+            kind="error"
+            title="Không tải được dữ liệu mới"
+            description="Đang hiển thị dữ liệu đã tải trước đó. Kiểm tra kết nối và thử lại."
+            action={{ label: 'Thử lại', onClick: () => refetch() }}
+            sx={{ mb: 2 }}
+          />
+          <Grid container spacing={{ xs: 1.5, md: 2 }}>
+            {images.map((img) => (
+              <Grid key={img.id} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
+                <ImageCard
+                  image={img}
+                  onPreview={(selected) => setPreviewImage(selected)}
+                  onDelete={(selected) => setImageToDelete(selected)}
+                />
+              </Grid>
+            ))}
+          </Grid>
+        </>
+      );
+    }
+
+    // 3. First-load fetch error — no cached grid to fall back to.
     if (isError) {
       return (
         <DataState
