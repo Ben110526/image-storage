@@ -201,6 +201,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) =
                   { value: 0, label: 'Trong hơn' },
                   { value: 100, label: 'Đậm hơn' },
                 ]}
+                sx={{
+                  /* FIX-08 — the edge marks are centered on 0%/100% and would
+                   * overflow the rail by half their width; pull them inside so
+                   * the dialog never grows a horizontal scrollbar. */
+                  '& .MuiSlider-markLabel': {
+                    fontSize: '0.7rem',
+                    whiteSpace: 'nowrap',
+                  },
+                  '& .MuiSlider-markLabel[data-index="0"]': {
+                    left: '0 !important',
+                    transform: 'none',
+                  },
+                  '& .MuiSlider-markLabel[data-index="1"]': {
+                    left: '100% !important',
+                    transform: 'translateX(-100%)',
+                  },
+                }}
               />
               {effectiveReduceTransparency && (
                 <Typography variant="caption" sx={{ color: 'var(--color-text-tertiary)' }}>
@@ -272,7 +289,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) =
             size="small"
             slotProps={{
               input: {
-                sx: { fontFamily: 'var(--font-mono)', fontSize: '0.85rem' },
+                /* FIX-08 — ≥16px on mobile so iOS does not auto-zoom on focus. */
+                sx: {
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: { xs: '1rem', sm: '0.85rem' },
+                },
               },
             }}
           />
@@ -287,7 +308,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) =
             size="small"
             slotProps={{
               input: {
-                sx: { fontFamily: 'var(--font-mono)', fontSize: '0.85rem' },
+                sx: {
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: { xs: '1rem', sm: '0.85rem' },
+                },
               },
             }}
           />
@@ -318,6 +342,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) =
           justifyContent: 'space-between',
           borderTop: '1px solid',
           borderColor: 'divider',
+          /* FIX-08 — at 320px the footer wraps instead of crushing the
+           * primary action into an unreadable sliver. */
+          flexWrap: 'wrap',
+          gap: 1,
+          '& > *': { minWidth: 0 },
         }}
       >
         <Button

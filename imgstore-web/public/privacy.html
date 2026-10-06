@@ -5,29 +5,29 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ImgStore — Privacy</title>
 <style>
-/* LG-12 — standalone page sharing the app's token values so it reads as the
- * same product. Static: resolves light/dark via prefers-color-scheme, prints
- * clean. */
+/* LG-12 / FIX-10 — standalone page sharing the app's canonical token values
+ * (design/tokens.json themes.light/dark) so it reads as the same product.
+ * Static: resolves light/dark via prefers-color-scheme; no JS required. */
 :root {
-  --bg: #F5F7FB;
+  --bg: #F5F7FA;
   --content: #FFFFFF;
   --content-secondary: #EEF1F6;
   --border: #D8DFEA;
-  --text-primary: #141924;
-  --text-secondary: #45506A;
-  --text-tertiary: #68738D;
+  --text-primary: #18202E;
+  --text-secondary: #48566A;
+  --text-tertiary: #626F82;
   --accent: #4658D9;
   --radius-md: 12px;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0D1117;
-    --content: #151A24;
+    --bg: #0B0D12;
+    --content: #151922;
     --content-secondary: #1D2330;
-    --border: #2C3444;
-    --text-primary: #E9EDF5;
-    --text-secondary: #A9B2C4;
-    --text-tertiary: #78829A;
+    --border: #2A3242;
+    --text-primary: #F2F5FA;
+    --text-secondary: #B4BFD0;
+    --text-tertiary: #8D9BB0;
     --accent: #A4B1FF;
   }
 }
@@ -65,10 +65,13 @@ h2 {
 p { color: var(--text-secondary); margin: 12px 0; }
 strong { color: var(--text-primary); }
 @media print {
+  /* FIX-10 — force BOTH body and main to white. In dark mode main used to
+   * keep its dark --content, printing black text on a near-black card. */
   body { background: #fff; padding: 0; }
-  main { border: none; border-radius: 0; padding: 0; max-width: none; }
+  main { background: #fff; border: none; border-radius: 0; padding: 0; max-width: none; }
   .back { display: none; }
-  h1, h2, p, strong { color: #000; }
+  h1, h2, p, strong, .updated { color: #000; }
+  a { color: #1a1a9e; }
 }
 </style>
 </head>

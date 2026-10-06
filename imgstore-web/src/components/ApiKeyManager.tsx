@@ -1,8 +1,18 @@
 import { useEffect, useState } from 'react';
-import { Alert, Box, Button, TextField, Typography } from '@mui/material';
+import { Alert, Box, Button, IconButton, TextField, Tooltip, Typography } from '@mui/material';
+import {
+  Visibility as RevealIcon,
+  VisibilityOff as HideIcon,
+} from '@mui/icons-material';
 import { createApiKey, fetchApiKeys, revokeApiKey, type PersonalApiKey } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { CopyButton } from './ui/CopyButton';
 import { ConfirmDialog } from './ConfirmDialog';
+
+/* ApiKeyManager (FIX-07) — the one-time admin key is masked by default with
+ * an explicit Reveal/Hide toggle (aria-pressed); Copy works while masked; the
+ * secret is dropped from state when dismissed. Revoke keeps its target open
+ * on failure so the user sees the error in context and can retry. */
 
 export function ApiKeyManager() {
   const { isAuthenticated, showApiKeyDialog, user } = useAuth();
@@ -10,6 +20,7 @@ export function ApiKeyManager() {
   const [name, setName] = useState('My application');
   const [clientId, setClientId] = useState('');
   const [newKey, setNewKey] = useState('');
+  const [newKeyRevealed, setNewKeyRevealed] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -47,6 +58,8 @@ export function ApiKeyManager() {
     }
   };
 
+  /* FIX-07 — close only after success; on failure keep the dialog open with
+   * the error visible so the user can retry without losing context. */
   const handleRevokeConfirm = async () => {
     if (!revokeTarget) return;
     setRevoking(true);
@@ -54,11 +67,11 @@ export function ApiKeyManager() {
       await revokeApiKey(revokeTarget.id);
       setNewKey('');
       setKeys(await fetchApiKeys());
+      setRevokeTarget(null);
     } catch {
       setError('Failed to revoke key. Try again.');
     } finally {
       setRevoking(false);
-      setRevokeTarget(null);
     }
   };
 
@@ -69,6 +82,7 @@ export function ApiKeyManager() {
       </Alert>
     );
 
+  /* FIX-07 — client role never renders the admin form. */
   if (user?.role !== 'admin')
     return (
       <Alert severity="info">
@@ -108,6 +122,7 @@ export function ApiKeyManager() {
             run(async () => {
               const result = await createApiKey(name, clientId.trim());
               setNewKey(result.key);
+              setNewKeyRevealed(false);
             })
           }
         >
@@ -116,25 +131,40 @@ export function ApiKeyManager() {
       </Box>
       {newKey && (
         <Alert severity="success">
-          <Typography variant="body2">Copy now. This secret is shown only once.</Typography>
-          <TextField
-            fullWidth
-            value={newKey}
-            size="small"
-            slotProps={{ input: { readOnly: true } }}
-          />
-          <Button
-            onClick={async () => {
-              try {
-                await navigator.clipboard.writeText(newKey);
-              } catch {
-                setError('Select and copy the key manually.');
-              }
-            }}
-          >
-            Copy key
-          </Button>
-          <Button onClick={() => setNewKey('')}>Hide</Button>
+          <Typography variant="body2" sx={{ mb: 1 }}>
+            Copy now. This secret is shown only once.
+          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <TextField
+              fullWidth
+              /* FIX-07 — masked by default; Reveal is explicit. */
+              type={newKeyRevealed ? 'text' : 'password'}
+              value={newKey}
+              size="small"
+              slotProps={{ input: { readOnly: true } }}
+            />
+            <Tooltip title={newKeyRevealed ? 'Ẩn key' : 'Hiện key'}>
+              <IconButton
+                aria-label={newKeyRevealed ? 'Ẩn API key mới' : 'Hiện API key mới'}
+                aria-pressed={newKeyRevealed}
+                onClick={() => setNewKeyRevealed((v) => !v)}
+                sx={{ width: 44, height: 44, flexShrink: 0 }}
+              >
+                {newKeyRevealed ? <HideIcon fontSize="small" /> : <RevealIcon fontSize="small" />}
+              </IconButton>
+            </Tooltip>
+            {/* Copy works while masked — the value prop holds the real key. */}
+            <CopyButton value={newKey} label="Copy API key mới" iconOnly />
+            <Button
+              onClick={() => {
+                /* Drop the secret from state entirely on dismiss. */
+                setNewKey('');
+                setNewKeyRevealed(false);
+              }}
+            >
+              Hide
+            </Button>
+          </Box>
         </Alert>
       )}
       {keys.map((key) => (

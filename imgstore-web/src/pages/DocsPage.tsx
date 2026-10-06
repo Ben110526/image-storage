@@ -1,10 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box, Button, Drawer, IconButton, Typography, useMediaQuery } from '@mui/material';
+import {
+  FormatListBulleted as TocIcon,
+  Close as CloseIcon,
+} from '@mui/icons-material';
 import { ApiDocsSection } from '../components/ApiDocsSection';
 import { useAppearance } from '../context/AppearanceContext';
 import { haptics } from '../lib/haptics';
 
-/* Hallmark · page: docs · macrostructure: Workbench · theme: Liquid Glass */
+/* Docs — plan §10.4, FIX-07: the TOC sidebar exists only from 900px up;
+ * below that a "Mục lục" button opens a bottom sheet with the same section
+ * links. Scrollspy, section IDs and reduced-motion scroll behavior are
+ * shared between the two presentations. */
 
 const TOC_ITEMS = [
   { id: 'api-quickstart', label: 'Quickstart' },
@@ -18,6 +25,8 @@ const TOC_ITEMS = [
 
 export const DocsPage: React.FC = () => {
   const [activeId, setActiveId] = useState<string>(TOC_ITEMS[0].id);
+  const [tocSheetOpen, setTocSheetOpen] = useState(false);
+  const isDesktop = useMediaQuery('(min-width:900px)');
 
   // Scrollspy: highlight the TOC entry whose section is in view.
   // rootMargin pins the "active line" just under the sticky navbar.
@@ -49,11 +58,67 @@ export const DocsPage: React.FC = () => {
   const scrollToSection = (id: string) => {
     haptics.playTick();
     setActiveId(id);
+    setTocSheetOpen(false);
     // Reduced motion (app toggle OR OS) jumps instead of smooth-scrolling.
     document
       .getElementById(id)
       ?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
   };
+
+  const renderTocItems = () =>
+    TOC_ITEMS.map((item, i) => {
+      const isActive = item.id === activeId;
+      return (
+        <Box
+          key={item.id}
+          component="button"
+          onClick={() => scrollToSection(item.id)}
+          aria-label={`Jump to ${item.label}`}
+          aria-current={isActive ? 'location' : undefined}
+          sx={{
+            display: 'flex',
+            alignItems: 'baseline',
+            gap: 1,
+            width: '100%',
+            px: 1.5,
+            py: 0.75,
+            /* FIX-07 — ≥44px touch targets on the sheet rows. */
+            minHeight: 44,
+            textAlign: 'left',
+            cursor: 'pointer',
+            border: 'none',
+            borderLeft: '2px solid',
+            borderLeftColor: isActive ? 'var(--color-accent)' : 'transparent',
+            background: isActive ? 'var(--color-accent-subtle)' : 'transparent',
+            color: isActive ? 'var(--color-accent)' : 'text.secondary',
+            fontWeight: isActive ? 600 : 400,
+            borderRadius: 0,
+            borderTopRightRadius: 8,
+            borderBottomRightRadius: 8,
+            fontSize: '0.875rem',
+            fontFamily: 'var(--font-body)',
+            transition: 'color 150ms ease, background-color 150ms ease, border-color 150ms ease',
+            '&:hover': {
+              color: 'var(--color-accent)',
+              backgroundColor: 'var(--color-accent-subtle)',
+            },
+          }}
+        >
+          <Box
+            component="span"
+            sx={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: '0.68rem',
+              color: 'var(--color-accent)',
+              opacity: isActive ? 1 : 0.75,
+            }}
+          >
+            {String(i + 1).padStart(2, '0')}
+          </Box>
+          {item.label}
+        </Box>
+      );
+    });
 
   return (
     <Box>
@@ -81,6 +146,25 @@ export const DocsPage: React.FC = () => {
         </Typography>
       </Box>
 
+      {/* FIX-07 — mobile TOC: "Mục lục" button opens a bottom sheet. */}
+      {!isDesktop && (
+        <Button
+          variant="outlined"
+          size="small"
+          startIcon={<TocIcon sx={{ fontSize: 16 }} />}
+          onClick={() => {
+            haptics.playClick();
+            setTocSheetOpen(true);
+          }}
+          aria-haspopup="dialog"
+          aria-expanded={tocSheetOpen}
+          className="pressable"
+          sx={{ mb: 2, borderRadius: 'var(--radius-full)', textTransform: 'none', minHeight: 44 }}
+        >
+          Mục lục
+        </Button>
+      )}
+
       {/* maxWidth centers the TOC+content group; without it the fixed-cap
           content column hugs the left and leaves dead space on the right. */}
       <Box
@@ -92,95 +176,88 @@ export const DocsPage: React.FC = () => {
           mx: 'auto',
         }}
       >
-        {/* Sticky TOC — hidden below 600px; the section cards carry their own headers */}
-        <Box
-          component="nav"
-          aria-label="API docs sections"
-          sx={{
-            display: { xs: 'none', sm: 'block' },
-            width: 190,
-            flexShrink: 0,
-            position: 'sticky',
-            top: 88,
-            maxHeight: 'calc(100vh - 120px)',
-            overflowY: 'auto',
-            py: 1,
-          }}
-        >
-          <Typography
-            variant="caption"
+        {/* FIX-07 — sticky TOC sidebar exists only from 900px up. */}
+        {isDesktop && (
+          <Box
+            component="nav"
+            aria-label="API docs sections"
             sx={{
-              display: 'block',
-              mb: 1.25,
-              px: 1.5,
-              color: 'var(--color-accent)',
-              fontWeight: 700,
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              fontSize: '0.65rem',
-              fontFamily: 'var(--font-mono)',
+              width: 190,
+              flexShrink: 0,
+              position: 'sticky',
+              top: 88,
+              maxHeight: 'calc(100vh - 120px)',
+              overflowY: 'auto',
+              py: 1,
             }}
           >
-            On this page
-          </Typography>
-          {TOC_ITEMS.map((item, i) => {
-            const isActive = item.id === activeId;
-            return (
-              <Box
-                key={item.id}
-                component="button"
-                onClick={() => scrollToSection(item.id)}
-                aria-label={`Jump to ${item.label}`}
-                aria-current={isActive ? 'location' : undefined}
-                sx={{
-                  display: 'flex',
-                  alignItems: 'baseline',
-                  gap: 1,
-                  width: '100%',
-                  px: 1.5,
-                  py: 0.75,
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  border: 'none',
-                  borderLeft: '2px solid',
-                  borderLeftColor: isActive ? 'var(--color-accent)' : 'transparent',
-                  background: isActive ? 'var(--color-accent-subtle)' : 'transparent',
-                  color: isActive ? 'var(--color-accent)' : 'text.secondary',
-                  fontWeight: isActive ? 600 : 400,
-                  borderRadius: 0,
-                  borderTopRightRadius: 8,
-                  borderBottomRightRadius: 8,
-                  fontSize: '0.8rem',
-                  fontFamily: 'var(--font-body)',
-                  transition: 'color 150ms ease, background-color 150ms ease, border-color 150ms ease',
-                  '&:hover': {
-                    color: 'var(--color-accent)',
-                    backgroundColor: 'var(--color-accent-subtle)',
-                  },
-                }}
-              >
-                <Box
-                  component="span"
-                  sx={{
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: '0.68rem',
-                    color: 'var(--color-accent)',
-                    opacity: isActive ? 1 : 0.75,
-                  }}
-                >
-                  {String(i + 1).padStart(2, '0')}
-                </Box>
-                {item.label}
-              </Box>
-            );
-          })}
-        </Box>
+            <Typography
+              variant="caption"
+              sx={{
+                display: 'block',
+                mb: 1.25,
+                px: 1.5,
+                color: 'var(--color-accent)',
+                fontWeight: 700,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                fontSize: '0.65rem',
+                fontFamily: 'var(--font-mono)',
+              }}
+            >
+              On this page
+            </Typography>
+            {renderTocItems()}
+          </Box>
+        )}
 
         {/* Docs content */}
         <Box sx={{ flex: 1, minWidth: 0, maxWidth: { sm: 720, lg: 920 } }}>
           <ApiDocsSection />
         </Box>
       </Box>
+
+      {/* FIX-07 — mobile TOC sheet (focus trap/restore via MUI Drawer). */}
+      <Drawer
+        anchor="bottom"
+        open={tocSheetOpen && !isDesktop}
+        onClose={() => setTocSheetOpen(false)}
+        slotProps={{
+          paper: {
+            sx: {
+              borderTopLeftRadius: 'var(--radius-lg)',
+              borderTopRightRadius: 'var(--radius-lg)',
+              maxHeight: '70dvh',
+              backgroundColor: 'var(--color-content)',
+            },
+          },
+        }}
+      >
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            px: 2,
+            py: 1.5,
+            borderBottom: '1px solid var(--color-border)',
+          }}
+        >
+          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+            Mục lục
+          </Typography>
+          <IconButton
+            aria-label="Đóng mục lục"
+            onClick={() => setTocSheetOpen(false)}
+            size="small"
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </Box>
+        <Box component="nav" aria-label="API docs sections" sx={{ overflowY: 'auto', py: 1 }}>
+          {renderTocItems()}
+        </Box>
+      </Drawer>
     </Box>
   );
 };

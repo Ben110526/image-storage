@@ -98,11 +98,22 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
       onClose={onClose}
       maxWidth="md"
       fullWidth
+      /* FIX-09 — adaptive: full-height sheet on phones so a long filename,
+       * the stage and the actions never push Close off-screen; centered
+       * dialog from 600px up. 100dvh honors the dynamic URL bar. */
+      fullScreen={false}
       aria-label={`Xem trước ${image.name}`}
       slotProps={{
         paper: {
           className: 'glass-elevated',
-          sx: { overflow: 'hidden' },
+          sx: {
+            overflow: 'hidden',
+            m: { xs: 0, sm: 2 },
+            width: { xs: '100%', sm: undefined },
+            maxWidth: { xs: '100%', sm: undefined },
+            maxHeight: { xs: '100dvh', sm: 'calc(100dvh - 64px)' },
+            borderRadius: { xs: 0, sm: 'var(--radius-dialog)' },
+          },
         },
       }}
     >

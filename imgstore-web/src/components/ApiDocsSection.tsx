@@ -50,7 +50,7 @@ const JSON_SAMPLE_UPLOAD = `{
   "data": {
     "id": "1AbCdEfGhIjKlMnOpQrStUv",
     "name": "product-shot.jpg",
-    "size": 128_234,
+    "size": 128234,
     "mime_type": "image/jpeg",
     "width": 1600,
     "height": 1200,
@@ -70,7 +70,7 @@ const JSON_SAMPLE_LIST = `{
       {
         "id": "1AbCdEfGhIjKlMnOpQrStUv",
         "name": "product-shot.jpg",
-        "size": 128_234,
+        "size": 128234,
         "mime_type": "image/jpeg",
         "url": "https://drive.google.com/uc?id=...",
         "proxy_url": "https://imgstore-web.xlabaryai.workers.dev/serve/1AbCdEfGhIjKlMnOpQrStUv",
@@ -103,10 +103,36 @@ export const ApiDocsSection: React.FC = () => {
   const [runningLabel, setRunningLabel] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const copyCode = (code: string, label: string) => {
+  /* FIX-07 — report success only after a confirmed write; on failure say so
+   * and point at manual selection instead of a fake success toast. */
+  const copyCode = async (code: string, label: string) => {
     haptics.playClick();
-    navigator.clipboard.writeText(code);
-    enqueueSnackbar(`Copied ${label} snippet to clipboard!`, { variant: 'success' });
+    try {
+      await navigator.clipboard.writeText(code);
+      enqueueSnackbar(`Copied ${label} snippet to clipboard!`, { variant: 'success' });
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = code;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      let ok = false;
+      try {
+        ok = document.execCommand('copy');
+      } catch {
+        ok = false;
+      } finally {
+        document.body.removeChild(ta);
+      }
+      if (ok) {
+        enqueueSnackbar(`Copied ${label} snippet to clipboard!`, { variant: 'success' });
+      } else {
+        enqueueSnackbar(`Could not copy ${label} — select the code and copy it manually.`, {
+          variant: 'error',
+        });
+      }
+    }
   };
 
   const authHeader = storedKey.startsWith('isk_')
@@ -522,8 +548,9 @@ print(requests.get(f"{BASE}/upload/resumable/{up}",
             </Box>
             {codeBlock(curlDeleteSnippet, 'cURL Delete', () => copyCode(curlDeleteSnippet, 'cURL Delete'))}
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }}>
-              Deleting refunds the reserved quota and purges the edge cache, so the link 404s right away —
-              no stale copies linger.
+              Deleting refunds the reserved quota and starts an edge-cache purge. The stored file is
+              removed immediately and the API stops serving it, but CDN propagation can take a short
+              while — cached or previously downloaded copies outside ImgStore cannot be recalled.
             </Typography>
           </Box>
         </Paper>

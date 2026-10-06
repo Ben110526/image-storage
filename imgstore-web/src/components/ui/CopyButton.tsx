@@ -41,7 +41,13 @@ export const CopyButton: React.FC<CopyButtonProps> = ({
     [],
   );
 
+  /* FIX-07 — success only on a REAL copy. The execCommand fallback returns
+   * false when the browser rejects it; that failure must surface as an error
+   * state with guidance, never a fake checkmark. */
+  const [failed, setFailed] = useState(false);
+
   const handleCopy = useCallback(async () => {
+    setFailed(false);
     try {
       await navigator.clipboard.writeText(value);
     } catch {
@@ -52,12 +58,19 @@ export const CopyButton: React.FC<CopyButtonProps> = ({
       ta.style.opacity = '0';
       document.body.appendChild(ta);
       ta.select();
+      let ok = false;
       try {
-        document.execCommand('copy');
+        ok = document.execCommand('copy');
       } catch {
-        return; // genuinely failed — leave the button in its default state
+        ok = false;
       } finally {
         document.body.removeChild(ta);
+      }
+      if (!ok) {
+        setFailed(true);
+        if (timer.current) clearTimeout(timer.current);
+        timer.current = setTimeout(() => setFailed(false), SUCCESS_MS * 2);
+        return;
       }
     }
     setCopied(true);
@@ -66,18 +79,24 @@ export const CopyButton: React.FC<CopyButtonProps> = ({
     timer.current = setTimeout(() => setCopied(false), SUCCESS_MS);
   }, [value, onCopied]);
 
-  const icon = copied ? <CheckIcon fontSize="small" /> : <CopyIcon fontSize="small" />;
+  const icon = copied ? (
+    <CheckIcon fontSize="small" />
+  ) : failed ? (
+    <CopyIcon fontSize="small" color="error" />
+  ) : (
+    <CopyIcon fontSize="small" />
+  );
 
   return (
     <>
       {iconOnly ? (
-        <Tooltip title={copied ? 'Đã copy' : label}>
+        <Tooltip title={copied ? 'Đã copy' : failed ? 'Không copy được — chọn và copy thủ công' : label}>
           <IconButton
             aria-label={label}
             onClick={handleCopy}
             className="pressable"
             size={size}
-            color={copied ? 'success' : 'default'}
+            color={copied ? 'success' : failed ? 'error' : 'default'}
             sx={{ width: 44, height: 44 }}
           >
             {icon}
@@ -90,15 +109,15 @@ export const CopyButton: React.FC<CopyButtonProps> = ({
           onClick={handleCopy}
           className="pressable"
           startIcon={icon}
-          color={copied ? 'success' : 'primary'}
+          color={copied ? 'success' : failed ? 'error' : 'primary'}
           aria-label={label}
         >
-          {copied ? 'Đã copy' : label}
+          {copied ? 'Đã copy' : failed ? 'Copy thất bại' : label}
         </Button>
       )}
-      {/* Polite announcement of the copy result. */}
+      {/* Polite announcement of the copy result — success AND failure. */}
       <span aria-live="polite" className="visually-hidden">
-        {copied ? `${label} — đã copy` : ''}
+        {copied ? `${label} — đã copy` : failed ? `${label} — copy thất bại, hãy chọn text và copy thủ công` : ''}
       </span>
     </>
   );

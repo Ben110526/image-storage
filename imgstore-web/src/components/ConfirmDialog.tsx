@@ -11,7 +11,11 @@ import { haptics } from '../lib/haptics';
 
 /* ConfirmDialog — plan §11.2: destructive confirms default-focus CANCEL so
  * Enter/Space never deletes by accident; the destructive action requires a
- * deliberate move. Chrome is G2 (glass-elevated). */
+ * deliberate move. Chrome is G2 (glass-elevated).
+ *
+ * FIX-08 — a pending confirm blocks EVERY dismissal path (Escape, backdrop
+ * click, the close affordances): an in-flight destructive request must not
+ * lose its context or look cancelled while it is still running. */
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -37,7 +41,11 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   return (
     <Dialog
       open={open}
-      onClose={onCancel}
+      onClose={(_, reason) => {
+        /* Escape/backdrop are inert while the destructive request runs. */
+        if (loading && (reason === 'escapeKeyDown' || reason === 'backdropClick')) return;
+        onCancel();
+      }}
       maxWidth="xs"
       fullWidth
       aria-label={title}
