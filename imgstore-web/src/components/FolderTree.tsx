@@ -51,28 +51,32 @@ export const FolderTree: React.FC<FolderTreeProps> = ({ selected, onSelect, scop
   const rows = useMemo(() => flatten(folders.data?.folders ?? []), [folders.data]);
   const itemCount = rows.length;
 
+  /* FIX-06 — user-facing folder names use the body font (mono is for
+   * paths/code, not names), and every row is a ≥44px touch target. Deep
+   * paths indent but never push the row past its container. */
   const rowSx = (active: boolean, depth = 0) => ({
     display: 'flex',
     alignItems: 'center',
     gap: 1,
     width: '100%',
     textAlign: 'left' as const,
-    pl: 1.5 + depth * 2,
+    pl: 1.5 + Math.min(depth, 6) * 1.5,
     pr: 1,
-    py: 0.6,
+    minHeight: 44,
     border: 'none',
     borderLeft: '2px solid',
-    borderLeftColor: active ? 'var(--color-accent-emerald)' : 'transparent',
-    backgroundColor: active ? 'var(--color-accent-emerald-subtle)' : 'transparent',
-    color: active ? 'var(--color-ink)' : 'var(--color-ink-2)',
-    fontFamily: 'var(--font-mono)',
-    fontSize: 'var(--text-sm)',
+    borderLeftColor: active ? 'var(--color-accent)' : 'transparent',
+    backgroundColor: active ? 'var(--color-accent-soft)' : 'transparent',
+    color: active ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
+    fontFamily: 'inherit',
+    fontSize: '0.875rem',
+    fontWeight: active ? 600 : 400,
     cursor: 'pointer',
-    borderRadius: 0,
-    transition: `background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out)`,
+    borderRadius: '0 var(--radius-sm) var(--radius-sm) 0',
+    transition: `background-color var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard)`,
     '&:hover': {
-      backgroundColor: active ? 'var(--color-accent-emerald-subtle)' : 'var(--color-paper-2)',
-      color: 'var(--color-ink)',
+      backgroundColor: active ? 'var(--color-accent-soft)' : 'var(--color-content-secondary)',
+      color: 'var(--color-text-primary)',
     },
     whiteSpace: 'nowrap' as const,
     overflow: 'hidden',

@@ -61,11 +61,16 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({ folderId, folderLabe
   );
   const deleteMutation = useDeleteImage();
 
-  // Listen for '/' key to quick-focus the search bar
+  /* FIX-06 — '/' quick-focus skips every editable element (input, textarea,
+   * select, contenteditable), any modifier chord, and any open dialog/sheet
+   * so the shortcut never steals focus out of a modal. */
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      const activeTag = (document.activeElement?.tagName || '').toLowerCase();
-      if (activeTag === 'input' || activeTag === 'textarea') return;
+      const el = document.activeElement as HTMLElement | null;
+      const activeTag = (el?.tagName || '').toLowerCase();
+      if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') return;
+      if (el?.isContentEditable) return;
+      if (document.querySelector('[role="dialog"], [role="presentation"].MuiModal-root')) return;
       if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
         haptics.playClick();
@@ -292,7 +297,9 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({ folderId, folderLabe
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               fullWidth
+              /* FIX-06 — accessible name independent of placeholder. */
               slotProps={{
+                htmlInput: { 'aria-label': 'Tìm kiếm file theo tên' },
                 input: {
                   startAdornment: (
                     <InputAdornment position="start">

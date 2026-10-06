@@ -29,12 +29,16 @@ import {
   DeleteSweep as ClearIcon,
   Pause as PauseIcon,
   PlayArrow as ResumeIcon,
+  Link as LinkIcon,
+  OpenInNew as OpenIcon,
 } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 import { haptics } from '../lib/haptics';
 import { useAuth } from '../context/AuthContext';
-import { getApiKey, getApiBaseUrl } from '../api/client';
+import { getApiBaseUrl } from '../api/client';
 import { UploadFolderPicker } from './UploadFolderPicker';
+import { CopyButton } from './ui/CopyButton';
+import { TextField, Collapse } from '@mui/material';
 import type { FolderMetadata } from '../types';
 import { extractUrlAndNameFromDataTransfer } from '../lib/droppedMedia';
 import {
@@ -75,7 +79,15 @@ export const DropZone: React.FC = () => {
   const folderScope = JSON.stringify([getApiBaseUrl(), user?.id]);
   const [destination, setDestination] = useState<{ scope: string; folder?: FolderMetadata }>();
   const selectedFolder = destination?.scope === folderScope ? destination.folder : undefined;
-  const canUpload = !isLoading && (isAuthenticated || Boolean(getApiKey()));
+  /* FIX-03/FIX-05 — upload affordances follow the VERIFIED session only;
+   * a stored-but-unverified key must not enable the dropzone. */
+  const canUpload = !isLoading && isAuthenticated;
+  /* FIX-04 — URL import has a real CTA + inline C0 form, not only
+   * paste/drop discovery. */
+  const [urlFormOpen, setUrlFormOpen] = useState(false);
+  const [urlInput, setUrlInput] = useState('');
+  const [urlNameInput, setUrlNameInput] = useState('');
+  const [urlError, setUrlError] = useState<string | null>(null);
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
   const {
@@ -97,6 +109,30 @@ export const DropZone: React.FC = () => {
   const enqueueUrl = useCallback(
     (url: string, suggestedName?: string) => queueEnqueueUrl(url, suggestedName, selectedFolder),
     [queueEnqueueUrl, selectedFolder],
+  );
+
+  /* FIX-04 — inline URL import form: validate, enqueue through the SAME
+   * path paste/drop uses, then reset. Errors stay inline, no snackbar for
+   * validation (the field is right there). */
+  const handleUrlSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      const url = urlInput.trim();
+      try {
+        const parsed = new URL(url);
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') throw new Error();
+      } catch {
+        setUrlError('URL không hợp lệ — cần link http(s) công khai.');
+        return;
+      }
+      setUrlError(null);
+      haptics.playDrop();
+      enqueueUrl(url, urlNameInput.trim() || undefined);
+      setUrlInput('');
+      setUrlNameInput('');
+      setUrlFormOpen(false);
+    },
+    [urlInput, urlNameInput, enqueueUrl],
   );
 
   const onDrop = useCallback(
@@ -394,6 +430,24 @@ export const DropZone: React.FC = () => {
           >
             Chọn file
           </Button>
+          {/* FIX-04 — URL import is a first-class CTA, not paste-only. */}
+          <Button
+            variant="outlined"
+            size="large"
+            className="pressable"
+            disabled={!canUpload}
+            startIcon={<LinkIcon sx={{ fontSize: 18 }} />}
+            aria-expanded={urlFormOpen}
+            onClick={(e) => {
+              e.stopPropagation();
+              haptics.playClick();
+              setUrlFormOpen((v) => !v);
+              setUrlError(null);
+            }}
+            sx={{ borderRadius: 'var(--radius-full)', px: 3, minHeight: 44 }}
+          >
+            Nhập URL
+          </Button>
           <Chip
             label="Phím U"
             size="small"
@@ -417,6 +471,80 @@ export const DropZone: React.FC = () => {
             }}
           />
         </Box>
+
+        {/* FIX-04 — inline C0 URL import form (validation inline, submit
+            follows verified canUpload). */}
+        <Collapse in={urlFormOpen && canUpload} sx={{ width: '100%', maxWidth: 520 }}>
+          <Box
+            component="form"
+            onSubmit={handleUrlSubmit}
+            onClick={(e: React.MouseEvent) => e.stopPropagation()}
+            sx={{
+              mt: 2.5,
+              p: 2,
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--color-border)',
+              backgroundColor: 'var(--color-content)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 1.5,
+              textAlign: 'left',
+            }}
+          >
+            <TextField
+              label="URL file công khai"
+              placeholder="https://example.com/image.png"
+              value={urlInput}
+              onChange={(e) => {
+                setUrlInput(e.target.value);
+                if (urlError) setUrlError(null);
+              }}
+              error={Boolean(urlError)}
+              helperText={urlError ?? 'Server sẽ tải file từ URL này (tối đa 50 MB).'}
+              size="small"
+              fullWidth
+              required
+              autoFocus
+              slotProps={{
+                input: { sx: { fontFamily: 'var(--font-mono)', fontSize: '0.85rem' } },
+              }}
+            />
+            <TextField
+              label="Tên file (tùy chọn)"
+              placeholder="banner-hero.png"
+              value={urlNameInput}
+              onChange={(e) => setUrlNameInput(e.target.value)}
+              size="small"
+              fullWidth
+              slotProps={{
+                input: { sx: { fontFamily: 'var(--font-mono)', fontSize: '0.85rem' } },
+              }}
+            />
+            <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+              <Button
+                size="small"
+                color="inherit"
+                onClick={() => {
+                  haptics.playClick();
+                  setUrlFormOpen(false);
+                  setUrlError(null);
+                }}
+                sx={{ textTransform: 'none' }}
+              >
+                Hủy
+              </Button>
+              <Button
+                type="submit"
+                size="small"
+                variant="contained"
+                className="pressable"
+                sx={{ borderRadius: 'var(--radius-full)' }}
+              >
+                Import từ URL
+              </Button>
+            </Box>
+          </Box>
+        </Collapse>
       </Paper>
 
       {/* Upload Queue Activity List — renders the cross-route controller state.
@@ -597,9 +725,35 @@ const QueueRow: React.FC<{
             {item.error}
           </Typography>
         ) : item.status === 'success' ? (
-          <Typography variant="caption" sx={{ color: 'var(--color-success)', fontFamily: 'var(--font-mono)' }}>
-            ✓ Sẵn sàng trên Cloudflare CDN Edge
-          </Typography>
+          /* FIX-04 — success row carries real actions from the verified
+           * server record (proxy_url), never a URL guessed from filename. */
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5, flexWrap: 'wrap' }}>
+            <Typography variant="caption" sx={{ color: 'var(--color-success)', fontFamily: 'var(--font-mono)' }}>
+              ✓ Sẵn sàng trên Cloudflare CDN Edge
+            </Typography>
+            {item.result?.proxy_url && (
+              <>
+                <CopyButton
+                  value={item.result.proxy_url}
+                  label={`Copy link ${item.file.name}`}
+                  iconOnly
+                />
+                <Tooltip title="Mở file trong tab mới">
+                  <IconButton
+                    size="small"
+                    component="a"
+                    href={item.result.proxy_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`Xem ${item.file.name}`}
+                    sx={{ width: 44, height: 44 }}
+                  >
+                    <OpenIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </>
+            )}
+          </Box>
         ) : item.status === 'pending' ? (
           <Typography variant="caption" color="text.secondary">
             {item.statusText}
