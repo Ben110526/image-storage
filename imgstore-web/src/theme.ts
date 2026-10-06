@@ -6,6 +6,20 @@ import {
   type PaletteMode,
 } from './design/tokens.generated';
 
+/* R3 — reduced motion must own MUI's JS-driven transitions, not just our CSS:
+ * Drawer/Slide (folder sheet, TOC sheet), Dialog/Menu (zoom/fade) and Collapse
+ * (URL form) animate via inline styles, so html[data-motion="reduced"] CSS can
+ * never reach their durations. The effective flag (app toggle OR OS) is read
+ * at theme creation; AppearanceProvider re-creates the theme immediately when
+ * the flag flips, so no reload is required. */
+function readEffectiveReduceMotion(): boolean {
+  if (typeof document === 'undefined' || typeof window === 'undefined') return false;
+  return (
+    document.documentElement.getAttribute('data-motion') === 'reduced' ||
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
+}
+
 /* Hallmark · theme: Liquid Glass — palette, typography and shape are derived
  * from the canonical token registry (design/tokens.json via
  * tokens.generated.ts). MUI needs concrete sRGB values; CSS custom properties
@@ -13,6 +27,10 @@ import {
 
 export const getAppTheme = (mode: PaletteMode) => {
   const palette = mode === 'dark' ? MUI_PALETTE_DARK : MUI_PALETTE_LIGHT;
+  const reduceMotion = readEffectiveReduceMotion();
+  /* Under reduced motion every MUI transition collapses to an 80ms opacity
+   * change (matches motion.css) — no slide, no zoom, no expanding height. */
+  const transition = reduceMotion ? { duration: 80, easing: 'linear' } : undefined;
 
   return createTheme({
     palette: {
@@ -267,6 +285,14 @@ export const getAppTheme = (mode: PaletteMode) => {
           },
         },
       },
+      /* R3 — the transition-owning components. timeout: 80 makes Slide/Zoom/
+       * Fade/Grow effectively instant; easing linear so the opacity settle is
+       * plain. enter/exit share the value (tests read the entering config). */
+      MuiDrawer: { defaultProps: { transitionDuration: transition } },
+      MuiDialog: { defaultProps: { transitionDuration: transition } },
+      MuiMenu: { defaultProps: { transitionDuration: transition } },
+      MuiCollapse: { defaultProps: { timeout: reduceMotion ? 80 : undefined } },
+      MuiSnackbar: { defaultProps: { transitionDuration: transition } },
     },
   });
 };

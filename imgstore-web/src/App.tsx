@@ -39,7 +39,7 @@ const queryClient = new QueryClient({
 const ROUTE_ORDER: Route[] = ['upload', 'library', 'docs'];
 
 export const AppContent: React.FC = () => {
-  const { resolvedTheme, setTheme } = useAppearance();
+  const { resolvedTheme, setTheme, reduceMotion } = useAppearance();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(() => haptics.isEnabled());
@@ -52,7 +52,11 @@ export const AppContent: React.FC = () => {
     submitApiKey,
   } = useAuth();
 
-  const theme = useMemo(() => getAppTheme(resolvedTheme), [resolvedTheme]);
+  /* R3 — the theme owns MUI transition durations, and the reduced-motion
+   * config lives in the theme: re-create it the moment the effective flag
+   * (app toggle OR OS) flips, so already-mounted Drawers/Dialogs switch to
+   * instant without a reload. */
+  const theme = useMemo(() => getAppTheme(resolvedTheme), [resolvedTheme, reduceMotion]);
 
   const toggleColorMode = () => {
     setTheme(resolvedTheme === 'light' ? 'dark' : 'light');
