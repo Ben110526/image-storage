@@ -3,7 +3,9 @@
 // Regenerate: npm run tokens
 
 /** Palette blocks consumed by src/theme.ts. MUI color utilities require
- * concrete sRGB values — CSS var() references are not parseable there. */
+ * concrete sRGB values — CSS var() references are not parseable there.
+ * DERIVED from the semantic themes in design/tokens.json (R7) — see
+ * deriveMuiPalette() in scripts/generate-design-tokens.mjs. */
 export const MUI_PALETTE_LIGHT = {
   "primary": {
     "main": "#4658D9",

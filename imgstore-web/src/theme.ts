@@ -29,8 +29,10 @@ export const getAppTheme = (mode: PaletteMode) => {
   const palette = mode === 'dark' ? MUI_PALETTE_DARK : MUI_PALETTE_LIGHT;
   const reduceMotion = readEffectiveReduceMotion();
   /* Under reduced motion every MUI transition collapses to an 80ms opacity
-   * change (matches motion.css) — no slide, no zoom, no expanding height. */
-  const transition = reduceMotion ? { duration: 80, easing: 'linear' } : undefined;
+   * change (matches motion.css) — no slide, no zoom, no expanding height.
+   * MUI's transitionDuration/timeout accept a number or {enter,exit}; the
+   * easing stays the default cubic-bezier because at 80ms it is imperceptible. */
+  const transition = reduceMotion ? 80 : undefined;
 
   return createTheme({
     palette: {
@@ -237,6 +239,8 @@ export const getAppTheme = (mode: PaletteMode) => {
       /* Dialog/sheet body is C0 opaque (FIX-01.5 — documented choice: no
        * translucent form bodies; no blur wasted under opaque content). */
       MuiDialog: {
+        /* R3 — transitionDuration override lives here (single MuiDialog key). */
+        defaultProps: { transitionDuration: transition },
         styleOverrides: {
           paper: {
             borderRadius: RADIUS.dialog,
@@ -273,6 +277,9 @@ export const getAppTheme = (mode: PaletteMode) => {
        * the override applies the material class, it does not make every
        * Paper in the app glass). */
       MuiMenu: {
+        /* R3 — transitionDuration override lives here (single MuiMenu key);
+         * see the transition-owning component block below. */
+        defaultProps: { transitionDuration: transition },
         styleOverrides: {
           paper: {
             borderRadius: RADIUS.menu,
@@ -290,11 +297,10 @@ export const getAppTheme = (mode: PaletteMode) => {
         },
       },
       /* R3 — the transition-owning components. timeout: 80 makes Slide/Zoom/
-       * Fade/Grow effectively instant; easing linear so the opacity settle is
-       * plain. enter/exit share the value (tests read the entering config). */
+       * Fade/Grow effectively instant. enter/exit share the value (tests read
+       * the entering config). MuiMenu/MuiDialog carry their override next to
+       * their styleOverrides above (one key per component). */
       MuiDrawer: { defaultProps: { transitionDuration: transition } },
-      MuiDialog: { defaultProps: { transitionDuration: transition } },
-      MuiMenu: { defaultProps: { transitionDuration: transition } },
       MuiCollapse: { defaultProps: { timeout: reduceMotion ? 80 : undefined } },
       MuiSnackbar: { defaultProps: { transitionDuration: transition } },
     },

@@ -15,88 +15,27 @@ import React, {
  * Effective reduce flags = OS preference OR app preference — the app may only
  * ever increase readability/reduce motion, never override an OS reduce. */
 
-export type ThemePreference = 'light' | 'dark' | 'system';
-
-export interface AppearancePreference {
-  version: 1;
-  theme: ThemePreference;
-  /** Glass tint slider, 0..100. 0 is NOT alpha-0 — it is the most transparent
-   *  still-legible material; 100 is the most opaque. Default 60. */
-  glassTint: number;
-  reduceTransparency: boolean;
-  reduceMotion: boolean;
-}
-
-export const APPEARANCE_STORAGE_KEY = 'imgstore_appearance_v1';
-const LEGACY_THEME_KEY = 'imgstore_theme';
-
-const DEFAULTS: AppearancePreference = {
-  version: 1,
-  // Plan §7 + FIX-10: fresh installs default to LIGHT, not System. A stored
-  // 'system' preference (including one saved before this change) is preserved
-  // untouched — migration never overwrites a user's existing choice.
-  theme: 'light',
-  glassTint: 60,
-  reduceTransparency: false,
-  reduceMotion: false,
-};
-
-function clampTint(v: unknown): number {
-  const n = typeof v === 'number' ? v : Number(v);
-  if (!Number.isFinite(n)) return DEFAULTS.glassTint;
-  return Math.min(100, Math.max(0, Math.round(n)));
-}
-
-/** Pure resolution — shared by the pre-paint bootstrap in index.html and the
- *  React provider so both compute the identical resolved theme. */
-export function resolveTheme(
-  pref: ThemePreference,
-  osDark: boolean,
-): 'light' | 'dark' {
-  if (pref === 'dark') return 'dark';
-  if (pref === 'light') return 'light';
-  return osDark ? 'dark' : 'light';
-}
-
-/** Read + validate + migrate the persisted preference. Never throws — a
- *  corrupt or inaccessible localStorage must not crash the app. */
-export function loadAppearance(): AppearancePreference {
-  try {
-    const raw = localStorage.getItem(APPEARANCE_STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw) as Partial<AppearancePreference>;
-      return {
-        version: 1,
-        theme:
-          parsed.theme === 'light' || parsed.theme === 'dark' || parsed.theme === 'system'
-            ? parsed.theme
-            : DEFAULTS.theme,
-        glassTint: clampTint(parsed.glassTint),
-        reduceTransparency: parsed.reduceTransparency === true,
-        reduceMotion: parsed.reduceMotion === true,
-      };
-    }
-    // One-time migration of the legacy light/dark toggle.
-    const legacy = localStorage.getItem(LEGACY_THEME_KEY);
-    if (legacy === 'light' || legacy === 'dark') {
-      const migrated: AppearancePreference = { ...DEFAULTS, theme: legacy };
-      localStorage.setItem(APPEARANCE_STORAGE_KEY, JSON.stringify(migrated));
-      localStorage.removeItem(LEGACY_THEME_KEY);
-      return migrated;
-    }
-  } catch {
-    /* storage unavailable or corrupt — fall through to defaults */
-  }
-  return DEFAULTS;
-}
-
-export function saveAppearance(pref: AppearancePreference): void {
-  try {
-    localStorage.setItem(APPEARANCE_STORAGE_KEY, JSON.stringify(pref));
-  } catch {
-    /* ignore — preference simply won't persist */
-  }
-}
+/* R7 — the validation/migration logic lives in src/design/appearanceShared.ts
+ * and is shared verbatim with the pre-paint bootstrap in index.html. This file
+ * re-exports it so existing imports keep working. */
+export {
+  APPEARANCE_STORAGE_KEY,
+  loadAppearance,
+  resolveTheme,
+  saveAppearance,
+  clampTint,
+  APPEARANCE_DEFAULTS as DEFAULTS,
+  type ThemePreference,
+  type AppearancePreference,
+} from '../design/appearanceShared';
+import {
+  loadAppearance,
+  saveAppearance,
+  clampTint,
+  resolveTheme,
+  type ThemePreference,
+  type AppearancePreference,
+} from '../design/appearanceShared';
 
 /* ------------------------------------------------------------------ */
 /* DOM attribute application — single place that owns data-theme,      */
@@ -184,6 +123,7 @@ export const AppearanceProvider: React.FC<{ children: ReactNode }> = ({ children
     const next: AppearancePreference = {
       ...pref,
       ...patch,
+      version: 1,
       glassTint: clampTint(patch.glassTint ?? pref.glassTint),
     };
     saveAppearance(next);

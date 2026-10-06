@@ -7,7 +7,14 @@
 <style>
 /* LG-12 / FIX-10 — standalone page sharing the app's canonical token values
  * (design/tokens.json themes.light/dark) so it reads as the same product.
- * Static: resolves light/dark via prefers-color-scheme; no JS required. */
+ *
+ * R7 deviation note (intentional): this page resolves light/dark via the OS
+ * media query (prefers-color-scheme) and NOT the in-app `imgstore_appearance_v1`
+ * preference. That is deliberate: privacy.html is a static, JS-free document
+ * served outside the React app, so it cannot read localStorage without a
+ * flash-of-wrong-theme script, and its readers may not be app users at all.
+ * The token VALUES stay in sync with design/tokens.json — only the selection
+ * mechanism differs (OS follows the app default of matching the OS anyway). */
 :root {
   --bg: #F5F7FA;
   --content: #FFFFFF;

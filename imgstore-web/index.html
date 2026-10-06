@@ -10,18 +10,18 @@
   <body>
     <!--
       Appearance bootstrap — runs BEFORE first paint so there is no theme flash.
-      Reads/validates `imgstore_appearance_v1`, migrates the legacy
-      `imgstore_theme` toggle once, resolves System against the OS scheme, and
-      stamps data-theme / data-transparency / data-motion / --glass-tint onto
-      <html>. React (AppearanceContext) re-derives the same values afterwards;
-      both use the identical algorithm so the post-hydration state matches the
-      pre-paint one. Default for a fresh install is LIGHT (plan §7); a stored
-      'system' choice is preserved. Any storage failure falls back to light
-      defaults without crashing the app.
+      R7: this is the ES5 inline transcription of src/design/appearanceShared.ts
+      (parseAppearance/resolveTheme/loadAppearance) — the SINGLE validation &
+      migration implementation both sides share. Keep the two in lockstep; the
+      React provider re-derives the identical values from the same functions so
+      the post-hydration state always matches the pre-paint one. Default for a
+      fresh install is LIGHT (plan §7); a stored 'system' choice is preserved.
+      Any storage failure falls back to light defaults without crashing the app.
     -->
     <script>
       (function () {
         var root = document.documentElement;
+        // --- transcribed from appearanceShared.ts (parseAppearance/resolveTheme) ---
         var pref = { theme: 'light', glassTint: 60, reduceTransparency: false, reduceMotion: false };
         try {
           var raw = localStorage.getItem('imgstore_appearance_v1');

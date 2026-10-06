@@ -104,6 +104,14 @@
   --glass-lens-offset-pill: 18px;
   --glass-lens-offset-card: 28px;
   --glass-lens-offset-nav: 38px;
+  --color-accent-strong: #6B7BE4;
+  --color-info-hover: #184A78;
+  --color-info-strong: #4A82B4;
+  --color-on-success: #FFFFFF;
+  --color-on-error: #FFFFFF;
+  --color-on-warning: #FFFFFF;
+  --color-on-info: #FFFFFF;
+  --color-on-info-dark: #FFFFFF;
 }
 
 /* Legacy aliases (light). Point old names at the new registry so existing
@@ -202,6 +210,14 @@
   --glass-sheen: linear-gradient(165deg, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0.02) 18%, transparent 34%);
   --glass-press-hi: rgba(255, 255, 255, 0.30);
   --glass-press-mid: rgba(255, 255, 255, 0.08);
+  --color-accent-deep: #8896F2;
+  --color-info-hover: #6FA8DC;
+  --color-info-strong: #B0DCFF;
+  --color-on-info: #101623;
+  --color-on-error: #2A1218;
+  --color-on-warning: #261B08;
+  --color-on-success: #0E241A;
+  --color-on-info-dark: #101C28;
 }
 
 [data-theme='dark'] {

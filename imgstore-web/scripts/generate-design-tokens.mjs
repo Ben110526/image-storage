@@ -122,16 +122,54 @@ function tsConst(name, value) {
   return `export const ${name} = ${JSON.stringify(value, null, 2)} as const;`;
 }
 
+/* ---- MUI palette — derived from the semantic themes (R7) ------------------
+ * The old design/tokens.json had a separate hand-maintained `mui` block
+ * ("Keep in sync with the light/dark blocks above") that could drift from the
+ * semantic colors silently. The palette is now DERIVED: one canonical mapping
+ * from semantic token names to MUI roles, applied to both themes. Edit the
+ * semantic values or this mapping — never a second color list. */
+
+function deriveMuiPalette(theme, mode) {
+  const t = (name) => {
+    const v = theme[`color-${name}`];
+    if (typeof v !== 'string' || !v.startsWith('#')) {
+      throw new Error(`deriveMuiPalette: themes.${mode} color-${name} missing or not sRGB (got ${JSON.stringify(v)})`);
+    }
+    return v;
+  };
+  /* Light/dark asymmetry is explicit: in light mode the accent family provides
+   * a lighter tint (accent-strong) and hover shade (accent-hover); in dark
+   * mode it provides a lighter tint (accent-hover) and deeper shade
+   * (accent-deep). Each maps to the MUI role its brightness implies. */
+  const primaryLight = mode === 'light' ? t('accent-strong') : t('accent-hover');
+  const primaryDark = mode === 'light' ? t('accent-hover') : t('accent-deep');
+  return {
+    primary: { main: t('accent'), light: primaryLight, dark: primaryDark, contrastText: t('on-accent') },
+    secondary: { main: t('info'), light: t('info-strong'), dark: t('info-hover'), contrastText: t('on-info') },
+    error: { main: t('destructive'), contrastText: t('on-error') },
+    warning: { main: t('warning'), contrastText: t('on-warning') },
+    info: { main: t('info'), contrastText: t('on-info-dark') },
+    success: { main: t('success'), contrastText: t('on-success') },
+    background: { default: t('canvas'), paper: t('content') },
+    text: { primary: t('text-primary'), secondary: t('text-secondary'), disabled: t('text-tertiary') },
+    divider: t('border'),
+  };
+}
+
 function buildTs() {
-  const { mui, motion, radius } = registry;
+  const { motion, radius, themes } = registry;
+  const light = deriveMuiPalette(themes.light, 'light');
+  const dark = deriveMuiPalette(themes.dark, 'dark');
   return [
     HEADER_TS,
     '',
     '/** Palette blocks consumed by src/theme.ts. MUI color utilities require\n' +
-      ' * concrete sRGB values — CSS var() references are not parseable there. */',
-    tsConst('MUI_PALETTE_LIGHT', mui.light),
+      ' * concrete sRGB values — CSS var() references are not parseable there.\n' +
+      ' * DERIVED from the semantic themes in design/tokens.json (R7) — see\n' +
+      ' * deriveMuiPalette() in scripts/generate-design-tokens.mjs. */',
+    tsConst('MUI_PALETTE_LIGHT', light),
     '',
-    tsConst('MUI_PALETTE_DARK', mui.dark),
+    tsConst('MUI_PALETTE_DARK', dark),
     '',
     tsConst('MOTION', motion),
     '',
