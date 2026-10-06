@@ -41,7 +41,14 @@ export function resolveTheme(pref: ThemePreference, osDark: boolean): 'light' | 
 }
 
 /** Parse + validate an already-read raw string (no storage access, so both
- *  environments share it). Falls back to defaults on any problem. */
+ *  environments share it).
+ *  Returns:
+ *  - null when there is nothing stored (caller may try legacy migration)
+ *  - APPEARANCE_DEFAULTS when the stored value is corrupt (C4: a corrupt
+ *    preference must NOT fall through to legacy migration — bootstrap and
+ *    provider must resolve the SAME theme or the pre-paint and hydrated
+ *    states diverge)
+ *  - the validated preference otherwise. */
 export function parseAppearance(raw: string | null): AppearancePreference | null {
   if (!raw) return null;
   try {
@@ -57,7 +64,7 @@ export function parseAppearance(raw: string | null): AppearancePreference | null
       reduceMotion: parsed.reduceMotion === true,
     };
   } catch {
-    return null;
+    return APPEARANCE_DEFAULTS;
   }
 }
 

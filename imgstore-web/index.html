@@ -8,58 +8,117 @@
     <!-- Fonts: system stack only (plan §7.1) — no webfont requests. -->
   </head>
   <body>
+    <!-- appearance-bootstrap:generated -->
     <!--
       Appearance bootstrap — runs BEFORE first paint so there is no theme flash.
-      R7: this is the ES5 inline transcription of src/design/appearanceShared.ts
-      (parseAppearance/resolveTheme/loadAppearance) — the SINGLE validation &
-      migration implementation both sides share. Keep the two in lockstep; the
-      React provider re-derives the identical values from the same functions so
-      the post-hydration state always matches the pre-paint one. Default for a
-      fresh install is LIGHT (plan §7); a stored 'system' choice is preserved.
-      Any storage failure falls back to light defaults without crashing the app.
+      GENERATED from src/design/appearanceShared.ts by
+      scripts/generate-appearance-bootstrap.mjs — do not edit by hand.
+      Regenerate: npm run tokens (checked by npm run tokens:check).
+      Both this script and the React provider execute the SAME loadAppearance/
+      resolveTheme implementation, so the pre-paint state and the hydrated
+      state can never diverge. Default for a fresh install is LIGHT (plan §7);
+      a stored 'system' choice is preserved; a CORRUPT preference falls back
+      to defaults (never to legacy migration). Storage failures fall back to
+      light defaults without crashing the app.
     -->
     <script>
-      (function () {
-        var root = document.documentElement;
-        // --- transcribed from appearanceShared.ts (parseAppearance/resolveTheme) ---
-        var pref = { theme: 'light', glassTint: 60, reduceTransparency: false, reduceMotion: false };
-        try {
-          var raw = localStorage.getItem('imgstore_appearance_v1');
-          if (raw) {
-            var p = JSON.parse(raw);
-            if (p && typeof p === 'object') {
-              if (p.theme === 'light' || p.theme === 'dark' || p.theme === 'system') pref.theme = p.theme;
-              var t = Number(p.glassTint);
-              if (isFinite(t)) pref.glassTint = Math.min(100, Math.max(0, Math.round(t)));
-              pref.reduceTransparency = p.reduceTransparency === true;
-              pref.reduceMotion = p.reduceMotion === true;
+      (() => {
+        var __defProp = Object.defineProperty;
+        var __defProps = Object.defineProperties;
+        var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
+        var __getOwnPropSymbols = Object.getOwnPropertySymbols;
+        var __hasOwnProp = Object.prototype.hasOwnProperty;
+        var __propIsEnum = Object.prototype.propertyIsEnumerable;
+        var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+        var __spreadValues = (a, b) => {
+          for (var prop in b || (b = {}))
+            if (__hasOwnProp.call(b, prop))
+              __defNormalProp(a, prop, b[prop]);
+          if (__getOwnPropSymbols)
+            for (var prop of __getOwnPropSymbols(b)) {
+              if (__propIsEnum.call(b, prop))
+                __defNormalProp(a, prop, b[prop]);
             }
-          } else {
-            var legacy = localStorage.getItem('imgstore_theme');
-            if (legacy === 'light' || legacy === 'dark') {
-              pref.theme = legacy;
-              try {
-                localStorage.setItem('imgstore_appearance_v1', JSON.stringify({ version: 1, theme: legacy, glassTint: 60, reduceTransparency: false, reduceMotion: false }));
-                localStorage.removeItem('imgstore_theme');
-              } catch (e) {}
-            }
+          return a;
+        };
+        var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
+
+        // src/design/appearanceShared.ts
+        var APPEARANCE_STORAGE_KEY = "imgstore_appearance_v1";
+        var LEGACY_THEME_KEY = "imgstore_theme";
+        var APPEARANCE_DEFAULTS = {
+          version: 1,
+          theme: "light",
+          glassTint: 60,
+          reduceTransparency: false,
+          reduceMotion: false
+        };
+        function clampTint(v) {
+          const n = typeof v === "number" ? v : Number(v);
+          if (!Number.isFinite(n)) return APPEARANCE_DEFAULTS.glassTint;
+          return Math.min(100, Math.max(0, Math.round(n)));
+        }
+        function resolveTheme(pref, osDark) {
+          if (pref === "dark") return "dark";
+          if (pref === "light") return "light";
+          return osDark ? "dark" : "light";
+        }
+        function parseAppearance(raw) {
+          if (!raw) return null;
+          try {
+            const parsed = JSON.parse(raw);
+            return {
+              version: 1,
+              theme: parsed.theme === "light" || parsed.theme === "dark" || parsed.theme === "system" ? parsed.theme : APPEARANCE_DEFAULTS.theme,
+              glassTint: clampTint(parsed.glassTint),
+              reduceTransparency: parsed.reduceTransparency === true,
+              reduceMotion: parsed.reduceMotion === true
+            };
+          } catch (e) {
+            return APPEARANCE_DEFAULTS;
           }
-        } catch (e) {}
+        }
+        function loadAppearance() {
+          try {
+            const parsed = parseAppearance(localStorage.getItem(APPEARANCE_STORAGE_KEY));
+            if (parsed) return parsed;
+            const legacy = localStorage.getItem(LEGACY_THEME_KEY);
+            if (legacy === "light" || legacy === "dark") {
+              const migrated = __spreadProps(__spreadValues({}, APPEARANCE_DEFAULTS), { theme: legacy });
+              localStorage.setItem(APPEARANCE_STORAGE_KEY, JSON.stringify(migrated));
+              localStorage.removeItem(LEGACY_THEME_KEY);
+              return migrated;
+            }
+          } catch (e) {
+          }
+          return APPEARANCE_DEFAULTS;
+        }
 
-        var osDark = false, osRM = false, osRT = false;
-        try {
-          osDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-          osRM = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-          osRT = window.matchMedia('(prefers-reduced-transparency: reduce)').matches;
-        } catch (e) {}
-
-        var resolved = pref.theme === 'system' ? (osDark ? 'dark' : 'light') : pref.theme;
-        root.setAttribute('data-theme', resolved);
-        root.setAttribute('data-transparency', (pref.reduceTransparency || osRT) ? 'reduced' : 'full');
-        root.setAttribute('data-motion', (pref.reduceMotion || osRM) ? 'reduced' : 'full');
-        root.style.setProperty('--glass-tint', (pref.glassTint / 100).toFixed(3));
+        // <stdin>
+        (function() {
+          var root = document.documentElement;
+          var pref;
+          try {
+            pref = loadAppearance();
+          } catch (e) {
+            pref = { theme: "light", glassTint: 60, reduceTransparency: false, reduceMotion: false };
+          }
+          var osDark = false, osRM = false, osRT = false;
+          try {
+            osDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+            osRM = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+            osRT = window.matchMedia("(prefers-reduced-transparency: reduce)").matches;
+          } catch (e) {
+          }
+          var resolved = resolveTheme(pref.theme, osDark);
+          root.setAttribute("data-theme", resolved);
+          root.setAttribute("data-transparency", pref.reduceTransparency || osRT ? "reduced" : "full");
+          root.setAttribute("data-motion", pref.reduceMotion || osRM ? "reduced" : "full");
+          root.style.setProperty("--glass-tint", (pref.glassTint / 100).toFixed(3));
+        })();
       })();
     </script>
+    <!-- /appearance-bootstrap:generated -->
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
