@@ -83,6 +83,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) =
    * a pending state while the new endpoint is checked; only close on success. */
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  /* R8 — tint slider: live drag preview (CSS var only); persisted value
+   * commits on release. null = not dragging. */
+  const [tintPreview, setTintPreview] = useState<number | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -198,6 +201,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) =
       <DialogContent sx={{ p: 3 }}>
         {/* ── Appearance ─────────────────────────────────────────────── */}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+          {/* R8 — appearance applies and saves instantly; Save below only
+           * concerns the Connection section. Say so, since Cancel also just
+           * closes the dialog. */}
+          <Typography variant="caption" sx={{ color: 'var(--color-text-tertiary)' }}>
+            Giao diện tự lưu ngay khi thay đổi — nút Save bên dưới chỉ áp dụng cho phần Kết nối.
+          </Typography>
           <Box>
             <SectionLabel>Giao diện</SectionLabel>
             <ToggleButtonGroup
@@ -225,8 +234,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) =
             <SectionLabel>Độ phủ màu kính</SectionLabel>
             <Box sx={{ px: 0.5, mt: 1 }}>
               <Slider
-                value={pref.glassTint}
-                onChange={(_, v) => setGlassTint(v as number)}
+                value={tintPreview ?? pref.glassTint}
+                onChange={(_, v) => {
+                  /* R8 — drag updates the CSS var only (live preview, no
+                   * localStorage write per tick); persistence happens once on
+                   * release via onChangeCommitted. */
+                  const tint = v as number;
+                  setTintPreview(tint);
+                  document.documentElement.style.setProperty('--glass-tint', (tint / 100).toFixed(3));
+                }}
+                onChangeCommitted={(_, v) => {
+                  setTintPreview(null);
+                  setGlassTint(v as number);
+                }}
                 min={0}
                 max={100}
                 step={5}

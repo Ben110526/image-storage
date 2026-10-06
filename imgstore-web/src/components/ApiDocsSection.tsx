@@ -156,7 +156,9 @@ curl "${baseUrl}/image/<IMAGE_ID>" \\
   -H "${authHeader}"`;
 
   const curlDeleteSnippet = `# 4. Delete your image by ID.
-# The edge cache is purged on delete, so new reads see the removal immediately.
+# The API stops serving the file right away and an edge-cache purge starts,
+# but CDN propagation can take a short while — previously cached or
+# downloaded copies outside ImgStore cannot be recalled.
 curl -X DELETE "${baseUrl}/image/<IMAGE_ID>" \\
   -H "${authHeader}"`;
 
