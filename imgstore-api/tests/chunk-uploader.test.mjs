@@ -12,9 +12,19 @@ const built = await build({
   plugins: [{ name: 'api', setup(b) {
     b.onResolve({ filter: /api\/client$/ }, () => ({ path: 'api', namespace: 'test' }));
     b.onLoad({ filter: /.*/, namespace: 'test' }, () => ({
+      /* FIX-03 contract: the uploader imports snapshotCredential and the
+       * TransportCredential type. The mock forwards function calls; the
+       * snapshot just captures the fixture's credential fields verbatim so
+       * assertions can prove the same credential object is reused for
+       * init/status/chunk/abort regardless of later global changes. */
       contents: ['initResumableUpload', 'uploadResumableChunk', 'fetchResumableStatus', 'abortResumableUpload',
         'getApiBaseUrl', 'getApiKey', 'getSessionToken'].map(name =>
-        `export const ${name} = (...args) => globalThis.uploaderApi.${name}(...args);`).join('\n'),
+        `export const ${name} = (...args) => globalThis.uploaderApi.${name}(...args);`).join('\n') + `
+export const snapshotCredential = () => ({
+  baseURL: globalThis.uploaderApi.getApiBaseUrl(),
+  sessionToken: globalThis.uploaderApi.getSessionToken() ?? undefined,
+  apiKey: globalThis.uploaderApi.getApiKey() || undefined,
+});`,
     }));
   } }],
 });
@@ -360,4 +370,110 @@ test('eight queued uploaders finish automatically without exceeding five server 
   assert.equal(completed, 8);
   assert.equal(peak, 5);
   assert.equal(active.size, 0);
+});
+
+test('FIX-03 — init/chunk/abort keep the enqueue-time credential after the global connection changes', async () => {
+  const { api } = fixture();
+  const seen = { init: [], chunk: [], abort: [] };
+  api.getApiBaseUrl = () => 'https://api-a.example';
+  api.getSessionToken = () => 'token-A';
+  api.getApiKey = () => 'key-A';
+  api.initResumableUpload = async (name, size, mime, folderId, credential) => {
+    seen.init.push(credential);
+    return { upload_id: 'session', chunk_size: 4 };
+  };
+  const firstChunk = deferred();
+  let chunks = 0;
+  api.uploadResumableChunk = async (id, body, range, progress, signal, credential) => {
+    seen.chunk.push(credential);
+    if (++chunks === 1) {
+      // Hold the first chunk until the global connection has been switched,
+      // then acknowledge only its 4 bytes so a SECOND chunk follows and also
+      // runs under the snapshot credential.
+      await firstChunk.promise;
+      return { status: 308, range: 'bytes=0-3' };
+    }
+    return { status: 201, data: { status: 'completed', file: { id: 'file' } } };
+  };
+  api.abortResumableUpload = async (id, credential) => { seen.abort.push(credential); };
+
+  const uploader = new ChunkUploader(new File(['12345678'], 'creds.bin'), { maxRetries: 0 });
+  const start = uploader.start();
+
+  // A SECOND uploader created under credential A whose chunk hangs until its
+  // abort signal fires — used below to prove the abort path also keeps A.
+  // It must be constructed BEFORE the global switch so its snapshot is A.
+  const hanging = new ChunkUploader(new File(['12345678'], 'creds-abort.bin'), { maxRetries: 0 });
+
+  // Wait until the first chunk is in flight, then switch the global
+  // connection — the in-flight item must NOT pick up the new credential
+  // (FIX-03 snapshot contract).
+  while (seen.chunk.length === 0) await new Promise(r => originalTimeout(r, 1));
+  api.getApiBaseUrl = () => 'https://api-b.example';
+  api.getSessionToken = () => 'token-B';
+  api.getApiKey = () => 'key-B';
+  firstChunk.resolve();
+  await start;
+  // The just-completed uploader cleared its session (nothing to abort), so
+  // the abort path is exercised with the hanging uploader created pre-switch.
+
+  const expected = { baseURL: 'https://api-a.example', sessionToken: 'token-A', apiKey: 'key-A' };
+  assert.deepEqual(seen.init[0], expected);
+  assert.deepEqual(seen.chunk[0], expected);
+  assert.deepEqual(seen.chunk[1], expected, 'second chunk after the switch still uses credential A');
+
+  // Abort path: the pre-switch hanging uploader aborts with credential A even
+  // though the global connection is now B.
+  api.uploadResumableChunk = (id, body, range, progress, signal, credential) => {
+    seen.chunk.push(credential);
+    return new Promise((_, reject) => {
+      signal.addEventListener('abort', () => reject(new Error('aborted')), { once: true });
+    });
+  };
+  const hangStart = hanging.start();
+  while (seen.chunk.length < 3) await new Promise(r => originalTimeout(r, 1));
+  assert.equal(await hanging.cancel(), true);
+  await hangStart;
+  assert.deepEqual(seen.init[1], expected, 'hanging uploader still inits with credential A');
+  assert.deepEqual(seen.chunk[2], expected, 'hanging uploader chunk uses credential A');
+  assert.deepEqual(seen.abort[0], expected, 'abort uses credential A');
+
+  // And a NEW uploader constructed after the switch takes the new credential.
+  const second = new ChunkUploader(new File(['1234'], 'creds2.bin'), { maxRetries: 0 });
+  api.uploadResumableChunk = async () => ({ status: 201, data: { status: 'completed', file: { id: 'file' } } });
+  await second.start();
+  assert.deepEqual(seen.init[2], { baseURL: 'https://api-b.example', sessionToken: 'token-B', apiKey: 'key-B' });
+});
+
+test('FIX-03 — status recovery keeps the enqueue-time credential after the global connection changes', async () => {
+  const { api } = fixture();
+  const seen = { status: [] };
+  api.getApiBaseUrl = () => 'https://api-a.example';
+  api.getSessionToken = () => 'token-A';
+  api.getApiKey = () => 'key-A';
+  let chunks = 0;
+  api.uploadResumableChunk = async () => {
+    if (++chunks === 1) throw new Error('response lost');
+    return { status: 201, data: { status: 'completed', file: { id: 'file' } } };
+  };
+  const firstStatus = deferred();
+  api.fetchResumableStatus = async (id, signal, credential) => {
+    seen.status.push(credential);
+    // Hold the recovery query until the global connection has switched.
+    await firstStatus.promise;
+    return { status: 'uploading', bytes_received: 4 };
+  };
+
+  const uploader = new ChunkUploader(new File(['12345678'], 'creds-status.bin'), { maxRetries: 1 });
+  const start = uploader.start();
+  while (seen.status.length === 0) await new Promise(r => originalTimeout(r, 1));
+  api.getApiBaseUrl = () => 'https://api-b.example';
+  api.getSessionToken = () => 'token-B';
+  api.getApiKey = () => 'key-B';
+  firstStatus.resolve();
+  await start;
+
+  const expected = { baseURL: 'https://api-a.example', sessionToken: 'token-A', apiKey: 'key-A' };
+  assert.ok(seen.status.length >= 1);
+  assert.deepEqual(seen.status[0], expected);
 });
