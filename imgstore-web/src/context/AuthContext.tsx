@@ -29,9 +29,11 @@ interface AuthContextType {
   isLoading: boolean;
   /** Current connection scope — snapshot this into queue items at enqueue. */
   scope: ConnectionScope;
-  /** Re-read endpoint/key from storage after Settings saved them, bump the
-   * generation and clear cached data of the old scope. */
-  refreshConnection: () => void;
+  /** Re-read endpoint/key from storage after Settings saved them, invalidate
+   * the old identity and re-verify against the NEW endpoint (R1). Resolves
+   * true when the new connection authenticated, false otherwise. Never throws
+   * — verification failure lands in needs-auth/error state, not a rejection. */
+  refreshConnection: () => Promise<boolean>;
   // API Key Dialog state
   apiKeyDialogOpen: boolean;
   apiKeyDialogLoading: boolean;
@@ -143,12 +145,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [queryClient]);
 
   /* Settings saved a new endpoint/key: adopt it as a new scope, drop every
-   * cache entry of the old scope and let the queue's generation guard stop
-   * dispatching items enqueued under the old owner. */
-  const refreshConnection = useCallback(() => {
-    setToken(getSessionToken());
+   * cache entry of the old scope, INVALIDATE the old identity and re-verify
+   * against the new endpoint (R1 — a connection change must never keep the
+   * previous user; otherwise the UI keeps showing "Client A" while requests
+   * to endpoint B 401). State machine:
+   *   save → verifying (isLoading) → authenticated(new profile)
+   *        |                        → anonymous (no credential)
+   *        |                        → needs-auth (401: credential rejected —
+   *        |                            stored credential cleared so stale
+   *        |                            items cannot keep sending it)
+   *        |                        → error state via user=null + token kept
+   *        |                          (network failure: NOT logged out)
+   */
+  const refreshConnection = useCallback(async (): Promise<boolean> => {
+    const token = getSessionToken();
     queryClient.clear();
     setGeneration((g) => g + 1);
+    setUser(null);
+    setStoredUserProfile(null);
+    if (!token) {
+      setToken(null);
+      setLoading(false);
+      return false;
+    }
+    setToken(token);
+    setLoading(true);
+    try {
+      const profile = await fetchCurrentUser();
+      setUser(profile);
+      setStoredUserProfile(profile);
+      return true;
+    } catch (err) {
+      const status = (err as { response?: { status?: number } }).response?.status;
+      if (status === 401 || status === 403) {
+        // Credential rejected by the new endpoint — drop it everywhere so the
+        // app lands in needs-auth and stale queue items cannot send it.
+        setSessionToken(null);
+        setStoredUserProfile(null);
+        setToken(null);
+      }
+      // Network/other errors keep the stored credential for the next attempt
+      // but the session is NOT authenticated until verification succeeds.
+      return false;
+    } finally {
+      setLoading(false);
+    }
   }, [queryClient]);
 
   const isAuthenticated = Boolean(user && sessionToken);

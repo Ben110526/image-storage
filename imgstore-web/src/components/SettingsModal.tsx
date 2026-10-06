@@ -79,31 +79,52 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) =
 
   const [apiUrl, setApiUrl] = useState('');
   const [apiKey, setApiKey] = useState('');
+  /* R1 — connection save is an async verify flow: keep the dialog open with
+   * a pending state while the new endpoint is checked; only close on success. */
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
       setApiUrl(getApiBaseUrl());
       setApiKey(getApiKey());
+      setSaveError(null);
     }
   }, [open]);
 
-  const handleSave = () => {
-    haptics.playSuccess();
+  const handleSave = async () => {
+    if (saving) return;
+    haptics.playClick();
+    setSaving(true);
+    setSaveError(null);
     saveApiConfig(apiUrl, apiKey);
-    /* FIX-03 — saving connection parameters opens a NEW connection scope:
-     * bump the generation, drop caches of the old scope, and let the queue's
-     * generation guard park items enqueued under the old credential. */
-    refreshConnection();
-    enqueueSnackbar('Connection parameters saved successfully!', { variant: 'success' });
-    onClose();
+    /* R1 — saving connection parameters opens a NEW connection scope and
+     * RE-VERIFIES identity against the new endpoint: the previous user is
+     * invalidated first, then /auth/me runs against the new endpoint. The
+     * old authenticated state is never carried across the save. */
+    const ok = await refreshConnection();
+    setSaving(false);
+    if (ok) {
+      haptics.playSuccess();
+      enqueueSnackbar('Connection parameters saved successfully!', { variant: 'success' });
+      onClose();
+    } else {
+      // Verification failed — keep the draft + error visible; the app is now
+      // anonymous/needs-auth, never still-authenticated-as-the-old-user.
+      haptics.playDelete();
+      setSaveError(
+        'Đã lưu cấu hình, nhưng không xác thực được với endpoint mới — kết nối hiện tại đã chuyển sang chưa đăng nhập. Kiểm tra URL/credential hoặc dùng "Connect with API key".',
+      );
+    }
   };
 
-  const handleReset = () => {
+  const handleReset = async () => {
+    if (saving) return;
     haptics.playClick();
     resetApiConfig();
     setApiUrl(import.meta.env.VITE_API_URL || 'http://localhost:8787');
     setApiKey('');
-    refreshConnection();
+    await refreshConnection();
     enqueueSnackbar('Settings reset to build defaults', { variant: 'info' });
   };
 
@@ -117,7 +138,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) =
   return (
     <Dialog
       open={open}
-      onClose={onClose}
+      onClose={(_e, reason) => {
+        // R1 — a pending connection verification blocks backdrop/Escape just
+        // like a destructive confirm: closing mid-flight would hide the
+        // success/error outcome of the save.
+        if (saving && (reason === 'escapeKeyDown' || reason === 'backdropClick')) return;
+        if (!saving) onClose();
+      }}
       maxWidth="sm"
       fullWidth
       slotProps={{
@@ -275,6 +302,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) =
 
         {/* ── Connection ─────────────────────────────────────────────── */}
         <SectionLabel>Kết nối</SectionLabel>
+        {saveError && (
+          <Alert severity="warning" sx={{ my: 2, borderRadius: 2 }} onClose={() => setSaveError(null)}>
+            {saveError}
+          </Alert>
+        )}
         <Alert severity="info" sx={{ my: 2, borderRadius: 2 }}>
           Configure the API endpoint for this browser. The Worker URL points to your deployed Cloudflare Worker. The optional API key field is for direct REST access without session login.
         </Alert>
@@ -354,6 +386,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) =
           onClick={handleReset}
           color="inherit"
           size="small"
+          disabled={saving}
           sx={{ textTransform: 'none' }}
         >
           Reset Defaults
@@ -366,6 +399,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) =
             }}
             color="inherit"
             size="small"
+            disabled={saving}
             sx={{ textTransform: 'none' }}
           >
             Cancel
@@ -376,8 +410,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) =
             color="primary"
             size="small"
             className="pressable"
+            disabled={saving}
           >
-            Save Parameters
+            {saving ? 'Đang xác minh…' : 'Save Parameters'}
           </Button>
         </Box>
       </DialogActions>
