@@ -31,8 +31,9 @@ import { CopyButton } from './ui/CopyButton';
 /* ImagePreviewModal — plan §10.3:
  * - Media stage is NEUTRAL DARK regardless of app theme, so imagery reads
  *   accurately (no tint, no glass over content).
- * - Dialog chrome is G2 (glass-elevated); the close control floats on the
- *   stage as G3 clear with a scrim behind it.
+ * - Dialog body AND chrome are C0 opaque (R5: opaque theme paper; G2 is for
+ *   menus/popovers only); the close control floats on the stage as G3 clear
+ *   with a scrim behind it.
  * - MUI Dialog restores focus to the trigger on close (keepMounted=false). */
 
 interface ImagePreviewModalProps {
@@ -105,7 +106,6 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
       aria-label={`Xem trước ${image.name}`}
       slotProps={{
         paper: {
-          className: 'glass-elevated',
           sx: {
             overflow: 'hidden',
             m: { xs: 0, sm: 2 },

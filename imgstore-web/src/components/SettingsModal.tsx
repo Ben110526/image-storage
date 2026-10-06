@@ -151,7 +151,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) =
         paper: {
           sx: {
             overflow: 'hidden',
-            borderRadius: 'var(--radius-dialog)',
+            /* R5 — adaptive: full-width sheet anchored to the bottom on phones
+             * (a 320px dialog previously shrank to a 248px-wide desktop box
+             * with a wrapping footer); centered dialog from 600px up. */
+            m: { xs: 0, sm: 2 },
+            width: { xs: '100%', sm: undefined },
+            maxWidth: { xs: '100%', sm: undefined },
+            maxHeight: { xs: 'calc(100dvh - 48px)', sm: 'calc(100dvh - 64px)' },
+            alignSelf: { xs: 'flex-end', sm: 'center' },
+            borderRadius: { xs: 'var(--radius-dialog) var(--radius-dialog) 0 0', sm: 'var(--radius-dialog)' },
+            pb: { xs: 'env(safe-area-inset-bottom)', sm: 0 },
           },
         },
       }}

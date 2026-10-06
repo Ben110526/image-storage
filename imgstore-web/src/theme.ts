@@ -121,7 +121,11 @@ export const getAppTheme = (mode: PaletteMode) => {
           root: {
             borderRadius: RADIUS.full,
             boxShadow: 'none',
-            minHeight: 40,
+            /* R5 — 44px touch target (plan §6): a desktop pointer can hit
+             * anything, but these buttons are also the mobile primary actions
+             * (Connect, folder sheet, needs-auth CTA all measured 40px in the
+             * recheck review). */
+            minHeight: 44,
             '&:hover': {
               boxShadow: 'none',
             },

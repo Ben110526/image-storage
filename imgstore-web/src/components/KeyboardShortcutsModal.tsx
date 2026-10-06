@@ -73,7 +73,6 @@ export const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
       aria-label="Phím tắt"
       slotProps={{
         paper: {
-          className: 'glass-elevated',
           sx: { p: 0.5 },
         },
       }}
