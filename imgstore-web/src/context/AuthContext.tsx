@@ -10,6 +10,7 @@ import {
   getApiBaseUrl,
   saveApiConfig,
 } from '../api/client';
+import { reverifyConnection } from '../lib/refreshConnection';
 
 /** Connection scope (FIX-03): endpoint + identity + generation. Increments on
  * every login/logout/endpoint change so the upload queue can tell "same
@@ -162,34 +163,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     queryClient.clear();
     setGeneration((g) => g + 1);
     setUser(null);
-    setStoredUserProfile(null);
     if (!token) {
+      // Mirrors reverifyConnection()'s anonymous branch (no fetch possible).
+      setStoredUserProfile(null);
+      setSessionToken(null);
       setToken(null);
       setLoading(false);
       return false;
     }
     setToken(token);
     setLoading(true);
-    try {
-      const profile = await fetchCurrentUser();
-      setUser(profile);
-      setStoredUserProfile(profile);
-      return true;
-    } catch (err) {
-      const status = (err as { response?: { status?: number } }).response?.status;
-      if (status === 401 || status === 403) {
-        // Credential rejected by the new endpoint — drop it everywhere so the
-        // app lands in needs-auth and stale queue items cannot send it.
-        setSessionToken(null);
-        setStoredUserProfile(null);
-        setToken(null);
-      }
-      // Network/other errors keep the stored credential for the next attempt
-      // but the session is NOT authenticated until verification succeeds.
-      return false;
-    } finally {
-      setLoading(false);
+    /* The state machine (invalidate → verify on the NEW endpoint → classify
+     * the outcome) lives in src/lib/refreshConnection.ts so it is unit-tested
+     * without a React renderer; here we only mirror its result into state. */
+    const result = await reverifyConnection();
+    if (result.outcome === 'authenticated' && result.profile) {
+      setUser(result.profile);
+    } else if (result.outcome === 'needs-auth' || result.outcome === 'anonymous') {
+      setToken(null);
     }
+    // 'error' keeps the credential in state for retry but stays unauthenticated.
+    setLoading(false);
+    return result.outcome === 'authenticated';
   }, [queryClient]);
 
   const isAuthenticated = Boolean(user && sessionToken);
