@@ -75,7 +75,7 @@ function getFileIcon(mime: string, name: string) {
 }
 
 export const DropZone: React.FC = () => {
-  const { user, isAuthenticated, isLoading, showApiKeyDialog } = useAuth();
+  const { user, isAuthenticated, isLoading, showApiKeyDialog, scope } = useAuth();
   const folderScope = JSON.stringify([getApiBaseUrl(), user?.id]);
   const [destination, setDestination] = useState<{ scope: string; folder?: FolderMetadata }>();
   const selectedFolder = destination?.scope === folderScope ? destination.folder : undefined;
@@ -599,6 +599,7 @@ export const DropZone: React.FC = () => {
                 dividerColor={theme.palette.divider}
                 onRemove={removeQueueItem}
                 onTogglePauseResume={togglePauseResume}
+                isStaleScope={item.generation !== scope.generation}
               />
             ))}
           </List>
@@ -614,11 +615,15 @@ const QueueRow: React.FC<{
   dividerColor: string;
   onRemove: (id: string) => void;
   onTogglePauseResume: (item: UploadItem) => void;
-}> = ({ item, dividerColor, onRemove, onTogglePauseResume }) => (
+  /** R4 — item enqueued under a previous connection scope: rendered for
+   * context but its pause/resume control is hidden (the current owner must
+   * not drive the old owner's transport). */
+  isStaleScope?: boolean;
+}> = ({ item, dividerColor, onRemove, onTogglePauseResume, isStaleScope }) => (
   <ListItem
     secondaryAction={
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-        {item.uploader && (['uploading', 'completing', 'paused'].includes(item.status) || (item.status === 'error' && item.uploader.getUploadId())) && (
+        {!isStaleScope && item.uploader && (['uploading', 'completing', 'paused'].includes(item.status) || (item.status === 'error' && item.uploader.getUploadId())) && (
           <Tooltip title={item.status === 'uploading' || item.status === 'completing' ? 'Tạm dừng upload' : 'Tiếp tục upload'}>
             <IconButton size="small" onClick={() => onTogglePauseResume(item)}>
               {item.status === 'uploading' || item.status === 'completing' ? (
@@ -671,6 +676,14 @@ const QueueRow: React.FC<{
             {item.sourceUrl && item.remoteSize === undefined ? 'Web link' : formatBytes(item.remoteSize ?? item.file.size)}
           </Typography>
           <Typography variant="caption" color="text.secondary">→ /{item.folderPath || 'My folder'}</Typography>
+          {isStaleScope && (
+            <Chip
+              label="kết nối trước"
+              size="small"
+              variant="outlined"
+              sx={{ height: 18, fontSize: '0.68rem', color: 'var(--color-text-tertiary)' }}
+            />
+          )}
           {(item.status === 'uploading' || item.status === 'paused') && (
             <Chip
               label={`${item.progress}%`}

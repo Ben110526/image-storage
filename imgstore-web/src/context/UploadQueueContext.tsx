@@ -111,6 +111,19 @@ export const UploadQueueProvider: React.FC<{ children: ReactNode }> = ({ childre
   const [queue, setQueue] = useState<UploadItem[]>([]);
   const slots = useRef(new UploadQueueSlots());
   const uploadMutation = useUploadImage();
+  /* R4 — callbacks of in-flight items fire AFTER a scope change too (late
+   * completion). A ref mirror of the current generation lets those closures
+   * tell "my owner's scope" from "the scope the UI is showing now" without
+   * being re-created: queue rows still update (the user sees the file landed),
+   * but cache invalidation and success toasts belong to the current owner. */
+  const generationRef = useRef(scope.generation);
+  useEffect(() => {
+    generationRef.current = scope.generation;
+  }, [scope.generation]);
+  const isCurrentScope = useCallback(
+    (item: UploadItem) => item.generation === generationRef.current,
+    [],
+  );
 
   const handleUploadFile = useCallback(
     async (item: UploadItem) => {
@@ -148,23 +161,27 @@ export const UploadQueueProvider: React.FC<{ children: ReactNode }> = ({ childre
             ),
           );
 
-          haptics.playSuccess();
-          enqueueSnackbar(`Imported "${result.name}" from web successfully!`, {
-            variant: 'success',
-            autoHideDuration: 3000,
-          });
-          queryClient.invalidateQueries({ queryKey: ['images'] });
-          queryClient.invalidateQueries({ queryKey: ['storage'] });
+          if (isCurrentScope(item)) {
+            haptics.playSuccess();
+            enqueueSnackbar(`Imported "${result.name}" from web successfully!`, {
+              variant: 'success',
+              autoHideDuration: 3000,
+            });
+            queryClient.invalidateQueries({ queryKey: ['images'] });
+            queryClient.invalidateQueries({ queryKey: ['storage'] });
+          }
         } catch (err) {
           const msg = err instanceof Error ? err.message : 'URL import failed';
           setQueue((prev) =>
             prev.map((i) => (i.id === item.id ? { ...i, status: 'error', error: msg } : i)),
           );
-          haptics.playDelete();
-          enqueueSnackbar(`Failed to import ${item.file.name}: ${msg}`, {
-            variant: 'error',
-            autoHideDuration: 5000,
-          });
+          if (isCurrentScope(item)) {
+            haptics.playDelete();
+            enqueueSnackbar(`Failed to import ${item.file.name}: ${msg}`, {
+              variant: 'error',
+              autoHideDuration: 5000,
+            });
+          }
         } finally {
           slots.current.release(item.id);
           setQueue((prev) => [...prev]);
@@ -222,23 +239,27 @@ export const UploadQueueProvider: React.FC<{ children: ReactNode }> = ({ childre
             ),
           );
 
-          haptics.playSuccess();
-          enqueueSnackbar(`Uploaded "${item.file.name}" successfully!`, {
-            variant: 'success',
-            autoHideDuration: 3000,
-          });
-          queryClient.invalidateQueries({ queryKey: ['images'] });
-          queryClient.invalidateQueries({ queryKey: ['storage'] });
+          if (isCurrentScope(item)) {
+            haptics.playSuccess();
+            enqueueSnackbar(`Uploaded "${item.file.name}" successfully!`, {
+              variant: 'success',
+              autoHideDuration: 3000,
+            });
+            queryClient.invalidateQueries({ queryKey: ['images'] });
+            queryClient.invalidateQueries({ queryKey: ['storage'] });
+          }
         } catch (err) {
           const msg = err instanceof Error ? err.message : 'Upload failed';
           setQueue((prev) =>
             prev.map((i) => (i.id === item.id ? { ...i, status: 'error', error: msg } : i)),
           );
-          haptics.playDelete();
-          enqueueSnackbar(`Failed to upload ${item.file.name}: ${msg}`, {
-            variant: 'error',
-            autoHideDuration: 5000,
-          });
+          if (isCurrentScope(item)) {
+            haptics.playDelete();
+            enqueueSnackbar(`Failed to upload ${item.file.name}: ${msg}`, {
+              variant: 'error',
+              autoHideDuration: 5000,
+            });
+          }
         } finally {
           slots.current.release(item.id);
           setQueue((prev) => [...prev]);
@@ -312,23 +333,27 @@ export const UploadQueueProvider: React.FC<{ children: ReactNode }> = ({ childre
                   : i,
               ),
             );
-            haptics.playSuccess();
-            enqueueSnackbar(
-              `Uploaded "${item.file.name}" (${formatBytes(item.file.size)}) successfully!`,
-              { variant: 'success', autoHideDuration: 3000 },
-            );
-            queryClient.invalidateQueries({ queryKey: ['images'] });
-            queryClient.invalidateQueries({ queryKey: ['storage'] });
+            if (isCurrentScope(item)) {
+              haptics.playSuccess();
+              enqueueSnackbar(
+                `Uploaded "${item.file.name}" (${formatBytes(item.file.size)}) successfully!`,
+                { variant: 'success', autoHideDuration: 3000 },
+              );
+              queryClient.invalidateQueries({ queryKey: ['images'] });
+              queryClient.invalidateQueries({ queryKey: ['storage'] });
+            }
           },
           onError: (err) => {
             setQueue((prev) =>
               prev.map((i) => (i.id === item.id ? { ...i, status: 'error', error: err.message } : i)),
             );
-            haptics.playDelete();
-            enqueueSnackbar(`Failed to upload ${item.file.name}: ${err.message}`, {
-              variant: 'error',
-              autoHideDuration: 5000,
-            });
+            if (isCurrentScope(item)) {
+              haptics.playDelete();
+              enqueueSnackbar(`Failed to upload ${item.file.name}: ${err.message}`, {
+                variant: 'error',
+                autoHideDuration: 5000,
+              });
+            }
           },
         });
 
@@ -348,7 +373,7 @@ export const UploadQueueProvider: React.FC<{ children: ReactNode }> = ({ childre
         await uploader.start();
       }
     },
-    [uploadMutation, enqueueSnackbar, queryClient],
+    [uploadMutation, enqueueSnackbar, queryClient, isCurrentScope],
   );
 
   /* Slot dispatcher: whenever the queue changes, hand pending items to free
@@ -453,15 +478,30 @@ export const UploadQueueProvider: React.FC<{ children: ReactNode }> = ({ childre
     [queue],
   );
 
-  const togglePauseResume = useCallback((item: UploadItem) => {
-    if (!item.uploader) return;
-    haptics.playClick();
-    if (item.status === 'uploading' || item.status === 'completing') {
-      item.uploader.pause();
-    } else if (item.status === 'paused' || item.status === 'error') {
-      void item.uploader.resume();
-    }
-  }, []);
+  const togglePauseResume = useCallback(
+    (item: UploadItem) => {
+      if (!item.uploader) return;
+      /* R4 — owner boundary: pause/resume/cancel only act on items enqueued
+       * under the CURRENT connection scope. A stale item's transport still
+       * holds its enqueue-time credential, but the current owner must not be
+       * able to drive it — pausing is harmless, resuming would send the old
+       * owner's bytes through a scope the current UI no longer represents. */
+      if (item.generation !== scope.generation) {
+        enqueueSnackbar(
+          'This upload belongs to a previous connection — remove or re-add the file to manage it.',
+          { variant: 'warning' },
+        );
+        return;
+      }
+      haptics.playClick();
+      if (item.status === 'uploading' || item.status === 'completing') {
+        item.uploader.pause();
+      } else if (item.status === 'paused' || item.status === 'error') {
+        void item.uploader.resume();
+      }
+    },
+    [scope.generation, enqueueSnackbar],
+  );
 
   const clearCompleted = useCallback(() => {
     haptics.playClick();
