@@ -4,13 +4,15 @@ import {
   CssBaseline,
   Container,
   Box,
-  Typography,
 } from '@mui/material';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SnackbarProvider } from 'notistack';
 import { getAppTheme } from './theme';
 import { AuthProvider } from './context/AuthContext';
+import { AppearanceProvider, useAppearance } from './context/AppearanceContext';
+import { UploadQueueProvider } from './context/UploadQueueContext';
 import { Navbar } from './components/Navbar';
+import { MobileNavigation } from './components/ui/MobileNavigation';
 import { UploadPage } from './pages/UploadPage';
 import { LibraryPage } from './pages/LibraryPage';
 import { DocsPage } from './pages/DocsPage';
@@ -37,16 +39,11 @@ const queryClient = new QueryClient({
 const ROUTE_ORDER: Route[] = ['upload', 'library', 'docs'];
 
 export const AppContent: React.FC = () => {
-  const [colorMode, setColorMode] = useState<'light' | 'dark'>(() => {
-    const saved = localStorage.getItem('imgstore_theme');
-    if (saved === 'dark' || saved === 'light') return saved;
-    return 'light';
-  });
-
+  const { resolvedTheme, setTheme } = useAppearance();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(() => haptics.isEnabled());
-  const [route, navigate] = useHashRoute();
+  const [route] = useHashRoute();
   const {
     apiKeyDialogOpen,
     apiKeyDialogLoading,
@@ -55,24 +52,20 @@ export const AppContent: React.FC = () => {
     submitApiKey,
   } = useAuth();
 
-  const theme = useMemo(() => getAppTheme(colorMode), [colorMode]);
-
-  // Sync data-theme attribute on root for OKLCH CSS tokens
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', colorMode);
-  }, [colorMode]);
+  const theme = useMemo(() => getAppTheme(resolvedTheme), [resolvedTheme]);
 
   const toggleColorMode = () => {
-    setColorMode((prev) => {
-      const next = prev === 'light' ? 'dark' : 'light';
-      localStorage.setItem('imgstore_theme', next);
-      return next;
-    });
+    setTheme(resolvedTheme === 'light' ? 'dark' : 'light');
   };
 
   const toggleSound = () => {
     const next = haptics.toggle();
     setSoundEnabled(next);
+  };
+
+  // `navigate` is used by the global 1/2/3 hotkeys; links handle the rest.
+  const navigate = (r: Route) => {
+    window.location.hash = `/${r}`;
   };
 
   // Global keybindings: 1/2/3 (pages), T (theme), M (sound), ? (shortcuts), Esc (close modals)
@@ -110,7 +103,7 @@ export const AppContent: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [navigate]);
+  }, [navigate, resolvedTheme]);
 
   return (
     <ThemeProvider theme={theme}>
@@ -120,6 +113,10 @@ export const AppContent: React.FC = () => {
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         autoHideDuration={3000}
       >
+        {/* Upload queue controller lives above the routes so an in-flight
+            upload, its File handle and its server slot survive navigation
+            (LG-06). Pages only render this state. */}
+        <UploadQueueProvider>
         {/* Atmospheric Ambient Glow Background */}
         <div className="ambient-glow-bg" />
 
@@ -134,47 +131,36 @@ export const AppContent: React.FC = () => {
         >
           {/* Top Navigation */}
           <Navbar
-            colorMode={colorMode}
-            onToggleColorMode={toggleColorMode}
+            route={route}
             onOpenSettings={() => setSettingsOpen(true)}
             onOpenShortcuts={() => setShortcutsOpen(true)}
             soundEnabled={soundEnabled}
             onToggleSound={toggleSound}
-            route={route}
-            onNavigate={navigate}
           />
 
-          {/* Main Application Container — one page at a time */}
+          {/* Main Application Container — one page at a time. Bottom padding
+              clears the mobile destination bar (62px + safe-area + margin). */}
           <Container
             maxWidth="xl"
-            sx={{ py: { xs: 2, sm: 3, md: 4.5 }, px: { xs: 1.5, sm: 2.5, md: 4 }, flexGrow: 1 }}
+            component="main"
+            sx={{
+              py: { xs: 2, sm: 3, md: 4.5 },
+              px: { xs: 1.5, sm: 2.5, md: 4 },
+              pb: { xs: 'calc(62px + env(safe-area-inset-bottom) + 32px)', md: 4.5 },
+              flexGrow: 1,
+            }}
           >
             {route === 'upload' && <UploadPage />}
             {route === 'library' && <LibraryPage />}
             {route === 'docs' && <DocsPage />}
-            <Box sx={{ textAlign: 'center', mt: 2 }}><a href="/privacy.html">Privacy &amp; image sharing</a></Box>
           </Container>
 
-          {/* Footer */}
-          <Box
-            component="footer"
-            className="glass-surface"
-            sx={{
-              py: 3.5,
-              textAlign: 'center',
-              borderRadius: '0 !important',
-              border: 'none !important',
-              borderTop: '1px solid var(--color-border-glass) !important',
-            }}
-          >
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{ fontFamily: 'var(--font-body)', fontSize: '0.8rem' }}
-            >
-              ImgStore · Shared Image Storage &amp; Cloudflare CDN
-            </Typography>
-          </Box>
+          {/* Mobile destination bar */}
+          <MobileNavigation route={route} />
+
+          {/* No footer — the page just ends in the ambient background. The
+              privacy notice lives in Settings; the hash routes are all in the
+              navbar already. */}
 
           {/* Settings Modal */}
           <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
@@ -194,6 +180,7 @@ export const AppContent: React.FC = () => {
             onClose={() => setShortcutsOpen(false)}
           />
         </Box>
+        </UploadQueueProvider>
       </SnackbarProvider>
     </ThemeProvider>
   );
@@ -202,9 +189,11 @@ export const AppContent: React.FC = () => {
 export const App: React.FC = () => {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
+      <AppearanceProvider>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </AppearanceProvider>
     </QueryClientProvider>
   );
 };

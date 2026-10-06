@@ -1,10 +1,89 @@
 <!doctype html>
-<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>ImgStore — Privacy</title>
-<body style="font:16px/1.7 system-ui;max-width:760px;margin:48px auto;padding:0 24px"><a href="/">← ImgStore</a>
-<h1>Privacy and shared image storage</h1><p>Updated September 18, 2026.</p>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ImgStore — Privacy</title>
+<style>
+/* LG-12 — standalone page sharing the app's token values so it reads as the
+ * same product. Static: resolves light/dark via prefers-color-scheme, prints
+ * clean. */
+:root {
+  --bg: #F5F7FB;
+  --content: #FFFFFF;
+  --content-secondary: #EEF1F6;
+  --border: #D8DFEA;
+  --text-primary: #141924;
+  --text-secondary: #45506A;
+  --text-tertiary: #68738D;
+  --accent: #4658D9;
+  --radius-md: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0D1117;
+    --content: #151A24;
+    --content-secondary: #1D2330;
+    --border: #2C3444;
+    --text-primary: #E9EDF5;
+    --text-secondary: #A9B2C4;
+    --text-tertiary: #78829A;
+    --accent: #A4B1FF;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  padding: 48px 24px;
+  font: 16px/1.7 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text-primary);
+}
+main {
+  max-width: 720px;
+  margin: 0 auto;
+  background: var(--content);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 32px clamp(20px, 5vw, 44px);
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.back { font-size: 0.875rem; color: var(--text-secondary); }
+h1 {
+  font-size: 1.6rem;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  margin: 20px 0 4px;
+}
+h2 {
+  font-size: 1.1rem;
+  margin: 28px 0 8px;
+}
+.updated { color: var(--text-tertiary); font-size: 0.85rem; margin-top: 0; }
+p { color: var(--text-secondary); margin: 12px 0; }
+strong { color: var(--text-primary); }
+@media print {
+  body { background: #fff; padding: 0; }
+  main { border: none; border-radius: 0; padding: 0; max-width: none; }
+  .back { display: none; }
+  h1, h2, p, strong { color: #000; }
+}
+</style>
+</head>
+<body>
+<main>
+<a class="back" href="/">← ImgStore</a>
+<h1>Privacy and shared image storage</h1>
+<p class="updated">Updated September 18, 2026.</p>
 <p>ImgStore stores uploaded images in one shared cloud storage account operated by the service administrator. Users do not connect personal cloud storage or sign in with a third-party account. The storage administrator can access and manage all uploaded images.</p>
 <p>Anyone with a public image link can view and copy the image. Upload only images you intend to share. Client API keys allow access to that client's own image records, while the administrator key manages the entire store.</p>
-<h2>Stored data</h2><p>The shared cloud storage holds image files. Cloudflare Workers KV holds filenames, sizes, timestamps, storage file IDs, client identifiers, key labels and API key hashes. Cloudflare may cache images for delivery. The shared storage connection credentials are stored as server secrets.</p>
+<h2>Stored data</h2>
+<p>The shared cloud storage holds image files. Cloudflare Workers KV holds filenames, sizes, timestamps, storage file IDs, client identifiers, key labels and API key hashes. Cloudflare may cache images for delivery. The shared storage connection credentials are stored as server secrets.</p>
 <p>The browser stores the API key you enter and your connection settings locally. Signing out removes the browser credential; it does not revoke the key or delete images. Keys expire after one year or can be revoked by the administrator. Image records remain until deleted. Revocation and deletion may take time to propagate, and downloaded copies cannot be recalled.</p>
 <p>Records from the earlier sign-in version may retain profile and storage connection data until removed. New clients do not provide third-party account data. Contact the storage administrator for access, key replacement or data removal.</p>
-<p>The storage provider and Cloudflare process storage and network requests, including normal connection information such as IP addresses, to operate this service.</p></body></html>
+<p>The storage provider and Cloudflare process storage and network requests, including normal connection information such as IP addresses, to operate this service.</p>
+</main>
+</body>
+</html>

@@ -10,22 +10,28 @@ import {
   Button,
   IconButton,
   Tooltip,
-  Paper,
   Chip,
 } from '@mui/material';
 import {
   Search as SearchIcon,
   Clear as ClearIcon,
   Refresh as RefreshIcon,
-  PhotoLibrary as GalleryIcon,
+  CloudUpload as UploadIcon,
 } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 import { useImages, useDeleteImage } from '../hooks/useImages';
+import { useAuth } from '../context/AuthContext';
 import { ImageCard } from './ImageCard';
 import { ConfirmDialog } from './ConfirmDialog';
 import { ImagePreviewModal } from './ImagePreviewModal';
+import { DataState } from './ui/DataState';
 import type { ImageMetadata } from '../types';
 import { haptics } from '../lib/haptics';
+
+/* ImageGallery — plan §10.2: toolbar (search/clear/refresh) over a C0 grid.
+ * Render states are strictly separated (plan §3.3 P0): needs-auth ≠ empty,
+ * fetch error ≠ empty, no-results ≠ empty. Background refresh keeps the
+ * previous grid on screen; only the first load shows skeletons. */
 
 interface ImageGalleryProps {
   /** When set, only images in this folder are listed. */
@@ -37,6 +43,7 @@ interface ImageGalleryProps {
 export const ImageGallery: React.FC<ImageGalleryProps> = ({ folderId, folderLabel }) => {
   const { enqueueSnackbar } = useSnackbar();
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const { isAuthenticated, isLoading: authLoading, showApiKeyDialog } = useAuth();
 
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState('');
@@ -46,7 +53,7 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({ folderId, folderLabe
   const [imageToDelete, setImageToDelete] = useState<ImageMetadata | null>(null);
 
   const limit = 12;
-  const { data, isLoading, isFetching, refetch } = useImages(
+  const { data, isLoading, isFetching, isError, error, refetch } = useImages(
     page,
     limit,
     activeSearch,
@@ -59,7 +66,7 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({ folderId, folderLabe
     const handleKeyDown = (e: KeyboardEvent) => {
       const activeTag = (document.activeElement?.tagName || '').toLowerCase();
       if (activeTag === 'input' || activeTag === 'textarea') return;
-      if (e.key === '/' || e.key === 's' || e.key === 'S') {
+      if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
         haptics.playClick();
         searchInputRef.current?.focus();
@@ -103,136 +110,53 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({ folderId, folderLabe
   const images = data?.images || [];
   const pagination = data?.pagination;
 
-  return (
-    <Box sx={{ width: '100%', mb: 6 }}>
-      {/* Header controls: Title, search input, refresh */}
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: { xs: 'column', sm: 'row' },
-          justifyContent: 'space-between',
-          alignItems: { xs: 'stretch', sm: 'center' },
-          gap: 2,
-          mb: 3,
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 34,
-              height: 34,
-              borderRadius: 1,
-              border: '1px solid',
-              borderColor: 'primary.main',
-              color: 'primary.main',
-            }}
-          >
-            <GalleryIcon sx={{ fontSize: 20 }} />
-          </Box>
-          <Typography
-            variant="h5"
-            sx={{
-              fontFamily: 'var(--font-body)',
-              fontWeight: 700,
-              letterSpacing: '-0.02em',
-            }}
-          >
-            {folderLabel ?? 'Media Library'}
-          </Typography>
-          {pagination && (
-            <Chip
-              label={`${pagination.total} ${pagination.total === 1 ? 'item' : 'items'}`}
-              size="small"
-              sx={{
-                fontFamily: 'JetBrains Mono, monospace',
-                fontSize: '0.72rem',
-                fontWeight: 600,
-                backgroundColor: 'var(--color-paper-glass)',
-              }}
-            />
-          )}
-        </Box>
+  const renderBody = () => {
+    // 1. Auth gate — never show "empty library" to an anonymous visitor.
+    if (!authLoading && !isAuthenticated) {
+      return (
+        <DataState
+          kind="needs-auth"
+          title="Kết nối để xem thư viện của bạn"
+          description="Thư viện media yêu cầu API key. Kết nối để xem và quản lý file đã tải lên."
+          action={{ label: 'Kết nối API key', onClick: showApiKeyDialog }}
+        />
+      );
+    }
 
-        <Box sx={{ display: 'flex', gap: 1.25, alignItems: 'center', width: { xs: '100%', sm: 'auto' } }}>
-          <Box
-            component="form"
-            onSubmit={handleSearchSubmit}
-            sx={{ flexGrow: 1, width: { xs: '100%', sm: 280, md: 340 } }}
-          >
-            <TextField
-              inputRef={searchInputRef}
-              size="small"
-              placeholder="Search images... (Press [/] to focus)"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              fullWidth
-              slotProps={{
-                input: {
-                  sx: {
-                    borderRadius: 2,
-                    fontSize: '0.875rem',
-                    backgroundColor: 'var(--color-paper-glass-strong)',
-                    backdropFilter: 'var(--backdrop-blur)',
-                    WebkitBackdropFilter: 'var(--backdrop-blur)',
-                  },
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon fontSize="small" color="action" />
-                    </InputAdornment>
-                  ),
-                  endAdornment: searchInput && (
-                    <InputAdornment position="end">
-                      <IconButton size="small" onClick={handleClearSearch}>
-                        <ClearIcon fontSize="small" />
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                },
-              }}
-            />
-          </Box>
-
-          <Tooltip title="Refresh Media Library">
-            <IconButton
-              onClick={() => {
-                haptics.playClick();
-                refetch();
-              }}
-              disabled={isFetching}
-              color="primary"
-              sx={{
-                border: '1px solid',
-                borderColor: 'divider',
-                borderRadius: 1.5,
-                p: 0.9,
-              }}
-            >
-              <RefreshIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      </Box>
-
-      {/* Grid of Images */}
-      {isLoading ? (
-        <Grid container spacing={2.5}>
+    // 2. First load — skeletons; background refresh keeps the old grid.
+    if (isLoading) {
+      return (
+        <Grid container spacing={{ xs: 1.5, md: 2 }}>
           {Array.from({ length: 8 }).map((_, idx) => (
             <Grid key={idx} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
               <Skeleton
                 variant="rectangular"
-                height={180}
-                sx={{ borderRadius: 2, mb: 1.2 }}
+                sx={{ borderRadius: 'var(--radius-md)', mb: 1, aspectRatio: '4/3', height: 'auto' }}
               />
               <Skeleton variant="text" width="80%" height={22} />
               <Skeleton variant="text" width="45%" height={16} />
             </Grid>
           ))}
         </Grid>
-      ) : images.length > 0 ? (
-        <Grid container spacing={2.5}>
+      );
+    }
+
+    // 3. Fetch error — distinct from empty, with Retry.
+    if (isError) {
+      return (
+        <DataState
+          kind="error"
+          title="Không tải được thư viện"
+          description={error?.message || 'Có lỗi khi lấy danh sách file. Kiểm tra kết nối và thử lại.'}
+          action={{ label: 'Thử lại', onClick: () => refetch() }}
+        />
+      );
+    }
+
+    // 4. Data — grid.
+    if (images.length > 0) {
+      return (
+        <Grid container spacing={{ xs: 1.5, md: 2 }}>
           {images.map((img) => (
             <Grid key={img.id} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
               <ImageCard
@@ -243,46 +167,149 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({ folderId, folderLabe
             </Grid>
           ))}
         </Grid>
-      ) : (
-        /* Empty State */
-        <Paper
-          className="spatial-card"
-          sx={{
-            p: 6,
-            textAlign: 'center',
-            borderRadius: 3,
-          }}
-        >
-          <Box
+      );
+    }
+
+    // 5. No results for an active search — offer Clear, not Upload.
+    if (activeSearch) {
+      return (
+        <DataState
+          kind="no-results"
+          title={`Không tìm thấy "${activeSearch}"`}
+          description="Thử từ khóa khác hoặc xóa bộ lọc tìm kiếm."
+          action={{ label: 'Xóa tìm kiếm', onClick: handleClearSearch }}
+        />
+      );
+    }
+
+    // 6. Genuinely empty — success response, zero items.
+    return (
+      <DataState
+        kind="empty"
+        title={folderLabel ? 'Thư mục này chưa có file' : 'Thư viện chưa có file'}
+        description="Tải file đầu tiên lên để bắt đầu — file được phục vụ qua CDN toàn cầu ngay sau khi tải xong."
+        action={{
+          label: 'Đi tới Upload',
+          onClick: () => {
+            window.location.hash = '/upload';
+          },
+        }}
+      />
+    );
+  };
+
+  return (
+    <Box sx={{ width: '100%', mb: 6 }}>
+      {/* Toolbar: title/count, search, refresh, upload shortcut */}
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: { xs: 'column', sm: 'row' },
+          justifyContent: 'space-between',
+          alignItems: { xs: 'stretch', sm: 'center' },
+          gap: 2,
+          mb: 3,
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
+          <Typography
+            variant="h2"
             sx={{
-              display: 'inline-flex',
-              p: 3,
-              borderRadius: '50%',
-              backgroundColor: 'var(--color-accent-subtle)',
-              color: 'primary.main',
-              mb: 2,
+              fontWeight: 650,
+              letterSpacing: '-0.015em',
+              fontSize: '1.375rem',
+              color: 'var(--color-text-primary)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
             }}
           >
-            <GalleryIcon sx={{ fontSize: 44 }} />
-          </Box>
-          <Typography
-            variant="h6"
-            sx={{ fontFamily: 'var(--font-body)', fontWeight: 700, mb: 1 }}
-          >
-            {activeSearch ? 'No images found' : 'Media library is empty'}
+            {folderLabel ?? 'Thư viện'}
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 440, mx: 'auto', mb: 3 }}>
-            {activeSearch
-              ? `No images matched query "${activeSearch}". Try another keyword or clear search.`
-              : 'Drag & drop photos above to begin hosting images with instant global CDN delivery.'}
-          </Typography>
-          {activeSearch && (
-            <Button variant="outlined" onClick={handleClearSearch} size="small">
-              Clear Search Filter
-            </Button>
+          {pagination && (
+            <Chip
+              label={`${pagination.total} file`}
+              size="small"
+              sx={{
+                fontSize: '0.72rem',
+                fontWeight: 600,
+                fontVariantNumeric: 'tabular-nums',
+                backgroundColor: 'var(--color-content-secondary)',
+                flexShrink: 0,
+              }}
+            />
           )}
-        </Paper>
-      )}
+        </Box>
+
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', width: { xs: '100%', sm: 'auto' } }}>
+          <Box
+            component="form"
+            onSubmit={handleSearchSubmit}
+            role="search"
+            sx={{ flexGrow: 1, width: { xs: '100%', sm: 280, md: 340 } }}
+          >
+            <TextField
+              inputRef={searchInputRef}
+              size="small"
+              placeholder="Tìm theo tên file…  ( / )"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              fullWidth
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon fontSize="small" color="action" />
+                    </InputAdornment>
+                  ),
+                  endAdornment: searchInput && (
+                    <InputAdornment position="end">
+                      <IconButton size="small" onClick={handleClearSearch} aria-label="Xóa tìm kiếm">
+                        <ClearIcon fontSize="small" />
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                },
+              }}
+            />
+          </Box>
+
+          <Tooltip title="Tải lại thư viện">
+            <span>
+              <IconButton
+                onClick={() => {
+                  haptics.playClick();
+                  refetch();
+                }}
+                disabled={isFetching}
+                aria-label="Tải lại thư viện"
+                color="primary"
+                className="pressable"
+                sx={{
+                  border: '1px solid',
+                  borderColor: 'var(--color-border)',
+                  borderRadius: 'var(--radius-sm)',
+                }}
+              >
+                <RefreshIcon fontSize="small" />
+              </IconButton>
+            </span>
+          </Tooltip>
+
+          <Button
+            variant="outlined"
+            size="small"
+            href="#/upload"
+            startIcon={<UploadIcon sx={{ fontSize: 16 }} />}
+            className="pressable"
+            sx={{ borderRadius: 'var(--radius-full)', whiteSpace: 'nowrap', display: { xs: 'none', sm: 'inline-flex' } }}
+          >
+            Upload
+          </Button>
+        </Box>
+      </Box>
+
+      {renderBody()}
 
       {/* Pagination */}
       {pagination && pagination.total_pages > 1 && (

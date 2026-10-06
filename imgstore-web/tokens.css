@@ -1,26 +1,20 @@
-/* Hallmark · macrostructure: Workbench · theme: Liquid Glass · genre: atmospheric-neutral
- * palette: light-first slate + indigo · display-style: sans-lead (Inter) · accent-hue: indigo (265°)
- * tokens: locked OKLCH · 4pt spacing scale · non-inertial motion · frosted glass, soft neutral light source
+/* GENERATED FILE — do not edit by hand.
+ * Source: design/tokens.json · Generator: scripts/generate-design-tokens.mjs
+ * Regenerate: npm run tokens
  */
 
 :root {
-  /* Fonts — dual-family glass system (Inter for UI, JetBrains Mono for data/code) */
-  --font-display: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-
-  /* Typography Scale */
-  --text-xs: 0.75rem;    /* 12px */
-  --text-sm: 0.875rem;   /* 14px */
-  --text-base: 1rem;     /* 16px */
-  --text-lg: 1.125rem;   /* 18px */
-  --text-xl: 1.25rem;    /* 20px */
-  --text-2xl: 1.5rem;    /* 24px */
-  --text-3xl: 1.875rem;  /* 30px */
-  --text-4xl: 2.25rem;   /* 36px */
-  --text-display: 2.75rem; /* 44px */
-
-  /* 4-point Spacing Scale */
+  --font-display: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-body: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'JetBrains Mono', monospace;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --text-4xl: 2.25rem;
   --space-0: 0px;
   --space-1: 4px;
   --space-2: 8px;
@@ -32,186 +26,215 @@
   --space-10: 40px;
   --space-12: 48px;
   --space-16: 64px;
-
-  /* Radii — Liquid Glass uses large, continuous-curvature corners.
-     Apple's panes sit around 22–32px; pills go fully round. */
   --radius-xs: 10px;
-  --radius-sm: 16px;
-  --radius-md: 22px;
+  --radius-sm: 14px;
+  --radius-md: 20px;
   --radius-lg: 28px;
   --radius-xl: 36px;
+  --radius-menu: 18px;
+  --radius-dialog: 28px;
   --radius-full: 9999px;
-
-  /* Motion - Non-inertial */
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
-  --ease-in-out: cubic-bezier(0.76, 0, 0.24, 1);
-  --dur-fast: 150ms;
-  --dur-base: 220ms;
-  --dur-slow: 350ms;
-
-  /* Glass recipe — Liquid Glass: LOW blur, LOW tint, bright Fresnel rim.
-     Apple's glass is nearly "clear": the backdrop shows through and is bent
-     at the rim; legibility comes from a subtle dim/brighten layer, not frost.
-     Heavy blur = frosted plastic (the old look).
-     NOTE: tint must be strong enough that the pane has a visible "body" —
-     below ~0.25 alpha it degenerates into plain blur (the user's complaint). */
-  --glass-blur: 12px;
-  --glass-saturate: 180%;
+  --duration-instant: 80ms;
+  --duration-fast: 140ms;
+  --duration-normal: 220ms;
+  --duration-sheet: 280ms;
+  --duration-exit: 180ms;
+  --ease-standard: cubic-bezier(.2,0,0,1);
+  --ease-enter: cubic-bezier(.16,1,.3,1);
+  --ease-exit: cubic-bezier(.4,0,1,1);
+  --color-canvas: #F5F7FA;
+  --color-content: #FFFFFF;
+  --color-content-secondary: #EEF1F6;
+  --color-content-elevated: #FFFFFF;
+  --color-text-primary: #18202E;
+  --color-text-secondary: #48566A;
+  --color-text-tertiary: #626F82;
+  --color-accent: #4658D9;
+  --color-accent-hover: #394BC1;
+  --color-on-accent: #FFFFFF;
+  --color-accent-soft: #E9EDFF;
+  --color-link: #3547C7;
+  --color-border: #D8DFEA;
+  --color-control-border: #718096;
+  --color-focus: #3045C5;
+  --color-backdrop: rgba(14,22,38,0.32);
+  --color-success: #17613E;
+  --color-success-surface: #E9F6EE;
+  --color-warning: #82530C;
+  --color-warning-surface: #FFF4DC;
+  --color-destructive: #B42334;
+  --color-destructive-surface: #FDECF0;
+  --color-info: #205E96;
+  --color-info-surface: #EAF3FC;
+  --color-type-video: #7C5CD6;
+  --color-type-audio: #C2538C;
+  --color-type-document: #2E6FA8;
+  --color-type-archive: #9A6A1A;
+  --color-type-file: #5A6B84;
+  --color-code-bg: #EEF1F6;
+  --glass-regular-fill: rgba(248, 250, 255, 0.70);
+  --glass-elevated-fill: rgba(248, 250, 255, 0.86);
+  --glass-clear-fill: rgba(255, 255, 255, 0.12);
+  --glass-regular-blur: 18px;
+  --glass-elevated-blur: 22px;
+  --glass-clear-blur: 8px;
+  --glass-regular-saturation: 125%;
+  --glass-elevated-saturation: 120%;
+  --glass-clear-saturation: 110%;
+  --glass-fallback-fill: #F4F6FB;
+  --glass-fallback-elevated: #FFFFFF;
+  --glass-rim-top: rgba(255, 255, 255, 0.65);
+  --glass-rim-bottom: rgba(18, 28, 45, 0.08);
+  --glass-border: rgba(255, 255, 255, 0.55);
+  --shadow-navigation: 0 6px 20px rgba(18, 28, 45, 0.10);
+  --shadow-menu: 0 14px 36px rgba(18, 28, 45, 0.15);
+  --shadow-dialog: 0 24px 64px rgba(18, 28, 45, 0.20);
   --glass-border-light: rgba(255, 255, 255, 0.9);
   --glass-highlight: inset 0 1px 0 0 rgba(255, 255, 255, 0.85);
-  /* Refractive rim — bright top bezel, visible side rims, soft bottom.
-     This is the Fresnel edge: the single biggest "real glass" cue. */
-  --glass-rim:
-    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.85),
-    inset 0 -1px 1.5px 0 rgba(255, 255, 255, 0.32),
-    inset 1.5px 0 1px 0 rgba(255, 255, 255, 0.45),
-    inset -1.5px 0 1px 0 rgba(255, 255, 255, 0.45),
-    inset 0 0 0 0.5px rgba(255, 255, 255, 0.25);
-  /* Glass body tint — a vertical gradient, bright at the top where light
-     enters the pane, slightly dimmer at the bottom. This is what gives the
-     pane a visible "thickness" so it reads as glass instead of bare blur. */
-  --glass-body: linear-gradient(180deg, rgba(255, 255, 255, 0.52) 0%, rgba(255, 255, 255, 0.30) 46%, rgba(255, 255, 255, 0.38) 100%);
-  /* Gloss sheen — a narrow diagonal glint near the top, NOT a full-surface
-     white wash (that + screen blend was what made the panes look milky). */
-  --glass-sheen: linear-gradient(165deg, rgba(255, 255, 255, 0.38) 0%, rgba(255, 255, 255, 0.08) 18%, transparent 34%);
-
-  /* Light Theme (Liquid Glass, neutral slate + indigo) — Default.
-     Tint is intentionally LOW so the ambient backdrop shows through the pane —
-     a flat opaque card reads as plastic, not glass. */
-  --color-paper: oklch(97.5% 0.010 240);
-  --color-paper-2: oklch(94.5% 0.015 240);
-  --color-paper-3: oklch(90.5% 0.020 240);
-  /* Clear glass: a low base tint + the --glass-body gradient on top give the
-     pane a visible body while the ambient backdrop still reads THROUGH.
-     "strong" is only for stacked surfaces (dialogs) that need more cover. */
-  --color-paper-glass: rgba(255, 255, 255, 0.26);
-  --color-paper-glass-strong: rgba(255, 255, 255, 0.36);
-  --color-paper-elevated: rgba(255, 255, 255, 0.55);
-
-  --color-ink: oklch(22.0% 0.025 255);
-  --color-ink-2: oklch(42.0% 0.028 255);
-  --color-ink-3: oklch(62.0% 0.022 255);
-
-  --color-accent: oklch(55.0% 0.200 265);
-  --color-accent-subtle: rgba(79, 70, 229, 0.12);
-  --color-accent-emerald: oklch(55.0% 0.200 265);
-  --color-accent-emerald-subtle: rgba(79, 70, 229, 0.12);
-  --color-on-accent: oklch(99.0% 0.005 265);
-  --color-destructive: oklch(55.0% 0.200 25);
-  --color-destructive-subtle: rgba(220, 38, 38, 0.10);
-  --color-success: oklch(55.0% 0.150 150);
-  --color-success-subtle: rgba(22, 163, 74, 0.12);
-
-  --color-border: rgba(15, 23, 42, 0.10);
-  --color-border-subtle: rgba(15, 23, 42, 0.06);
-  --color-border-strong: rgba(15, 23, 42, 0.18);
-  --color-border-glass: rgba(255, 255, 255, 0.55);
-  --color-ink-mix: rgba(15, 23, 42, 0.18);
-  --color-focus: oklch(55.0% 0.200 265);
-
-  /* Type-tinted media accents (neutral pastel, light mode) */
-  --color-type-video: oklch(60.0% 0.160 275);
-  --color-type-video-subtle: color-mix(in srgb, var(--color-type-video) 16%, var(--color-paper));
-  --color-type-video-glass: rgba(124, 58, 237, 0.35);
-  --color-type-audio: oklch(62.0% 0.140 330);
-  --color-type-audio-subtle: color-mix(in srgb, var(--color-type-audio) 14%, var(--color-paper));
-  --color-type-document: oklch(70.0% 0.140 80);
-  --color-type-document-subtle: color-mix(in srgb, var(--color-type-document) 16%, var(--color-paper));
-  --color-type-archive: oklch(62.0% 0.140 265);
-  --color-type-archive-subtle: color-mix(in srgb, var(--color-type-archive) 16%, var(--color-paper));
-  --color-type-file: oklch(65.0% 0.110 230);
-
-  /* Code blocks — frosted panel, neutral syntax tints */
-  --color-code-bg: rgba(15, 23, 42, 0.05);
-  --color-code-syntax: oklch(50.0% 0.150 265);
-  --color-code-destructive: oklch(55.0% 0.200 25);
-  --color-code-success: oklch(55.0% 0.150 150);
-
-  /* Frosted glass shadows — soft drop + refractive rim inset */
-  --shadow-card:
-    0 20px 44px -16px rgba(15, 23, 42, 0.20),
-    var(--glass-rim);
-  --shadow-glass:
-    0 12px 36px -12px rgba(15, 23, 42, 0.18),
-    var(--glass-rim);
-  --shadow-specular: var(--shadow-glass);
-  --shadow-specular-accent:
-    0 14px 40px -12px rgba(79, 70, 229, 0.30),
-    var(--glass-rim);
-  --backdrop-blur: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  --glass-rim: inset 0 1px 0 0 rgba(255, 255, 255, 0.60), inset 0 3px 8px -2px rgba(255, 255, 255, 0.38), inset 0 2px 5px -1px rgba(255, 255, 255, 0.30), inset 0 -2px 5px -1px rgba(15, 23, 42, 0.22), inset 0 -1px 0 0 rgba(15, 23, 42, 0.12), inset 1.5px 0 2px -1px rgba(255, 255, 255, 0.18), inset -1.5px 0 2px -1px rgba(255, 255, 255, 0.18), inset 0 0 0 0.5px rgba(255, 255, 255, 0.28);
+  --glass-rim-width: 2.5px;
+  --glass-rim-light-hi: rgba(255, 255, 255, 0.88);
+  --glass-rim-light-lo: rgba(255, 255, 255, 0.32);
+  --rim-angle: 135deg;
+  --glass-body: linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.05) 38%, rgba(255, 255, 255, 0) 68%, rgba(255, 255, 255, 0.07) 100%);
+  --glass-sheen: linear-gradient(165deg, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0.08) 18%, transparent 34%);
+  --glass-press-hi: rgba(255, 255, 255, 0.55);
+  --glass-press-mid: rgba(255, 255, 255, 0.16);
+  --glass-bevel: 34px;
+  --glass-lens-offset-pill: 18px;
+  --glass-lens-offset-card: 28px;
+  --glass-lens-offset-nav: 38px;
 }
 
-/* Dark Mode — glass, neutral slate, indigo accent */
+/* Legacy aliases (light). Point old names at the new registry so existing
+ * components keep working during migration; delete per LG-01 acceptance
+ * once no consumer remains. */
+:root {
+  --color-paper: var(--color-canvas);
+  --color-paper-2: var(--color-content-secondary);
+  --color-paper-3: var(--color-border);
+  --color-paper-glass: var(--glass-regular-fill);
+  --color-paper-glass-strong: var(--glass-elevated-fill);
+  --color-paper-elevated: var(--color-content-elevated);
+  --color-ink: var(--color-text-primary);
+  --color-ink-2: var(--color-text-secondary);
+  --color-ink-3: var(--color-text-tertiary);
+  --color-accent-subtle: var(--color-accent-soft);
+  --color-accent-emerald: var(--color-accent);
+  --color-accent-emerald-subtle: var(--color-accent-soft);
+  --color-destructive-subtle: var(--color-destructive-surface);
+  --color-success-subtle: var(--color-success-surface);
+  --color-border-subtle: var(--color-border);
+  --color-border-strong: var(--color-control-border);
+  --color-border-glass: var(--glass-border);
+  --color-code-syntax: var(--color-accent);
+  --color-code-destructive: var(--color-destructive);
+  --color-code-success: var(--color-success);
+  --glass-blur: var(--glass-regular-blur);
+  --glass-saturate: var(--glass-regular-saturation);
+  --backdrop-blur: blur(var(--glass-regular-blur)) saturate(var(--glass-regular-saturation));
+  --dur-fast: var(--duration-fast);
+  --dur-base: var(--duration-normal);
+  --dur-slow: var(--duration-sheet);
+  --ease-out: var(--ease-enter);
+  --ease-in: var(--ease-exit);
+  --ease-in-out: var(--ease-standard);
+  --shadow-card: var(--shadow-navigation);
+  --shadow-glass: var(--shadow-navigation);
+  --shadow-specular: var(--shadow-navigation);
+}
+
 [data-theme='dark'] {
-  --color-paper: oklch(16.0% 0.018 255);
-  --color-paper-2: oklch(20.0% 0.020 255);
-  --color-paper-3: oklch(26.0% 0.022 255);
-  --color-paper-glass: rgba(30, 41, 59, 0.34);
-  --color-paper-glass-strong: rgba(30, 41, 59, 0.50);
-  --color-paper-elevated: rgba(51, 65, 85, 0.45);
-
-  --color-ink: oklch(93.0% 0.012 255);
-  --color-ink-2: oklch(75.0% 0.020 255);
-  --color-ink-3: oklch(55.0% 0.018 255);
-
-  --color-accent: oklch(72.0% 0.160 265);
-  --color-accent-subtle: rgba(129, 140, 248, 0.16);
-  --color-accent-emerald: oklch(72.0% 0.160 265);
-  --color-accent-emerald-subtle: rgba(129, 140, 248, 0.16);
-  --color-on-accent: oklch(20.0% 0.025 255);
-  --color-destructive: oklch(68.0% 0.180 25);
-  --color-destructive-subtle: rgba(239, 68, 68, 0.16);
-  --color-success: oklch(72.0% 0.140 150);
-  --color-success-subtle: rgba(52, 211, 153, 0.16);
-
-  --color-border: rgba(148, 163, 184, 0.16);
-  --color-border-subtle: rgba(148, 163, 184, 0.08);
-  --color-border-strong: rgba(148, 163, 184, 0.30);
-  --color-border-glass: rgba(255, 255, 255, 0.12);
-  --color-ink-mix: rgba(148, 163, 184, 0.22);
-  --color-focus: oklch(72.0% 0.160 265);
-
+  --color-canvas: #0B0D12;
+  --color-content: #151922;
+  --color-content-secondary: #1D2330;
+  --color-content-elevated: #222A38;
+  --color-text-primary: #F2F5FA;
+  --color-text-secondary: #B4BFD0;
+  --color-text-tertiary: #8D9BB0;
+  --color-accent: #A4B1FF;
+  --color-accent-hover: #BAC4FF;
+  --color-on-accent: #101632;
+  --color-accent-soft: #252D4D;
+  --color-link: #B1BEFF;
+  --color-border: #394457;
+  --color-control-border: #8795AB;
+  --color-focus: #B4C1FF;
+  --color-backdrop: rgba(0,0,0,0.58);
+  --color-success: #7BE0AC;
+  --color-success-surface: #173126;
+  --color-warning: #F1C574;
+  --color-warning-surface: #332817;
+  --color-destructive: #FFA5AC;
+  --color-destructive-surface: #3A2028;
+  --color-info: #91CDFF;
+  --color-info-surface: #1A2C3D;
+  --color-type-video: #A78BFA;
+  --color-type-audio: #E08BB8;
+  --color-type-document: #6FA8DC;
+  --color-type-archive: #D6A658;
+  --color-type-file: #8D9BB0;
+  --color-code-bg: #1D2330;
+  --glass-regular-fill: rgba(24, 30, 42, 0.76);
+  --glass-elevated-fill: rgba(24, 30, 42, 0.90);
+  --glass-clear-fill: rgba(10, 14, 22, 0.18);
+  --glass-regular-blur: 22px;
+  --glass-elevated-blur: 26px;
+  --glass-clear-blur: 10px;
+  --glass-regular-saturation: 115%;
+  --glass-elevated-saturation: 110%;
+  --glass-clear-saturation: 110%;
+  --glass-fallback-fill: #1B212E;
+  --glass-fallback-elevated: #242C3B;
+  --glass-rim-top: rgba(255, 255, 255, 0.18);
+  --glass-rim-bottom: rgba(0, 0, 0, 0.25);
+  --glass-border: rgba(255, 255, 255, 0.14);
+  --shadow-navigation: 0 8px 24px rgba(0, 0, 0, 0.30);
+  --shadow-menu: 0 18px 44px rgba(0, 0, 0, 0.42);
+  --shadow-dialog: 0 24px 64px rgba(0, 0, 0, 0.50);
   --glass-border-light: rgba(255, 255, 255, 0.22);
   --glass-highlight: inset 0 1px 0 0 rgba(255, 255, 255, 0.22);
-  /* Dark rim — bright top bezel, subtle side/bottom catch-light */
-  --glass-rim:
-    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.28),
-    inset 0 -1px 1.5px 0 rgba(255, 255, 255, 0.10),
-    inset 1.5px 0 1px 0 rgba(255, 255, 255, 0.14),
-    inset -1.5px 0 1px 0 rgba(255, 255, 255, 0.14),
-    inset 0 0 0 0.5px rgba(255, 255, 255, 0.08);
-  /* Dark glass body — a lighter slate sheet at the top so the pane has a
-     visible body against the dark page (a bare 0.16 tint reads as plain blur). */
-  --glass-body: linear-gradient(180deg, rgba(148, 163, 184, 0.28) 0%, rgba(100, 116, 139, 0.14) 46%, rgba(148, 163, 184, 0.18) 100%);
-  --glass-sheen: linear-gradient(165deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.03) 18%, transparent 34%);
+  --glass-rim: inset 0 1px 0 0 rgba(255, 255, 255, 0.28), inset 0 3px 8px -2px rgba(255, 255, 255, 0.14), inset 0 2px 5px -1px rgba(255, 255, 255, 0.14), inset 0 -2px 5px -1px rgba(0, 0, 0, 0.34), inset 0 -1px 0 0 rgba(0, 0, 0, 0.18), inset 1.5px 0 2px -1px rgba(255, 255, 255, 0.09), inset -1.5px 0 2px -1px rgba(255, 255, 255, 0.09), inset 0 0 0 0.5px rgba(255, 255, 255, 0.10);
+  --glass-rim-width: 2.5px;
+  --glass-rim-light-hi: rgba(255, 255, 255, 0.48);
+  --glass-rim-light-lo: rgba(148, 163, 184, 0.22);
+  --glass-body: linear-gradient(180deg, rgba(148, 163, 184, 0.16) 0%, rgba(100, 116, 139, 0.05) 38%, rgba(100, 116, 139, 0) 68%, rgba(148, 163, 184, 0.09) 100%);
+  --glass-sheen: linear-gradient(165deg, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0.02) 18%, transparent 34%);
+  --glass-press-hi: rgba(255, 255, 255, 0.30);
+  --glass-press-mid: rgba(255, 255, 255, 0.08);
+}
 
-  --color-type-video: oklch(70.0% 0.130 275);
-  --color-type-video-subtle: color-mix(in srgb, var(--color-type-video) 18%, var(--color-paper-2));
-  --color-type-video-glass: rgba(196, 181, 253, 0.35);
-  --color-type-audio: oklch(72.0% 0.120 330);
-  --color-type-audio-subtle: color-mix(in srgb, var(--color-type-audio) 16%, var(--color-paper-2));
-  --color-type-document: oklch(78.0% 0.120 80);
-  --color-type-document-subtle: color-mix(in srgb, var(--color-type-document) 16%, var(--color-paper-2));
-  --color-type-archive: oklch(72.0% 0.120 265);
-  --color-type-archive-subtle: color-mix(in srgb, var(--color-type-archive) 16%, var(--color-paper-2));
-  --color-type-file: oklch(72.0% 0.090 230);
-
-  /* Code blocks — deep frosted slate, brighter syntax tints */
-  --color-code-bg: rgba(15, 23, 42, 0.35);
-  --color-code-syntax: oklch(72.0% 0.130 235);
-  --color-code-destructive: oklch(72.0% 0.180 25);
-  --color-code-success: oklch(72.0% 0.140 150);
-
-  --shadow-card:
-    0 24px 56px -16px rgba(0, 0, 0, 0.55),
-    var(--glass-rim);
-  --shadow-glass:
-    0 16px 40px -14px rgba(0, 0, 0, 0.45),
-    var(--glass-rim);
-  --shadow-specular: var(--shadow-glass);
-  --shadow-specular-accent:
-    0 16px 44px -14px rgba(129, 140, 248, 0.35),
-    var(--glass-rim);
-  --backdrop-blur: blur(var(--glass-blur)) saturate(155%);
+[data-theme='dark'] {
+  --color-paper: var(--color-canvas);
+  --color-paper-2: var(--color-content-secondary);
+  --color-paper-3: var(--color-border);
+  --color-paper-glass: var(--glass-regular-fill);
+  --color-paper-glass-strong: var(--glass-elevated-fill);
+  --color-paper-elevated: var(--color-content-elevated);
+  --color-ink: var(--color-text-primary);
+  --color-ink-2: var(--color-text-secondary);
+  --color-ink-3: var(--color-text-tertiary);
+  --color-accent-subtle: var(--color-accent-soft);
+  --color-accent-emerald: var(--color-accent);
+  --color-accent-emerald-subtle: var(--color-accent-soft);
+  --color-destructive-subtle: var(--color-destructive-surface);
+  --color-success-subtle: var(--color-success-surface);
+  --color-border-subtle: var(--color-border);
+  --color-border-strong: var(--color-control-border);
+  --color-border-glass: var(--glass-border);
+  --color-code-syntax: var(--color-accent);
+  --color-code-destructive: var(--color-destructive);
+  --color-code-success: var(--color-success);
+  --glass-blur: var(--glass-regular-blur);
+  --glass-saturate: var(--glass-regular-saturation);
+  --backdrop-blur: blur(var(--glass-regular-blur)) saturate(var(--glass-regular-saturation));
+  --dur-fast: var(--duration-fast);
+  --dur-base: var(--duration-normal);
+  --dur-slow: var(--duration-sheet);
+  --ease-out: var(--ease-enter);
+  --ease-in: var(--ease-exit);
+  --ease-in-out: var(--ease-standard);
+  --shadow-card: var(--shadow-navigation);
+  --shadow-glass: var(--shadow-navigation);
+  --shadow-specular: var(--shadow-navigation);
 }

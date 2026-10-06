@@ -9,6 +9,10 @@ import {
 } from '@mui/material';
 import { haptics } from '../lib/haptics';
 
+/* ConfirmDialog — plan §11.2: destructive confirms default-focus CANCEL so
+ * Enter/Space never deletes by accident; the destructive action requires a
+ * deliberate move. Chrome is G2 (glass-elevated). */
+
 interface ConfirmDialogProps {
   open: boolean;
   title: string;
@@ -24,8 +28,8 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   open,
   title,
   message,
-  confirmText = 'Confirm Delete',
-  cancelText = 'Cancel',
+  confirmText = 'Xóa',
+  cancelText = 'Hủy',
   loading = false,
   onConfirm,
   onCancel,
@@ -36,35 +40,28 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       onClose={onCancel}
       maxWidth="xs"
       fullWidth
+      aria-label={title}
       slotProps={{
-        backdrop: {
-          sx: {
-            backgroundColor: (theme) =>
-              theme.palette.mode === 'dark'
-                ? 'rgba(15, 23, 42, 0.45)'
-                : 'rgba(15, 23, 42, 0.28)',
-            backdropFilter: 'blur(14px)',
-            WebkitBackdropFilter: 'blur(14px)',
-          },
-        },
         paper: {
-          className: 'liquid-glass-dialog',
-          sx: { p: 1 },
+          className: 'glass-elevated',
+          sx: { p: 0.5 },
         },
       }}
     >
       <DialogTitle
         sx={{
-          fontFamily: 'JetBrains Mono, monospace',
-          fontWeight: 700,
-          fontSize: '1.15rem',
-          pb: 1,
+          fontWeight: 600,
+          fontSize: '1.05rem',
+          color: 'var(--color-text-primary)',
+          pb: 0.5,
         }}
       >
         {title}
       </DialogTitle>
       <DialogContent>
-        <DialogContentText sx={{ fontSize: '0.9rem' }}>{message}</DialogContentText>
+        <DialogContentText sx={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)' }}>
+          {message}
+        </DialogContentText>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2, pt: 1, gap: 1 }}>
         <Button
@@ -75,7 +72,8 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           disabled={loading}
           color="inherit"
           size="small"
-          sx={{ textTransform: 'none' }}
+          autoFocus
+          sx={{ textTransform: 'none', borderRadius: 'var(--radius-full)' }}
         >
           {cancelText}
         </Button>
@@ -88,10 +86,10 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           variant="contained"
           disabled={loading}
           size="small"
-          className="bevel-button"
-          autoFocus
+          className="pressable"
+          sx={{ textTransform: 'none', borderRadius: 'var(--radius-full)' }}
         >
-          {loading ? 'Processing...' : confirmText}
+          {loading ? 'Đang xử lý…' : confirmText}
         </Button>
       </DialogActions>
     </Dialog>

@@ -11,11 +11,27 @@ import {
   saveApiConfig,
 } from '../api/client';
 
+/** Connection scope (FIX-03): endpoint + identity + generation. Increments on
+ * every login/logout/endpoint change so the upload queue can tell "same
+ * connection" from "new owner" without ever comparing raw credentials. */
+export interface ConnectionScope {
+  endpoint: string;
+  /** user.id for session auth, 'apikey' for direct-key access, 'anonymous'. */
+  identity: string;
+  /** Monotonic; any scope change bumps it. */
+  generation: number;
+}
+
 interface AuthContextType {
   user: UserProfile | null;
   sessionToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  /** Current connection scope — snapshot this into queue items at enqueue. */
+  scope: ConnectionScope;
+  /** Re-read endpoint/key from storage after Settings saved them, bump the
+   * generation and clear cached data of the old scope. */
+  refreshConnection: () => void;
   // API Key Dialog state
   apiKeyDialogOpen: boolean;
   apiKeyDialogLoading: boolean;
@@ -33,6 +49,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<UserProfile | null>(null);
   const [sessionToken, setToken] = useState<string | null>(() => getSessionToken());
   const [isLoading, setLoading] = useState(true);
+  /* Generation lives in state (not a ref) so consumers re-render on scope
+   * change; identity/endpoint are derived per render from the same inputs. */
+  const [generation, setGeneration] = useState(0);
 
   // API Key Dialog state
   const [apiKeyDialogOpen, setApiKeyDialogOpen] = useState(false);
@@ -93,6 +112,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(profile);
         setToken(key);
         setStoredUserProfile(profile);
+        setGeneration((g) => g + 1);
         // Close dialog on success
         setApiKeyDialogOpen(false);
       } catch (err) {
@@ -119,15 +139,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     queryClient.clear();
     setUser(null);
     setToken(null);
+    setGeneration((g) => g + 1);
   }, [queryClient]);
+
+  /* Settings saved a new endpoint/key: adopt it as a new scope, drop every
+   * cache entry of the old scope and let the queue's generation guard stop
+   * dispatching items enqueued under the old owner. */
+  const refreshConnection = useCallback(() => {
+    setToken(getSessionToken());
+    queryClient.clear();
+    setGeneration((g) => g + 1);
+  }, [queryClient]);
+
+  const isAuthenticated = Boolean(user && sessionToken);
+  const scope: ConnectionScope = {
+    endpoint: getApiBaseUrl(),
+    identity: isAuthenticated && user ? user.id : sessionToken ? 'session' : 'anonymous',
+    generation,
+  };
 
   return (
     <AuthContext.Provider
       value={{
         user,
         sessionToken,
-        isAuthenticated: Boolean(user && sessionToken),
+        isAuthenticated,
         isLoading,
+        scope,
+        refreshConnection,
         apiKeyDialogOpen,
         apiKeyDialogLoading,
         apiKeyDialogError,

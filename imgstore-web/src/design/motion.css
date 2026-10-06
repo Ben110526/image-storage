@@ -1,0 +1,116 @@
+/* LG-04 companion — motion primitives and interaction state transitions.
+ *
+ * Motion runs on transform/opacity only. Blur, radius and shadow are never
+ * animated across many elements at once (plan §9.1). Reduced motion — app
+ * toggle (data-motion="reduced") or OS prefers-reduced-motion — collapses
+ * every transition to an immediate or ≤80ms opacity change, and disables the
+ * interactive press scale.
+ */
+
+/* ---- Press / hover feedback ---------------------------------------------- */
+
+.pressable {
+  transition:
+    transform var(--duration-instant) var(--ease-standard),
+    background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    box-shadow var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pressable:hover {
+    transition-duration: var(--duration-fast);
+  }
+}
+
+.pressable:active {
+  transform: scale(0.98);
+  transition-duration: var(--duration-instant);
+}
+
+/* ---- Surface entrance/exit ----------------------------------------------- */
+
+.surface-enter {
+  animation: lg-surface-in var(--duration-sheet) var(--ease-enter) both;
+}
+
+.surface-exit {
+  animation: lg-surface-out var(--duration-exit) var(--ease-exit) both;
+}
+
+@keyframes lg-surface-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes lg-surface-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* Menus: opacity + small vertical settle, no scale-from-tiny. */
+.menu-enter {
+  animation: lg-menu-in var(--duration-fast) var(--ease-enter) both;
+}
+
+@keyframes lg-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---- Focus ring ------------------------------------------------------------
+ * 2px outline, 3px offset, high-contrast token. Applied via :focus-visible so
+ * pointer users are not shown rings; never removed by outline:none resets. */
+
+:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+/* ---- Reduced motion --------------------------------------------------------
+ * OS signal OR app toggle. Both paths collapse to near-instant opacity-only
+ * transitions and disable transform feedback entirely. */
+
+html[data-motion='reduced'] .pressable,
+html[data-motion='reduced'] .surface-enter,
+html[data-motion='reduced'] .surface-exit,
+html[data-motion='reduced'] .menu-enter {
+  animation-duration: 1ms !important;
+  transition-duration: 80ms !important;
+  transition-property: opacity, background-color, border-color !important;
+}
+html[data-motion='reduced'] .pressable:active {
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pressable,
+  .surface-enter,
+  .surface-exit,
+  .menu-enter {
+    animation-duration: 1ms !important;
+    transition-duration: 80ms !important;
+    transition-property: opacity, background-color, border-color !important;
+  }
+  .pressable:active {
+    transform: none;
+  }
+}

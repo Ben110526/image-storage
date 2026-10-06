@@ -72,10 +72,29 @@ export function resetApiConfig(): void {
   localStorage.removeItem(STORAGE_KEY_API_KEY);
 }
 
-function createAxiosInstance() {
-  const baseURL = getApiBaseUrl();
-  const apiKey = getApiKey();
-  const sessionToken = getSessionToken();
+/** Credential snapshot for one connection scope (FIX-03). A transport bound to
+ * a scope must NEVER re-read localStorage mid-flight: the user may log out or
+ * switch endpoint while chunks are still being sent, and the old item must not
+ * pick up the new credential. */
+export interface TransportCredential {
+  baseURL: string;
+  sessionToken?: string;
+  apiKey?: string;
+}
+
+/** Capture the current global credential as an immutable snapshot. */
+export function snapshotCredential(): TransportCredential {
+  return {
+    baseURL: getApiBaseUrl(),
+    sessionToken: getSessionToken() ?? undefined,
+    apiKey: getApiKey() || undefined,
+  };
+}
+
+function createAxiosInstance(override?: TransportCredential) {
+  const baseURL = override?.baseURL ?? getApiBaseUrl();
+  const apiKey = override ? override.apiKey : getApiKey();
+  const sessionToken = override ? override.sessionToken : getSessionToken();
 
   const headers: Record<string, string> = {};
 
@@ -180,9 +199,10 @@ export async function fetchImages(
 export async function uploadImageFile(
   file: File,
   onProgress?: (percent: number) => void,
-  folderId?: string
+  folderId?: string,
+  credential?: TransportCredential
 ): Promise<ImageMetadata> {
-  const client = createAxiosInstance();
+  const client = createAxiosInstance(credential);
   const formData = new FormData();
   formData.append('file', file);
   if (folderId) formData.append('folder_id', folderId);
@@ -205,9 +225,10 @@ export async function uploadImageFile(
 export async function uploadFromUrl(
   url: string,
   name?: string,
-  folderId?: string
+  folderId?: string,
+  credential?: TransportCredential
 ): Promise<ImageMetadata> {
-  const client = createAxiosInstance();
+  const client = createAxiosInstance(credential);
   const res = await client.post<ApiSuccessResponse<ImageMetadata>>('/upload/url', {
     url,
     name,
@@ -255,9 +276,10 @@ export async function initResumableUpload(
   name: string,
   size: number,
   mimeType?: string,
-  folderId?: string
+  folderId?: string,
+  credential?: TransportCredential
 ): Promise<ResumableInitResponse> {
-  const client = createAxiosInstance();
+  const client = createAxiosInstance(credential);
   const res = await client.post<ApiSuccessResponse<ResumableInitResponse>>('/upload/resumable/init', {
     name,
     size,
@@ -286,9 +308,10 @@ export async function uploadResumableChunk(
   chunk: Blob,
   rangeHeader: string,
   onProgress?: (bytesUploaded: number) => void,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  credential?: TransportCredential
 ): Promise<{ status: number; range?: string | null; data?: any }> {
-  const client = createAxiosInstance();
+  const client = createAxiosInstance(credential);
   const res = await client.put(`/upload/resumable/${uploadId}`, chunk, {
     headers: {
       'Content-Range': rangeHeader,
@@ -310,13 +333,13 @@ export async function uploadResumableChunk(
   };
 }
 
-export async function fetchResumableStatus(uploadId: string, signal?: AbortSignal): Promise<ResumableStatusResponse> {
-  const client = createAxiosInstance();
+export async function fetchResumableStatus(uploadId: string, signal?: AbortSignal, credential?: TransportCredential): Promise<ResumableStatusResponse> {
+  const client = createAxiosInstance(credential);
   const res = await client.get<ApiSuccessResponse<ResumableStatusResponse>>(`/upload/resumable/${uploadId}`, { signal });
   return res.data.data;
 }
 
-export async function abortResumableUpload(uploadId: string): Promise<void> {
-  const client = createAxiosInstance();
+export async function abortResumableUpload(uploadId: string, credential?: TransportCredential): Promise<void> {
+  const client = createAxiosInstance(credential);
   await client.delete(`/upload/resumable/${uploadId}`);
 }

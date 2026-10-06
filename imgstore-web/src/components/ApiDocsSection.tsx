@@ -17,7 +17,6 @@ import {
 } from '@mui/material';
 import {
   ContentCopy as CopyIcon,
-  Terminal as TerminalIcon,
   PlayArrow as RunIcon,
   UploadFile as UploadFileIcon,
   CheckCircle as ConnectedIcon,
@@ -28,22 +27,21 @@ import { ApiKeyManager } from './ApiKeyManager';
 import { useAuth } from '../context/AuthContext';
 import { haptics } from '../lib/haptics';
 
-/* One shared recipe for code blocks so every card renders identically —
- * the Folders card used to miss it (flat text on card paper). */
+/* LG-10 — code blocks are C0 content: opaque, no backdrop blur over them.
+ * One shared recipe so every card renders identically. */
 const CODE_PRE_STYLE = {
   m: 0,
   p: { xs: 1.5, sm: 2 },
-  borderRadius: 1.5,
+  borderRadius: 'var(--radius-md)',
   backgroundColor: 'var(--color-code-bg)',
-  backdropFilter: 'var(--backdrop-blur)',
-  WebkitBackdropFilter: 'var(--backdrop-blur)',
+  border: '1px solid var(--color-border)',
   overflowX: 'auto',
   WebkitOverflowScrolling: 'touch',
-  fontFamily: 'JetBrains Mono, monospace',
+  fontFamily: 'var(--font-mono)',
   fontSize: { xs: '0.72rem', sm: '0.78rem' },
   lineHeight: 1.55,
   whiteSpace: 'pre',
-  color: 'var(--color-code-syntax)',
+  color: 'var(--color-text-primary)',
 } as const;
 
 
@@ -332,40 +330,27 @@ print(requests.get(f"{BASE}/upload/resumable/{up}",
   }
 
   const sectionHead = (title: string, sub: string) => (
-    <Box sx={{ mb: 2, display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
-      <Box
+    <Box sx={{ mb: 2 }}>
+      <Typography
+        component="h2"
+        variant="subtitle1"
         sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: { xs: 30, sm: 34 },
-          height: { xs: 30, sm: 34 },
-          borderRadius: 2,
-          backgroundColor: 'var(--color-accent-subtle)',
-          color: 'var(--color-accent)',
-          flexShrink: 0,
-          mt: 0.4,
+          fontWeight: 700,
+          fontFamily: 'var(--font-body)',
+          letterSpacing: '-0.01em',
+          fontSize: { xs: '1rem', sm: '1.1rem' },
+          lineHeight: 1.2,
+          color: 'var(--color-text-primary)',
         }}
       >
-        <TerminalIcon sx={{ fontSize: { xs: 17, sm: 20 } }} />
-      </Box>
-      <Box>
-        <Typography
-          variant="subtitle1"
-          sx={{
-            fontWeight: 700,
-            fontFamily: 'var(--font-body)',
-            letterSpacing: '-0.01em',
-            fontSize: { xs: '0.95rem', sm: '1.05rem' },
-            lineHeight: 1.2,
-          }}
-        >
-          {title}
-        </Typography>
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25, fontSize: { xs: '0.72rem', sm: '0.75rem' } }}>
-          {sub}
-        </Typography>
-      </Box>
+        {title}
+      </Typography>
+      <Typography
+        variant="caption"
+        sx={{ display: 'block', mt: 0.25, fontSize: { xs: '0.72rem', sm: '0.75rem' }, color: 'var(--color-text-secondary)' }}
+      >
+        {sub}
+      </Typography>
     </Box>
   );
 
@@ -382,8 +367,8 @@ print(requests.get(f"{BASE}/upload/resumable/{up}",
             right: 8,
             zIndex: 2,
             border: '1px solid',
-            borderColor: 'divider',
-            backgroundColor: 'color-mix(in srgb, var(--color-paper-glass-strong) 70%, transparent)',
+            borderColor: 'var(--color-border)',
+            backgroundColor: 'var(--color-content-secondary)',
             '&:hover': { borderColor: 'var(--color-accent)' },
           }}
         >
@@ -397,7 +382,7 @@ print(requests.get(f"{BASE}/upload/resumable/{up}",
   return (
     <Box id="api-docs-section" sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Connection banner */}
-      <Paper className="glass-surface glass-surface-sm" sx={{ p: { xs: 1.5, sm: 2 } }}>
+      <Paper className="content-surface" sx={{ p: { xs: 1.5, sm: 2 } }}>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             {connected ? (
@@ -409,7 +394,7 @@ print(requests.get(f"{BASE}/upload/resumable/{up}",
                 sx={{
                   height: 26,
                   fontSize: '0.74rem',
-                  fontFamily: 'JetBrains Mono, monospace',
+                  fontFamily: 'var(--font-mono)',
                   borderColor: 'color-mix(in srgb, var(--color-success) 45%, transparent)',
                   color: 'var(--color-success)',
                 }}
@@ -419,7 +404,7 @@ print(requests.get(f"{BASE}/upload/resumable/{up}",
                 label="Not connected"
                 size="small"
                 variant="outlined"
-                sx={{ height: 26, fontSize: '0.74rem', fontFamily: 'JetBrains Mono, monospace' }}
+                sx={{ height: 26, fontSize: '0.74rem', fontFamily: 'var(--font-mono)' }}
               />
             )}
           </Box>
@@ -479,7 +464,7 @@ print(requests.get(f"{BASE}/upload/resumable/{up}",
 
       {/* 1 · Quickstart */}
       <Box id="api-quickstart" sx={{ scrollMarginTop: 90 }}>
-        <Paper className="glass-surface glass-surface-sm" sx={{ p: { xs: 1.75, sm: 2.5 } }}>
+        <Paper className="content-surface" sx={{ p: { xs: 1.75, sm: 2.5 } }}>
           {sectionHead('Quickstart', 'One image up and a public link back in a single request')}
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             Every request uses an API key. Send it as <Box component="code" sx={inlineCodeStyle}>X-API-Key</Box> or{' '}
@@ -493,7 +478,7 @@ print(requests.get(f"{BASE}/upload/resumable/{up}",
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Chip label="POST" size="small" color="primary" sx={{ fontWeight: 700, height: 22 }} />
-                <Typography variant="subtitle2" sx={{ fontFamily: 'JetBrains Mono, monospace' }}>/upload</Typography>
+                <Typography variant="subtitle2" sx={{ fontFamily: 'var(--font-mono)' }}>/upload</Typography>
               </Box>
             </Box>
             {codeBlock(curlUploadSnippet, 'cURL Upload', () => copyCode(curlUploadSnippet, 'cURL Upload'))}
@@ -508,12 +493,12 @@ print(requests.get(f"{BASE}/upload/resumable/{up}",
 
       {/* 2 · Files */}
       <Box id="api-files" sx={{ scrollMarginTop: 90 }}>
-        <Paper className="glass-surface glass-surface-sm" sx={{ p: { xs: 1.75, sm: 2.5 } }}>
+        <Paper className="content-surface" sx={{ p: { xs: 1.75, sm: 2.5 } }}>
           {sectionHead('Files', 'List, fetch and delete the images you uploaded')}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Chip label="GET" size="small" color="success" sx={{ fontWeight: 700, height: 22 }} />
-              <Typography variant="subtitle2" sx={{ fontFamily: 'JetBrains Mono, monospace' }}>/images</Typography>
+              <Typography variant="subtitle2" sx={{ fontFamily: 'var(--font-mono)' }}>/images</Typography>
             </Box>
           </Box>
           {codeBlock(curlListSnippet, 'cURL List', () => copyCode(curlListSnippet, 'cURL List'))}
@@ -526,14 +511,14 @@ print(requests.get(f"{BASE}/upload/resumable/{up}",
           <Box sx={{ mt: 2.5 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
               <Chip label="GET" size="small" color="success" sx={{ fontWeight: 700, height: 22 }} />
-              <Typography variant="subtitle2" sx={{ fontFamily: 'JetBrains Mono, monospace' }}>/image/:id</Typography>
+              <Typography variant="subtitle2" sx={{ fontFamily: 'var(--font-mono)' }}>/image/:id</Typography>
             </Box>
             {codeBlock(curlGetSnippet, 'cURL Get', () => copyCode(curlGetSnippet, 'cURL Get'))}
           </Box>
           <Box sx={{ mt: 2.5 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
               <Chip label="DELETE" size="small" color="error" sx={{ fontWeight: 700, height: 22 }} />
-              <Typography variant="subtitle2" sx={{ fontFamily: 'JetBrains Mono, monospace' }}>/image/:id</Typography>
+              <Typography variant="subtitle2" sx={{ fontFamily: 'var(--font-mono)' }}>/image/:id</Typography>
             </Box>
             {codeBlock(curlDeleteSnippet, 'cURL Delete', () => copyCode(curlDeleteSnippet, 'cURL Delete'))}
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }}>
@@ -546,7 +531,7 @@ print(requests.get(f"{BASE}/upload/resumable/{up}",
 
       {/* 3 · Folders */}
       <Box id="api-folders" sx={{ scrollMarginTop: 90 }}>
-        <Paper className="glass-surface glass-surface-sm" sx={{ p: { xs: 1.75, sm: 2.5 } }}>
+        <Paper className="content-surface" sx={{ p: { xs: 1.75, sm: 2.5 } }}>
           {sectionHead('Folders', 'Per-user storage layout in the shared ImgStore root')}
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             Each user has one root folder in the shared storage. Keys for the same user share that folder;
@@ -560,7 +545,7 @@ print(requests.get(f"{BASE}/upload/resumable/{up}",
 
       {/* 4 · Import URL */}
       <Box id="api-import" sx={{ scrollMarginTop: 90 }}>
-        <Paper className="glass-surface glass-surface-sm" sx={{ p: { xs: 1.75, sm: 2.5 } }}>
+        <Paper className="content-surface" sx={{ p: { xs: 1.75, sm: 2.5 } }}>
           {sectionHead('Import URL', 'Pull a public file straight from a link')}
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             Paste the <strong>direct file address</strong>, not a web page. Sources up to 50 MB; when the
@@ -578,7 +563,7 @@ print(requests.get(f"{BASE}/upload/resumable/{up}",
 
       {/* 5 · Resumable */}
       <Box id="api-resumable" sx={{ scrollMarginTop: 90 }}>
-        <Paper className="glass-surface glass-surface-sm" sx={{ p: { xs: 1.75, sm: 2.5 } }}>
+        <Paper className="content-surface" sx={{ p: { xs: 1.75, sm: 2.5 } }}>
           {sectionHead('Resumable uploads', 'Any file up to 5 GB, restartable from the last byte')}
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             Four endpoints. Each chunk is a <Box component="code" sx={inlineCodeStyle}>PUT</Box> with a{' '}
@@ -594,22 +579,22 @@ print(requests.get(f"{BASE}/upload/resumable/{up}",
 
       {/* Limits table */}
       <Box id="api-limits" sx={{ scrollMarginTop: 90 }}>
-        <Paper className="glass-surface glass-surface-sm" sx={{ p: { xs: 1.75, sm: 2.5 } }}>
+        <Paper className="content-surface" sx={{ p: { xs: 1.75, sm: 2.5 } }}>
           {sectionHead('Limits', 'The hard numbers, straight from the server')}
           <TableContainer sx={{ '& .MuiTableCell-root': { borderColor: 'var(--color-border-subtle)' } }}>
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 700, fontSize: '0.78rem', fontFamily: 'JetBrains Mono, monospace' }}>Limit</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: '0.78rem', fontFamily: 'JetBrains Mono, monospace' }}>Value</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: '0.78rem', fontFamily: 'JetBrains Mono, monospace' }}>Note</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: '0.78rem', fontFamily: 'var(--font-mono)' }}>Limit</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: '0.78rem', fontFamily: 'var(--font-mono)' }}>Value</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: '0.78rem', fontFamily: 'var(--font-mono)' }}>Note</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {limitsRows.map((row) => (
                   <TableRow key={row.item}>
                     <TableCell sx={{ fontSize: '0.78rem', whiteSpace: 'nowrap' }}>{row.item}</TableCell>
-                    <TableCell sx={{ fontSize: '0.78rem', fontFamily: 'JetBrains Mono, monospace', whiteSpace: 'nowrap', color: 'var(--color-accent)' }}>{row.value}</TableCell>
+                    <TableCell sx={{ fontSize: '0.78rem', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap', color: 'var(--color-accent)' }}>{row.value}</TableCell>
                     <TableCell sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>{row.note}</TableCell>
                   </TableRow>
                 ))}
@@ -621,7 +606,7 @@ print(requests.get(f"{BASE}/upload/resumable/{up}",
 
       {/* 6 · Reference */}
       <Box id="api-reference" sx={{ scrollMarginTop: 90 }}>
-        <Paper className="glass-surface glass-surface-sm" sx={{ p: { xs: 1.75, sm: 2.5 } }}>
+        <Paper className="content-surface" sx={{ p: { xs: 1.75, sm: 2.5 } }}>
           {sectionHead('Reference', 'Serving, errors, extra endpoints and Python')}
 
           <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, mt: 1 }}>Public serving — /serve/:id</Typography>
@@ -643,16 +628,16 @@ print(requests.get(f"{BASE}/upload/resumable/{up}",
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 700, fontSize: '0.78rem', fontFamily: 'JetBrains Mono, monospace' }}>Code</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: '0.78rem', fontFamily: 'JetBrains Mono, monospace' }}>HTTP</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: '0.78rem', fontFamily: 'JetBrains Mono, monospace' }}>Meaning</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: '0.78rem', fontFamily: 'var(--font-mono)' }}>Code</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: '0.78rem', fontFamily: 'var(--font-mono)' }}>HTTP</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: '0.78rem', fontFamily: 'var(--font-mono)' }}>Meaning</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {errorRows.map((row) => (
                   <TableRow key={row.code}>
-                    <TableCell sx={{ fontSize: '0.75rem', fontFamily: 'JetBrains Mono, monospace', whiteSpace: 'nowrap', color: 'var(--color-code-destructive)' }}>{row.code}</TableCell>
-                    <TableCell sx={{ fontSize: '0.75rem', fontFamily: 'JetBrains Mono, monospace', whiteSpace: 'nowrap' }}>{row.status}</TableCell>
+                    <TableCell sx={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap', color: 'var(--color-code-destructive)' }}>{row.code}</TableCell>
+                    <TableCell sx={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>{row.status}</TableCell>
                     <TableCell sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>{row.note}</TableCell>
                   </TableRow>
                 ))}
@@ -684,7 +669,7 @@ print(requests.get(f"{BASE}/upload/resumable/{up}",
 };
 
 const inlineCodeStyle = {
-  fontFamily: 'JetBrains Mono, monospace',
+  fontFamily: 'var(--font-mono)',
   fontSize: '0.78em',
   backgroundColor: 'var(--color-code-bg)',
   borderRadius: '6px',

@@ -22,6 +22,10 @@ import {
 } from '@mui/icons-material';
 import { haptics } from '../lib/haptics';
 
+/* ApiKeyDialog — plan §11.1: G2 elevated chrome, C0 input field, Vietnamese
+ * copy, honest description of what connecting does. Focus moves to the input
+ * on open; Escape/backdrop close is disabled while a connect is in flight. */
+
 interface ApiKeyDialogProps {
   open: boolean;
   loading: boolean;
@@ -46,7 +50,6 @@ export const ApiKeyDialog: React.FC<ApiKeyDialogProps> = ({
     if (open) {
       setApiKey('');
       setShowKey(false);
-      // Auto-focus input after animation
       setTimeout(() => inputRef.current?.focus(), 150);
     }
   }, [open]);
@@ -59,51 +62,17 @@ export const ApiKeyDialog: React.FC<ApiKeyDialogProps> = ({
     onSubmit(trimmed);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && apiKey.trim()) {
-      handleSubmit();
-    }
-  };
-
   return (
     <Dialog
       open={open}
       onClose={loading ? undefined : onClose}
       maxWidth="sm"
       fullWidth
+      aria-label="Kết nối API key"
       slotProps={{
-        backdrop: {
-          sx: {
-            backgroundColor: (theme) =>
-              theme.palette.mode === 'dark'
-                ? 'rgba(15, 23, 42, 0.45)'
-                : 'rgba(15, 23, 42, 0.28)',
-            backdropFilter: 'blur(14px)',
-            WebkitBackdropFilter: 'blur(14px)',
-          },
-        },
         paper: {
-          className: 'liquid-glass-dialog',
-          sx: {
-            maxWidth: 480,
-            overflow: 'hidden',
-            position: 'relative',
-            // Ambient specular light sheen at top edge
-            '&::before': {
-              content: '""',
-              position: 'absolute',
-              top: 0,
-              left: '12%',
-              right: '12%',
-              height: '1px',
-              background: (theme) =>
-                theme.palette.mode === 'dark'
-                  ? 'linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.5) 50%, transparent 100%)'
-                  : 'linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.9) 50%, transparent 100%)',
-              pointerEvents: 'none',
-              zIndex: 2,
-            },
-          },
+          className: 'glass-elevated',
+          sx: { maxWidth: 480, overflow: 'hidden' },
         },
       }}
     >
@@ -111,12 +80,12 @@ export const ApiKeyDialog: React.FC<ApiKeyDialogProps> = ({
         component="div"
         sx={{
           m: 0,
-          p: 2.5,
+          px: 2.5,
+          py: 2,
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          borderBottom: '1px solid',
-          borderColor: 'divider',
+          borderBottom: '1px solid var(--color-border)',
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -127,10 +96,9 @@ export const ApiKeyDialog: React.FC<ApiKeyDialogProps> = ({
               justifyContent: 'center',
               width: 38,
               height: 38,
-              borderRadius: 1.5,
-              border: '1px solid',
-              borderColor: 'primary.main',
-              color: 'primary.main',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--color-accent)',
+              color: 'var(--color-accent)',
             }}
           >
             <KeyIcon sx={{ fontSize: 20 }} />
@@ -138,38 +106,16 @@ export const ApiKeyDialog: React.FC<ApiKeyDialogProps> = ({
           <Box>
             <Typography
               variant="h6"
-              sx={{
-                fontFamily: 'JetBrains Mono, monospace',
-                fontWeight: 700,
-                fontSize: '1.15rem',
-                lineHeight: 1.2,
-                letterSpacing: '-0.02em',
-              }}
+              sx={{ fontWeight: 600, fontSize: '1.05rem', lineHeight: 1.2, color: 'var(--color-text-primary)' }}
             >
-              Connect to ImgStore
+              Kết nối ImgStore
             </Typography>
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.72rem' }}
-            >
-              API Key Authentication
+            <Typography variant="caption" sx={{ color: 'var(--color-text-tertiary)' }}>
+              Xác thực bằng API key
             </Typography>
           </Box>
         </Box>
-        <IconButton
-          onClick={onClose}
-          disabled={loading}
-          size="small"
-          sx={{
-            color: 'text.secondary',
-            '&:hover': {
-              color: 'text.primary',
-              backgroundColor: (theme) =>
-                theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
-            },
-          }}
-        >
+        <IconButton onClick={onClose} disabled={loading} size="small" aria-label="Đóng">
           <CloseIcon fontSize="small" />
         </IconButton>
       </DialogTitle>
@@ -178,11 +124,10 @@ export const ApiKeyDialog: React.FC<ApiKeyDialogProps> = ({
         <DialogContent sx={{ p: 3, pb: 2 }}>
           <Typography
             variant="body2"
-            color="text.secondary"
-            sx={{ mb: 2.5, lineHeight: 1.6, fontSize: '0.88rem' }}
+            sx={{ mb: 2.5, lineHeight: 1.6, color: 'var(--color-text-secondary)' }}
           >
-            Enter your API key to connect. All uploads will be stored in shared
-            ImgStore storage and delivered through Cloudflare CDN.
+            Nhập API key để kết nối. File tải lên được lưu trong kho ImgStore
+            dùng chung và phục vụ qua Cloudflare CDN.
           </Typography>
 
           {error && (
@@ -190,10 +135,7 @@ export const ApiKeyDialog: React.FC<ApiKeyDialogProps> = ({
               severity="error"
               sx={{
                 mb: 2.5,
-                borderRadius: 2,
-                border: '1px solid rgba(239, 68, 68, 0.3)',
-                backgroundColor: (theme) =>
-                  theme.palette.mode === 'dark' ? 'rgba(239, 68, 68, 0.12)' : 'rgba(239, 68, 68, 0.08)',
+                borderRadius: 'var(--radius-md)',
                 '& .MuiAlert-message': { fontSize: '0.85rem' },
               }}
             >
@@ -201,7 +143,6 @@ export const ApiKeyDialog: React.FC<ApiKeyDialogProps> = ({
             </Alert>
           )}
 
-          {/* Form Input with Clean Dedicated Label */}
           <Box sx={{ mb: 2.5 }}>
             <Box
               sx={{
@@ -217,21 +158,16 @@ export const ApiKeyDialog: React.FC<ApiKeyDialogProps> = ({
                 sx={{
                   fontWeight: 600,
                   fontSize: '0.82rem',
-                  color: 'text.primary',
-                  letterSpacing: '-0.01em',
+                  color: 'var(--color-text-primary)',
                 }}
               >
                 API Key
               </Typography>
               <Typography
                 variant="caption"
-                sx={{
-                  fontFamily: 'JetBrains Mono, monospace',
-                  fontSize: '0.7rem',
-                  color: 'text.secondary',
-                }}
+                sx={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: 'var(--color-text-tertiary)' }}
               >
-                Required
+                Bắt buộc
               </Typography>
             </Box>
 
@@ -241,56 +177,10 @@ export const ApiKeyDialog: React.FC<ApiKeyDialogProps> = ({
               placeholder="imgst_xxxxxxxxxxxxxxxx"
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
-              onKeyDown={handleKeyDown}
               type={showKey ? 'text' : 'password'}
               fullWidth
               disabled={loading}
               autoComplete="off"
-              sx={{
-                borderRadius: 2.25,
-                backgroundColor: (theme) =>
-                  theme.palette.mode === 'dark'
-                    ? 'rgba(11, 17, 32, 0.75)'
-                    : 'rgba(248, 250, 252, 0.85)',
-                border: '1px solid',
-                borderColor: (theme) =>
-                  theme.palette.mode === 'dark'
-                    ? 'rgba(255, 255, 255, 0.14)'
-                    : 'rgba(15, 23, 42, 0.14)',
-                boxShadow: (theme) =>
-                  theme.palette.mode === 'dark'
-                    ? 'inset 0 1px 2px rgba(0, 0, 0, 0.4)'
-                    : 'inset 0 1px 2px rgba(0, 0, 0, 0.05)',
-                transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-                '& .MuiOutlinedInput-notchedOutline': {
-                  border: 'none',
-                },
-                '&:hover': {
-                  borderColor: (theme) =>
-                    theme.palette.mode === 'dark'
-                      ? 'rgba(255, 255, 255, 0.3)'
-                      : 'rgba(15, 23, 42, 0.3)',
-                  backgroundColor: 'var(--color-paper-glass-strong)',
-                },
-                '&.Mui-focused': {
-                  borderColor: 'var(--color-accent)',
-                  backgroundColor: (theme) =>
-                    theme.palette.mode === 'dark'
-                      ? 'var(--color-paper-glass-strong)'
-                      : '#ffffff',
-                  boxShadow:
-                    '0 0 0 3px var(--color-accent-subtle), inset 0 1px 2px rgba(0, 0, 0, 0.3)',
-                },
-                '& .MuiInputBase-input': {
-                  py: 1.2,
-                  px: 1.6,
-                  fontFamily: 'JetBrains Mono, monospace',
-                  fontSize: '0.88rem',
-                  letterSpacing: '0.02em',
-                  color: 'text.primary',
-                  outline: 'none !important',
-                },
-              }}
               endAdornment={
                 <InputAdornment position="end" sx={{ mr: 0.5 }}>
                   <IconButton
@@ -299,10 +189,7 @@ export const ApiKeyDialog: React.FC<ApiKeyDialogProps> = ({
                     size="small"
                     tabIndex={-1}
                     disabled={loading}
-                    sx={{
-                      color: 'text.secondary',
-                      '&:hover': { color: 'text.primary' },
-                    }}
+                    aria-label={showKey ? 'Ẩn API key' : 'Hiện API key'}
                   >
                     {showKey ? (
                       <VisibilityOffIcon sx={{ fontSize: 19 }} />
@@ -316,46 +203,35 @@ export const ApiKeyDialog: React.FC<ApiKeyDialogProps> = ({
 
             <Typography
               variant="caption"
-              color="text.secondary"
-              sx={{ mt: 0.85, display: 'block', fontSize: '0.75rem' }}
+              sx={{ mt: 0.85, display: 'block', fontSize: '0.75rem', color: 'var(--color-text-tertiary)' }}
             >
-              Contact the administrator if you don't have a key yet.
+              Liên hệ quản trị viên nếu bạn chưa có key.
             </Typography>
           </Box>
 
           <Box
             sx={{
               p: 1.75,
-              borderRadius: 2,
-              backgroundColor: (theme) =>
-                theme.palette.mode === 'dark'
-                  ? 'rgba(255, 255, 255, 0.04)'
-                  : 'rgba(0, 0, 0, 0.025)',
-              border: '1px solid',
-              borderColor: 'divider',
+              borderRadius: 'var(--radius-md)',
+              backgroundColor: 'var(--color-content-secondary)',
+              border: '1px solid var(--color-border)',
             }}
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.85, mb: 0.6 }}>
               <SuccessIcon sx={{ fontSize: 16, color: 'var(--color-success)' }} />
               <Typography
                 variant="caption"
-                sx={{
-                  fontWeight: 600,
-                  fontSize: '0.78rem',
-                  color: 'text.primary',
-                }}
+                sx={{ fontWeight: 600, fontSize: '0.78rem', color: 'var(--color-text-primary)' }}
               >
-                What happens when you connect
+                Sau khi kết nối
               </Typography>
             </Box>
             <Typography
               variant="caption"
-              color="text.secondary"
-              sx={{ fontSize: '0.74rem', lineHeight: 1.55, display: 'block' }}
+              sx={{ fontSize: '0.74rem', lineHeight: 1.55, display: 'block', color: 'var(--color-text-secondary)' }}
             >
-              Your key authenticates uploads to ImgStore shared storage. Images
-              are served globally via Cloudflare Edge CDN. No personal cloud
-              account required.
+              Key xác thực quyền tải file lên kho dùng chung. File được phục vụ
+              toàn cầu qua Cloudflare CDN — không cần tài khoản cloud cá nhân.
             </Typography>
           </Box>
         </DialogContent>
@@ -364,8 +240,7 @@ export const ApiKeyDialog: React.FC<ApiKeyDialogProps> = ({
           sx={{
             px: 3,
             py: 2,
-            borderTop: '1px solid',
-            borderColor: 'divider',
+            borderTop: '1px solid var(--color-border)',
             gap: 1.25,
           }}
         >
@@ -377,15 +252,9 @@ export const ApiKeyDialog: React.FC<ApiKeyDialogProps> = ({
             color="inherit"
             size="small"
             disabled={loading}
-            sx={{
-              textTransform: 'none',
-              fontWeight: 500,
-              fontSize: '0.85rem',
-              borderRadius: 1.75,
-              px: 2,
-            }}
+            sx={{ textTransform: 'none', borderRadius: 'var(--radius-full)', px: 2 }}
           >
-            Cancel
+            Hủy
           </Button>
           <Button
             type="submit"
@@ -393,22 +262,13 @@ export const ApiKeyDialog: React.FC<ApiKeyDialogProps> = ({
             color="primary"
             size="small"
             disabled={loading || !apiKey.trim()}
-            className="bevel-button"
-            sx={{
-              borderRadius: 1.75,
-              px: 2.25,
-              py: 0.75,
-              fontSize: '0.85rem',
-            }}
+            className="pressable"
+            sx={{ borderRadius: 'var(--radius-full)', px: 2.25, py: 0.75, fontSize: '0.85rem' }}
             startIcon={
-              loading ? (
-                <CircularProgress size={16} color="inherit" />
-              ) : (
-                <KeyIcon sx={{ fontSize: 16 }} />
-              )
+              loading ? <CircularProgress size={16} color="inherit" /> : <KeyIcon sx={{ fontSize: 16 }} />
             }
           >
-            {loading ? 'Connecting...' : 'Connect'}
+            {loading ? 'Đang kết nối…' : 'Kết nối'}
           </Button>
         </DialogActions>
       </form>

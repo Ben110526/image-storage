@@ -10,11 +10,20 @@ import {
   Alert,
   IconButton,
   Typography,
+  ToggleButton,
+  ToggleButtonGroup,
+  Slider,
+  Switch,
+  FormControlLabel,
+  Divider,
 } from '@mui/material';
 import {
   Close as CloseIcon,
   Restore as ResetIcon,
   Tune as SettingsIcon,
+  LightMode as LightIcon,
+  DarkMode as DarkIcon,
+  SettingsBrightness as SystemIcon,
 } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 import {
@@ -23,17 +32,50 @@ import {
   saveApiConfig,
   resetApiConfig,
 } from '../api/client';
-import { useQueryClient } from '@tanstack/react-query';
 import { haptics } from '../lib/haptics';
+import { useAppearance, type ThemePreference } from '../context/AppearanceContext';
+import { useAuth } from '../context/AuthContext';
+
+/* SettingsModal — plan §11. Appearance preferences (theme / glass tint /
+ * reduce transparency / reduce motion) are saved independently of Connection
+ * (API endpoint + key): adjusting the theme never rewrites API config, and
+ * saving API config never touches appearance. */
 
 interface SettingsModalProps {
   open: boolean;
   onClose: () => void;
 }
 
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <Typography
+      variant="overline"
+      component="h3"
+      sx={{ color: 'var(--color-text-tertiary)', letterSpacing: '0.08em' }}
+    >
+      {children}
+    </Typography>
+  );
+}
+
 export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
   const { enqueueSnackbar } = useSnackbar();
-  const queryClient = useQueryClient();
+  const { refreshConnection } = useAuth();
+  const {
+    pref,
+    reduceTransparency: effectiveReduceTransparency,
+    setTheme,
+    setGlassTint,
+    setReduceTransparency,
+    setReduceMotion,
+  } = useAppearance();
+
+  /* Slider disables on the EFFECTIVE flag (app OR OS — the app may never
+   * override an OS reduction); the helper says which source is in play. */
+  const osReduceTransparency =
+    typeof window !== 'undefined' &&
+    window.matchMedia('(prefers-reduced-transparency: reduce)').matches;
+  const tintDisabledByOS = osReduceTransparency && !pref.reduceTransparency;
 
   const [apiUrl, setApiUrl] = useState('');
   const [apiKey, setApiKey] = useState('');
@@ -48,7 +90,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) =
   const handleSave = () => {
     haptics.playSuccess();
     saveApiConfig(apiUrl, apiKey);
-    queryClient.invalidateQueries();
+    /* FIX-03 — saving connection parameters opens a NEW connection scope:
+     * bump the generation, drop caches of the old scope, and let the queue's
+     * generation guard park items enqueued under the old credential. */
+    refreshConnection();
     enqueueSnackbar('Connection parameters saved successfully!', { variant: 'success' });
     onClose();
   };
@@ -58,8 +103,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) =
     resetApiConfig();
     setApiUrl(import.meta.env.VITE_API_URL || 'http://localhost:8787');
     setApiKey('');
-    queryClient.invalidateQueries();
+    refreshConnection();
     enqueueSnackbar('Settings reset to build defaults', { variant: 'info' });
+  };
+
+  const handleThemeChange = (_: unknown, value: ThemePreference | null) => {
+    if (value) {
+      haptics.playTick();
+      setTheme(value);
+    }
   };
 
   return (
@@ -69,20 +121,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) =
       maxWidth="sm"
       fullWidth
       slotProps={{
-        backdrop: {
-          sx: {
-            backgroundColor: (theme) =>
-              theme.palette.mode === 'dark'
-                ? 'rgba(15, 23, 42, 0.45)'
-                : 'rgba(15, 23, 42, 0.28)',
-            backdropFilter: 'blur(14px)',
-            WebkitBackdropFilter: 'blur(14px)',
-          },
-        },
         paper: {
-          className: 'liquid-glass-dialog',
           sx: {
             overflow: 'hidden',
+            borderRadius: 'var(--radius-dialog)',
           },
         },
       }}
@@ -101,11 +143,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) =
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
           <SettingsIcon color="primary" />
-          <Typography variant="h6" sx={{ fontFamily: 'JetBrains Mono, monospace', fontWeight: 700 }}>
-            API &amp; Gateway Settings
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+            Cài đặt
           </Typography>
         </Box>
         <IconButton
+          aria-label="Đóng cài đặt"
           onClick={() => {
             haptics.playClick();
             onClose();
@@ -117,7 +160,105 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) =
       </DialogTitle>
 
       <DialogContent sx={{ p: 3 }}>
-        <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
+        {/* ── Appearance ─────────────────────────────────────────────── */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+          <Box>
+            <SectionLabel>Giao diện</SectionLabel>
+            <ToggleButtonGroup
+              value={pref.theme}
+              exclusive
+              onChange={handleThemeChange}
+              aria-label="Chế độ giao diện"
+              size="small"
+              fullWidth
+              sx={{ mt: 1 }}
+            >
+              <ToggleButton value="light" aria-label="Sáng">
+                <LightIcon sx={{ mr: 0.75, fontSize: 18 }} /> Sáng
+              </ToggleButton>
+              <ToggleButton value="dark" aria-label="Tối">
+                <DarkIcon sx={{ mr: 0.75, fontSize: 18 }} /> Tối
+              </ToggleButton>
+              <ToggleButton value="system" aria-label="Theo hệ thống">
+                <SystemIcon sx={{ mr: 0.75, fontSize: 18 }} /> Hệ thống
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
+
+          <Box>
+            <SectionLabel>Độ phủ màu kính</SectionLabel>
+            <Box sx={{ px: 0.5, mt: 1 }}>
+              <Slider
+                value={pref.glassTint}
+                onChange={(_, v) => setGlassTint(v as number)}
+                min={0}
+                max={100}
+                step={5}
+                disabled={effectiveReduceTransparency}
+                aria-label="Độ phủ màu kính"
+                aria-valuetext={`${pref.glassTint} trên 100`}
+                marks={[
+                  { value: 0, label: 'Trong hơn' },
+                  { value: 100, label: 'Đậm hơn' },
+                ]}
+              />
+              {effectiveReduceTransparency && (
+                <Typography variant="caption" sx={{ color: 'var(--color-text-tertiary)' }}>
+                  {tintDisabledByOS
+                    ? 'Hệ điều hành đang bật Giảm độ trong suốt — bề mặt dùng màu đặc, không thể đổi từ ứng dụng.'
+                    : 'Slider bị vô hiệu vì Giảm độ trong suốt đang bật — bề mặt dùng màu đặc.'}
+                </Typography>
+              )}
+            </Box>
+          </Box>
+
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={pref.reduceTransparency}
+                  onChange={(e) => setReduceTransparency(e.target.checked)}
+                  size="small"
+                />
+              }
+              label={
+                <Box>
+                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                    Giảm độ trong suốt
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: 'var(--color-text-tertiary)' }}>
+                    Bề mặt kính chuyển sang màu đặc, tắt hiệu ứng khúc xạ.
+                  </Typography>
+                </Box>
+              }
+            />
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={pref.reduceMotion}
+                  onChange={(e) => setReduceMotion(e.target.checked)}
+                  size="small"
+                />
+              }
+              label={
+                <Box>
+                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                    Giảm chuyển động
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: 'var(--color-text-tertiary)' }}>
+                    Tắt hiệu ứng scale, slide và ánh sáng theo con trỏ.
+                  </Typography>
+                </Box>
+              }
+            />
+          </Box>
+        </Box>
+
+        <Divider sx={{ my: 3 }} />
+
+        {/* ── Connection ─────────────────────────────────────────────── */}
+        <SectionLabel>Kết nối</SectionLabel>
+        <Alert severity="info" sx={{ my: 2, borderRadius: 2 }}>
           Configure the API endpoint for this browser. The Worker URL points to your deployed Cloudflare Worker. The optional API key field is for direct REST access without session login.
         </Alert>
 
@@ -131,7 +272,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) =
             size="small"
             slotProps={{
               input: {
-                sx: { fontFamily: 'JetBrains Mono, monospace', fontSize: '0.85rem' },
+                sx: { fontFamily: 'var(--font-mono)', fontSize: '0.85rem' },
               },
             }}
           />
@@ -146,10 +287,27 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) =
             size="small"
             slotProps={{
               input: {
-                sx: { fontFamily: 'JetBrains Mono, monospace', fontSize: '0.85rem' },
+                sx: { fontFamily: 'var(--font-mono)', fontSize: '0.85rem' },
               },
             }}
           />
+        </Box>
+
+        <Divider sx={{ my: 3 }} />
+
+        {/* ── Privacy ────────────────────────────────────────────────── */}
+        <Box sx={{ textAlign: 'center' }}>
+          <a
+            href="/privacy.html"
+            style={{
+              color: 'var(--color-link)',
+              fontSize: '0.8125rem',
+              fontFamily: 'var(--font-body)',
+              textDecoration: 'none',
+            }}
+          >
+            Privacy &amp; image sharing
+          </a>
         </Box>
       </DialogContent>
 
@@ -188,7 +346,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) =
             variant="contained"
             color="primary"
             size="small"
-            className="bevel-button"
+            className="pressable"
           >
             Save Parameters
           </Button>

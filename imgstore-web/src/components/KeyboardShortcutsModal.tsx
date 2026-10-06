@@ -10,6 +10,9 @@ import {
 } from '@mui/material';
 import { Close as CloseIcon, Keyboard as KeyboardIcon } from '@mui/icons-material';
 
+/* KeyboardShortcutsModal — plan §11.3: G2 chrome, <kbd> tokens from the
+ * registry, Vietnamese labels, divider-free rhythm via row spacing. */
+
 interface ShortcutRowProps {
   keys: string[];
   description: string;
@@ -24,7 +27,7 @@ const ShortcutRow: React.FC<ShortcutRowProps> = ({ keys, description }) => (
       py: 1.25,
     }}
   >
-    <Typography variant="body2" color="text.secondary">
+    <Typography variant="body2" sx={{ color: 'var(--color-text-secondary)' }}>
       {description}
     </Typography>
     <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'center' }}>
@@ -36,14 +39,13 @@ const ShortcutRow: React.FC<ShortcutRowProps> = ({ keys, description }) => (
             px: 1.2,
             py: 0.4,
             fontSize: '0.75rem',
-            fontFamily: 'JetBrains Mono, monospace',
+            fontFamily: 'var(--font-mono)',
             fontWeight: 600,
-            borderRadius: 1,
-            backgroundColor: 'action.hover',
-            border: '1px solid',
-            borderColor: 'divider',
-            boxShadow: '0 2px 0 0 rgba(0,0,0,0.2)',
-            color: 'text.primary',
+            borderRadius: 'var(--radius-sm)',
+            backgroundColor: 'var(--color-content-secondary)',
+            border: '1px solid var(--color-border)',
+            boxShadow: '0 2px 0 0 rgba(0,0,0,0.15)',
+            color: 'var(--color-text-primary)',
           }}
         >
           {k}
@@ -68,22 +70,11 @@ export const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
       onClose={onClose}
       maxWidth="xs"
       fullWidth
+      aria-label="Phím tắt"
       slotProps={{
-        backdrop: {
-          sx: {
-            backgroundColor: (theme) =>
-              theme.palette.mode === 'dark'
-                ? 'rgba(15, 23, 42, 0.45)'
-                : 'rgba(15, 23, 42, 0.28)',
-            backdropFilter: 'blur(14px)',
-            WebkitBackdropFilter: 'blur(14px)',
-          },
-        },
         paper: {
-          className: 'liquid-glass-dialog',
-          sx: {
-            p: 1,
-          },
+          className: 'glass-elevated',
+          sx: { p: 0.5 },
         },
       }}
     >
@@ -97,37 +88,42 @@ export const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <KeyboardIcon color="primary" fontSize="small" />
-          <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1.1rem' }}>
-            Keyboard Shortcuts
+          <KeyboardIcon sx={{ color: 'var(--color-accent)' }} fontSize="small" />
+          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.05rem' }}>
+            Phím tắt
           </Typography>
         </Box>
-        <IconButton size="small" onClick={onClose}>
+        <IconButton size="small" onClick={onClose} aria-label="Đóng phím tắt">
           <CloseIcon fontSize="small" />
         </IconButton>
       </DialogTitle>
 
       <DialogContent sx={{ pt: 1, pb: 2 }}>
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-          Control ImgStore faster using your keyboard
+        <Typography
+          variant="caption"
+          sx={{ display: 'block', mb: 2, color: 'var(--color-text-tertiary)' }}
+        >
+          Điều khiển ImgStore nhanh hơn bằng bàn phím
         </Typography>
 
         <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-          <ShortcutRow keys={['1']} description="Go to Upload page" />
-          <Divider sx={{ my: 0.5 }} />
-          <ShortcutRow keys={['2']} description="Go to Media Library" />
-          <Divider sx={{ my: 0.5 }} />
-          <ShortcutRow keys={['3']} description="Go to API Docs" />
-          <Divider sx={{ my: 0.5 }} />
-          <ShortcutRow keys={['/']} description="Focus search bar (Library)" />
-          <Divider sx={{ my: 0.5 }} />
-          <ShortcutRow keys={['M']} description="Toggle sound haptics" />
-          <Divider sx={{ my: 0.5 }} />
-          <ShortcutRow keys={['T']} description="Toggle theme (dark/light)" />
-          <Divider sx={{ my: 0.5 }} />
-          <ShortcutRow keys={['?']} description="Open shortcuts reference" />
-          <Divider sx={{ my: 0.5 }} />
-          <ShortcutRow keys={['Esc']} description="Close dialog / modal" />
+          <ShortcutRow keys={['1']} description="Đi tới trang Upload" />
+          <Divider sx={{ my: 0.5, borderColor: 'var(--color-border)' }} />
+          <ShortcutRow keys={['2']} description="Đi tới Thư viện" />
+          <Divider sx={{ my: 0.5, borderColor: 'var(--color-border)' }} />
+          <ShortcutRow keys={['3']} description="Đi tới API Docs" />
+          <Divider sx={{ my: 0.5, borderColor: 'var(--color-border)' }} />
+          <ShortcutRow keys={['/']} description="Focus ô tìm kiếm (Thư viện)" />
+          <Divider sx={{ my: 0.5, borderColor: 'var(--color-border)' }} />
+          <ShortcutRow keys={['U']} description="Mở hộp chọn file (Upload)" />
+          <Divider sx={{ my: 0.5, borderColor: 'var(--color-border)' }} />
+          <ShortcutRow keys={['M']} description="Bật/tắt âm thanh" />
+          <Divider sx={{ my: 0.5, borderColor: 'var(--color-border)' }} />
+          <ShortcutRow keys={['T']} description="Đổi theme (sáng/tối)" />
+          <Divider sx={{ my: 0.5, borderColor: 'var(--color-border)' }} />
+          <ShortcutRow keys={['?']} description="Mở bảng phím tắt" />
+          <Divider sx={{ my: 0.5, borderColor: 'var(--color-border)' }} />
+          <ShortcutRow keys={['Esc']} description="Đóng dialog / modal" />
         </Box>
       </DialogContent>
     </Dialog>

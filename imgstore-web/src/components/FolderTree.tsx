@@ -1,9 +1,10 @@
 import React, { useMemo } from 'react';
-import { Box, Typography, Skeleton } from '@mui/material';
+import { Box, Typography, Skeleton, Button } from '@mui/material';
 import {
   Folder as FolderIcon,
   FolderOpen as FolderOpenIcon,
   PhotoLibrary as AllIcon,
+  Refresh as RetryIcon,
 } from '@mui/icons-material';
 import { useQuery } from '@tanstack/react-query';
 import { fetchFolders } from '../api/client';
@@ -118,9 +119,32 @@ export const FolderTree: React.FC<FolderTreeProps> = ({ selected, onSelect, scop
           ))}
         </Box>
       ) : folders.isError ? (
-        <Typography variant="caption" sx={{ display: 'block', px: 1.5, py: 1, color: 'var(--color-destructive)' }}>
-          {folders.error.message}
-        </Typography>
+        /* LG-03 — error ≠ empty: the sidebar gets its own retry so a folder
+           failure never reads as "no folders". */
+        <Box sx={{ px: 1.5, py: 1 }} role="alert">
+          <Typography
+            variant="caption"
+            sx={{ display: 'block', mb: 1, color: 'var(--color-destructive)' }}
+          >
+            Không tải được danh sách folder.
+          </Typography>
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<RetryIcon sx={{ fontSize: 15 }} />}
+            disabled={folders.isFetching}
+            onClick={() => { haptics.playClick(); void folders.refetch(); }}
+            sx={{
+              textTransform: 'none',
+              fontSize: '0.75rem',
+              borderRadius: 'var(--radius-full)',
+              px: 1.5,
+              minHeight: 30,
+            }}
+          >
+            {folders.isFetching ? 'Đang thử lại…' : 'Thử lại'}
+          </Button>
+        </Box>
       ) : itemCount === 0 ? (
         <Typography variant="caption" sx={{ display: 'block', px: 1.5, py: 1, color: 'var(--color-ink-3)' }}>
           (no folders yet — upload to create one)

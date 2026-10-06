@@ -6,6 +6,7 @@ import {
   fetchHealth,
   fetchStorage,
   getApiKey,
+  type TransportCredential,
 } from '../api/client';
 import type { ImagesListResponse, ImageMetadata, HealthResponse, StorageResponse } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -52,9 +53,17 @@ export function useUploadImage() {
   return useMutation<
     ImageMetadata,
     Error,
-    { file: File; onProgress?: (percent: number) => void; folderId?: string }
+    {
+      file: File;
+      onProgress?: (percent: number) => void;
+      folderId?: string;
+      credential?: TransportCredential;
+    }
   >({
-    mutationFn: ({ file, onProgress, folderId }) => uploadImageFile(file, onProgress, folderId),
+    /* FIX-03 — the queue hands in the enqueue-time credential snapshot; the
+     * upload must not re-read global credentials mid-flight. */
+    mutationFn: ({ file, onProgress, folderId, credential }) =>
+      uploadImageFile(file, onProgress, folderId, credential),
     onSuccess: () => {
       // Invalidate images list and storage quota
       queryClient.invalidateQueries({ queryKey: ['images'] });

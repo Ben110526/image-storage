@@ -4,9 +4,8 @@ import {
   uploadResumableChunk,
   fetchResumableStatus,
   abortResumableUpload,
-  getApiBaseUrl,
-  getApiKey,
-  getSessionToken,
+  snapshotCredential,
+  type TransportCredential,
 } from '../api/client';
 
 export interface ChunkUploaderOptions {
@@ -17,6 +16,11 @@ export interface ChunkUploaderOptions {
   onError?: (error: Error) => void;
   onStateChange?: (state: UploaderState) => void;
   maxRetries?: number;
+  /** FIX-03 — immutable credential snapshot taken at enqueue time. The
+   * uploader must never re-read global credentials mid-flight: logging out or
+   * switching endpoint must not let an old item send chunks with the new
+   * credential. Defaults to a snapshot taken at construction. */
+  credential?: TransportCredential;
 }
 
 export type UploaderState = 'idle' | 'initializing' | 'uploading' | 'paused' | 'completing' | 'cancelling' | 'completed' | 'error' | 'aborted';
@@ -27,6 +31,7 @@ class TerminalUploadError extends Error {}
 export class ChunkUploader {
   private file: File;
   private options: ChunkUploaderOptions;
+  private credential: TransportCredential;
   private chunkSize: number;
   private uploadId: string | null = null;
   private bytesUploaded = 0;
@@ -47,6 +52,7 @@ export class ChunkUploader {
   constructor(file: File, options: ChunkUploaderOptions = {}) {
     this.file = file;
     this.options = options;
+    this.credential = options.credential ?? snapshotCredential();
     // Default 10MB chunk size (must be multiple of 256KB)
     this.chunkSize = options.chunkSize || 10 * 1024 * 1024;
   }
@@ -114,10 +120,10 @@ export class ChunkUploader {
 
   private async initializeAndUpload(): Promise<void> {
     if (this.stopped()) return;
-    // Scope saved sessions to backend + credential + file identity; never store the credential.
-    // Keep default-folder legacy resume keys working; explicitly selected folders
-    // must never resume the same file's session in another destination.
-    const identityParts = [getApiBaseUrl(), getSessionToken() || getApiKey(), this.file.name, this.file.size, this.file.lastModified];
+    // Scope saved sessions to backend + credential + file identity. The raw
+    // credential never lands in storage: it is hashed together with the rest
+    // of the identity below, so the localStorage key is opaque.
+    const identityParts = [this.credential.baseURL, this.credential.sessionToken || this.credential.apiKey || '', this.file.name, this.file.size, this.file.lastModified];
     if (this.options.folderId) identityParts.push(this.options.folderId);
     const identity = JSON.stringify(identityParts);
     const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(identity));
@@ -158,7 +164,8 @@ export class ChunkUploader {
         this.file.name,
         this.file.size,
         this.file.type || undefined,
-        this.options.folderId
+        this.options.folderId,
+        this.credential
       );
       this.uploadId = initRes.upload_id;
       this.chunkSize = initRes.chunk_size || this.chunkSize;
@@ -186,7 +193,7 @@ export class ChunkUploader {
 
   private queryStatus() {
     this.abortController = new AbortController();
-    return fetchResumableStatus(this.uploadId!, this.abortController.signal);
+    return fetchResumableStatus(this.uploadId!, this.abortController.signal, this.credential);
   }
 
   private retryable(error: unknown): boolean {
@@ -265,7 +272,8 @@ export class ChunkUploader {
           loaded => {
             if (!this.stopped()) { this.calculateSpeedAndEta(start + loaded); this.emitProgress(start + loaded, total); }
           },
-          this.abortController.signal
+          this.abortController.signal,
+          this.credential
         );
         if (this.stopped()) return;
         if (res.status === 308) {
@@ -378,7 +386,7 @@ export class ChunkUploader {
       // Do not abort the init request: we need its ID to release the reservation.
       await this.activeRun;
       try {
-        if (this.uploadId) await abortResumableUpload(this.uploadId);
+        if (this.uploadId) await abortResumableUpload(this.uploadId, this.credential);
       } catch {
         this.reportError(new Error('Cancellation not confirmed. Resume the file to check its status.'));
         return false;

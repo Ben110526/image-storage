@@ -12,12 +12,10 @@ import {
   Tabs,
   Tab,
   Button,
-  useTheme,
   Chip,
 } from '@mui/material';
 import {
   Close as CloseIcon,
-  ContentCopy as CopyIcon,
   OpenInNew as OpenIcon,
   Image as ImageIcon,
   Movie as VideoIcon,
@@ -26,9 +24,16 @@ import {
   InsertDriveFile as FileIcon,
   Download as DownloadIcon,
 } from '@mui/icons-material';
-import { useSnackbar } from 'notistack';
 import type { ImageMetadata } from '../types';
 import { haptics } from '../lib/haptics';
+import { CopyButton } from './ui/CopyButton';
+
+/* ImagePreviewModal — plan §10.3:
+ * - Media stage is NEUTRAL DARK regardless of app theme, so imagery reads
+ *   accurately (no tint, no glass over content).
+ * - Dialog chrome is G2 (glass-elevated); the close control floats on the
+ *   stage as G3 clear with a scrim behind it.
+ * - MUI Dialog restores focus to the trigger on close (keepMounted=false). */
 
 interface ImagePreviewModalProps {
   image: ImageMetadata | null;
@@ -48,20 +53,9 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
   open,
   onClose,
 }) => {
-  const theme = useTheme();
-  const { enqueueSnackbar } = useSnackbar();
   const [tabIndex, setTabIndex] = useState(0);
 
   if (!image) return null;
-
-  const copyToClipboard = (text: string, label: string) => {
-    haptics.playClick();
-    navigator.clipboard.writeText(text);
-    enqueueSnackbar(`Copied ${label} to clipboard!`, {
-      variant: 'success',
-      autoHideDuration: 2000,
-    });
-  };
 
   const cdnUrl = image.proxy_url;
   const downloadUrl = cdnUrl + (cdnUrl.includes('?') ? '&' : '?') + 'download=1';
@@ -86,28 +80,29 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
     ? `![${image.name}](${cdnUrl})`
     : `[${image.name}](${cdnUrl})`;
 
+  const typeIcon = isImage ? (
+    <ImageIcon sx={{ color: 'var(--color-accent)' }} />
+  ) : isVideo ? (
+    <VideoIcon sx={{ color: 'var(--color-type-video)' }} />
+  ) : isAudio ? (
+    <AudioIcon sx={{ color: 'var(--color-type-audio)' }} />
+  ) : isPdf ? (
+    <DocumentIcon sx={{ color: 'var(--color-type-document)' }} />
+  ) : (
+    <FileIcon sx={{ color: 'var(--color-type-file)' }} />
+  );
+
   return (
     <Dialog
       open={open}
       onClose={onClose}
       maxWidth="md"
       fullWidth
+      aria-label={`Xem trước ${image.name}`}
       slotProps={{
-        backdrop: {
-          sx: {
-            backgroundColor: (theme) =>
-              theme.palette.mode === 'dark'
-                ? 'rgba(15, 23, 42, 0.45)'
-                : 'rgba(15, 23, 42, 0.28)',
-            backdropFilter: 'blur(14px)',
-            WebkitBackdropFilter: 'blur(14px)',
-          },
-        },
         paper: {
-          className: 'liquid-glass-dialog',
-          sx: {
-            overflow: 'hidden',
-          },
+          className: 'glass-elevated',
+          sx: { overflow: 'hidden' },
         },
       }}
     >
@@ -115,32 +110,25 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
         component="div"
         sx={{
           m: 0,
-          p: 2.5,
+          px: 2.5,
+          py: 2,
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          borderBottom: `1px solid ${theme.palette.divider}`,
+          gap: 1,
+          borderBottom: '1px solid var(--color-border)',
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, overflow: 'hidden' }}>
-          {isImage ? (
-            <ImageIcon color="primary" />
-          ) : isVideo ? (
-            <VideoIcon sx={{ color: 'var(--color-type-video)' }} />
-          ) : isAudio ? (
-            <AudioIcon sx={{ color: 'var(--color-type-audio)' }} />
-          ) : isPdf ? (
-            <DocumentIcon sx={{ color: 'var(--color-type-document)' }} />
-          ) : (
-            <FileIcon sx={{ color: 'var(--color-type-file)' }} />
-          )}
+          {typeIcon}
           <Typography
             variant="h6"
             noWrap
+            title={image.name}
             sx={{
-              fontWeight: 700,
-              fontFamily: 'JetBrains Mono, monospace',
-              fontSize: '1.15rem',
+              fontWeight: 600,
+              fontSize: '1rem',
+              color: 'var(--color-text-primary)',
             }}
           >
             {image.name}
@@ -149,29 +137,32 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
             label={extension}
             size="small"
             sx={{
-              fontFamily: 'JetBrains Mono, monospace',
-              fontSize: '0.7rem',
+              fontFamily: 'var(--font-mono)',
+              fontSize: '0.65rem',
+              fontWeight: 700,
+              letterSpacing: '0.04em',
               height: 22,
+              backgroundColor: 'var(--color-content-secondary)',
             }}
           />
         </Box>
-        <IconButton onClick={onClose} size="small">
+        <IconButton onClick={onClose} size="small" aria-label="Đóng xem trước">
           <CloseIcon fontSize="small" />
         </IconButton>
       </DialogTitle>
 
-      <DialogContent sx={{ p: { xs: 2.5, md: 3.5 } }}>
-        {/* Dynamic Media Viewer Container */}
+      <DialogContent sx={{ p: { xs: 2, md: 3 } }}>
+        {/* Media stage — neutral dark, theme-independent, never tinted. */}
         <Box
           sx={{
+            position: 'relative',
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
             minHeight: 200,
             maxHeight: { xs: 300, sm: 400, md: 500 },
-            backgroundColor: 'var(--color-paper-glass)',
-            borderRadius: 2.5,
-            border: `1px solid ${theme.palette.divider}`,
+            backgroundColor: '#0B0D12',
+            borderRadius: 'var(--radius-md)',
             p: { xs: 1.5, sm: 2 },
             mb: { xs: 2, sm: 3 },
             overflow: 'hidden',
@@ -186,24 +177,21 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
                 maxWidth: '100%',
                 maxHeight: { xs: 260, sm: 360, md: 460 },
                 objectFit: 'contain',
-                borderRadius: 1.5,
-                boxShadow: '0 8px 30px rgba(0, 0, 0, 0.4)',
+                borderRadius: 'var(--radius-sm)',
               }}
             />
           ) : isVideo ? (
             <Box
               component="video"
               controls
-              autoPlay
               playsInline
               preload="metadata"
               src={cdnUrl}
               sx={{
                 width: '100%',
                 maxHeight: { xs: 260, sm: 360, md: 460 },
-                borderRadius: 1.5,
-                boxShadow: '0 8px 30px rgba(0, 0, 0, 0.5)',
-                backgroundColor: '#000000',
+                borderRadius: 'var(--radius-sm)',
+                backgroundColor: '#000',
               }}
             />
           ) : isAudio ? (
@@ -218,10 +206,10 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
               }}
             >
               <AudioIcon sx={{ fontSize: 64, color: 'var(--color-type-audio)', mb: 2 }} />
-              <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2, color: 'rgba(255,255,255,0.92)' }}>
                 {image.name} ({formatBytes(image.size)})
               </Typography>
-              <Box component="audio" controls autoPlay src={cdnUrl} sx={{ width: '100%', maxWidth: 450 }} />
+              <Box component="audio" controls src={cdnUrl} sx={{ width: '100%', maxWidth: 450 }} />
             </Box>
           ) : isPdf ? (
             <Box
@@ -232,7 +220,8 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
                 width: '100%',
                 height: 420,
                 border: 'none',
-                borderRadius: 1.5,
+                borderRadius: 'var(--radius-sm)',
+                backgroundColor: '#fff',
               }}
             />
           ) : (
@@ -248,11 +237,14 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
               }}
             >
               <FileIcon sx={{ fontSize: 64, color: 'var(--color-type-file)', mb: 1.5 }} />
-              <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5 }}>
+              <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5, color: 'rgba(255,255,255,0.92)' }}>
                 {image.name}
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5, fontFamily: 'JetBrains Mono, monospace' }}>
-                Size: {formatBytes(image.size)} • Type: {image.mime_type}
+              <Typography
+                variant="body2"
+                sx={{ mb: 2.5, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.6)' }}
+              >
+                {formatBytes(image.size)} · {image.mime_type}
               </Typography>
               <Button
                 variant="contained"
@@ -264,15 +256,16 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
                 target="_blank"
                 rel="noreferrer"
                 size="large"
-                className="bevel-button"
+                className="pressable"
+                sx={{ borderRadius: 'var(--radius-full)' }}
               >
-                Download File ({formatBytes(image.size)})
+                Tải xuống ({formatBytes(image.size)})
               </Button>
             </Box>
           )}
         </Box>
 
-        {/* Embed Snippet Tabs */}
+        {/* Embed snippet tabs */}
         <Tabs
           value={tabIndex}
           onChange={(_, val) => {
@@ -284,9 +277,8 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
           allowScrollButtonsMobile
           sx={{
             mb: 2,
-            borderBottom: `1px solid ${theme.palette.divider}`,
+            borderBottom: '1px solid var(--color-border)',
             '& .MuiTab-root': {
-              fontFamily: 'JetBrains Mono, monospace',
               fontWeight: 600,
               fontSize: { xs: '0.78rem', sm: '0.85rem' },
               textTransform: 'none',
@@ -295,168 +287,83 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
             },
           }}
         >
-          <Tab label="CDN Edge URL" />
-          <Tab label="Markdown Link" />
-          <Tab label="HTML Embed" />
-          <Tab label="Direct Storage Link" />
+          <Tab label="Link CDN" />
+          <Tab label="Markdown" />
+          <Tab label="HTML" />
+          <Tab label="Link gốc" />
         </Tabs>
 
-        {tabIndex === 0 && (
-          <TextField
-            fullWidth
-            size="small"
-            value={cdnUrl}
-            slotProps={{
-              input: {
-                readOnly: true,
-                sx: { fontFamily: 'JetBrains Mono, monospace', fontSize: '0.85rem' },
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <Tooltip title="Copy CDN Edge Link">
-                      <IconButton
-                        size="small"
-                        color="primary"
-                        onClick={() => copyToClipboard(cdnUrl, 'CDN URL')}
-                      >
-                        <CopyIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Open in New Tab">
-                      <IconButton
-                        size="small"
-                        component="a"
-                        href={cdnUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        <OpenIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  </InputAdornment>
-                ),
-              },
-            }}
-          />
+        {(
+          [
+            { value: cdnUrl, copyLabel: `Copy link CDN của ${image.name}`, open: true },
+            { value: markdownSnippet, copyLabel: `Copy Markdown của ${image.name}`, open: false },
+            { value: htmlSnippet, copyLabel: `Copy HTML của ${image.name}`, open: false },
+            { value: gdriveUrl, copyLabel: `Copy link gốc của ${image.name}`, open: true },
+          ] as const
+        ).map(
+          (cfg, idx) =>
+            tabIndex === idx && (
+              <TextField
+                key={idx}
+                fullWidth
+                size="small"
+                value={cfg.value}
+                slotProps={{
+                  input: {
+                    readOnly: true,
+                    sx: { fontFamily: 'var(--font-mono)', fontSize: '0.82rem' },
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <CopyButton value={cfg.value} label={cfg.copyLabel} iconOnly />
+                        {cfg.open && (
+                          <Tooltip title="Mở tab mới">
+                            <IconButton
+                              size="small"
+                              component="a"
+                              href={cfg.value}
+                              target="_blank"
+                              rel="noreferrer"
+                              aria-label={`Mở ${cfg.copyLabel.replace('Copy ', '')} trong tab mới`}
+                            >
+                              <OpenIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                      </InputAdornment>
+                    ),
+                  },
+                }}
+              />
+            )
         )}
 
-        {tabIndex === 1 && (
-          <TextField
-            fullWidth
-            size="small"
-            value={markdownSnippet}
-            slotProps={{
-              input: {
-                readOnly: true,
-                sx: { fontFamily: 'JetBrains Mono, monospace', fontSize: '0.85rem' },
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <Tooltip title="Copy Markdown">
-                      <IconButton
-                        size="small"
-                        color="primary"
-                        onClick={() => copyToClipboard(markdownSnippet, 'Markdown')}
-                      >
-                        <CopyIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  </InputAdornment>
-                ),
-              },
-            }}
-          />
-        )}
-
-        {tabIndex === 2 && (
-          <TextField
-            fullWidth
-            size="small"
-            value={htmlSnippet}
-            slotProps={{
-              input: {
-                readOnly: true,
-                sx: { fontFamily: 'JetBrains Mono, monospace', fontSize: '0.85rem' },
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <Tooltip title="Copy HTML Snippet">
-                      <IconButton
-                        size="small"
-                        color="primary"
-                        onClick={() => copyToClipboard(htmlSnippet, 'HTML')}
-                      >
-                        <CopyIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  </InputAdornment>
-                ),
-              },
-            }}
-          />
-        )}
-
-        {tabIndex === 3 && (
-          <TextField
-            fullWidth
-            size="small"
-            value={gdriveUrl}
-            slotProps={{
-              input: {
-                readOnly: true,
-                sx: { fontFamily: 'JetBrains Mono, monospace', fontSize: '0.85rem' },
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <Tooltip title="Copy Direct Link">
-                      <IconButton
-                        size="small"
-                        color="primary"
-                        onClick={() => copyToClipboard(gdriveUrl, 'Direct Link')}
-                      >
-                        <CopyIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Open direct link">
-                      <IconButton
-                        size="small"
-                        component="a"
-                        href={gdriveUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        <OpenIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  </InputAdornment>
-                ),
-              },
-            }}
-          />
-        )}
-
-        {/* Detailed File Specs */}
+        {/* File metadata — honest values only. */}
         <Box
           sx={{
             display: 'flex',
             flexWrap: 'wrap',
-            gap: 2,
+            gap: { xs: 1.5, sm: 2.5 },
             mt: 3,
             p: 2,
-            backgroundColor: 'var(--color-paper-glass)',
-            borderRadius: 2,
-            border: `1px solid ${theme.palette.divider}`,
+            backgroundColor: 'var(--color-content-secondary)',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--color-border)',
             fontSize: '0.8rem',
-            fontFamily: 'JetBrains Mono, monospace',
-            color: 'text.secondary',
+            fontFamily: 'var(--font-mono)',
+            color: 'var(--color-text-secondary)',
           }}
         >
           <Box>
-            <strong>Size:</strong> {formatBytes(image.size)}
+            <strong>Dung lượng:</strong> {formatBytes(image.size)}
           </Box>
           <Box>
-            <strong>MIME:</strong> {image.mime_type}
+            <strong>MIME:</strong> {image.mime_type || '—'}
           </Box>
           <Box>
-            <strong>Uploaded:</strong> {new Date(image.created_at).toLocaleString()}
+            <strong>Tải lên:</strong>{' '}
+            {image.created_at ? new Date(image.created_at).toLocaleString() : '—'}
           </Box>
-          <Box>
+          <Box sx={{ wordBreak: 'break-all' }}>
             <strong>ID:</strong> {image.id}
           </Box>
         </Box>

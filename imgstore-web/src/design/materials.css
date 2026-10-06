@@ -1,0 +1,238 @@
+/* LG-04 — Liquid Glass material primitives.
+ *
+ * Roles (internal taxonomy, plan §8.1):
+ *   C0  .content-surface          — readable opaque surface: media, prose, code, forms, tables.
+ *   G1  .glass-regular            — floating navigation/toolbars (navbar, bottom nav, toolbars).
+ *   G2  .glass-elevated           — menus, popovers, dialog/sheet headers (higher alpha + elevation).
+ *   G3  .glass-clear              — controls floating directly on media (preview close/copy/download).
+ *                                   MUST be paired with .glass-clear-scrim on the media stage.
+ *
+ * Tint slider: --glass-tint (0..1, set on <html> by AppearanceContext / the
+ * index.html bootstrap) scales the tint alpha between the still-legible floor
+ * and the most-opaque end, per plan §8.3. Blur is NOT scaled by the slider —
+ * changing blur per-frame would repaint constantly; the slider trades tint only.
+ *
+ * Reduced transparency (data-transparency="reduced", from the app toggle OR
+ * the OS prefers-reduced-transparency media query): every glass role falls
+ * back to its solid fallback fill, backdrop filters and specular layers off.
+ */
+
+/* ---- alpha derivation ----------------------------------------------------
+ * Each role exposes --_fill-rgb + --_alpha-base; the effective fill recomputes
+ * alpha from the slider. The ranges come straight from plan §8.3:
+ *   G1 light: 0.58 + 0.20t   G1 dark: 0.64 + 0.20t
+ *   G2 light: 0.80 + 0.10t   G2 dark: 0.84 + 0.10t
+ * G3 keeps its own scrim and is NOT driven by the slider (the slider may never
+ * remove the localized dimming that makes clear controls legible).
+ * ------------------------------------------------------------------------ */
+
+:root {
+  --glass-tint: 0.6; /* default 60/100 until the bootstrap/provider sets it */
+
+  /* G1 — Regular navigation (light).
+   * color-mix instead of rgba(var(--rgb), calc(...)): nested var() inside
+   * rgba() with a calc alpha does not recompute on some engines. */
+  --glass-g1-rgb: 248, 250, 255;
+  --glass-g1-alpha: calc(0.58 + 0.20 * var(--glass-tint));
+  --glass-g1-fill: color-mix(in srgb, rgb(var(--glass-g1-rgb)) calc(var(--glass-g1-alpha) * 100%), transparent);
+  --glass-g1-blur: var(--glass-regular-blur);
+  --glass-g1-saturation: var(--glass-regular-saturation);
+
+  /* G2 — Regular elevated (light) */
+  --glass-g2-rgb: 248, 250, 255;
+  --glass-g2-alpha: calc(0.80 + 0.10 * var(--glass-tint));
+  --glass-g2-fill: color-mix(in srgb, rgb(var(--glass-g2-rgb)) calc(var(--glass-g2-alpha) * 100%), transparent);
+  --glass-g2-blur: var(--glass-elevated-blur);
+  --glass-g2-saturation: var(--glass-elevated-saturation);
+}
+
+[data-theme='dark'] {
+  /* G1 — Regular navigation (dark) */
+  --glass-g1-rgb: 24, 30, 42;
+  --glass-g1-alpha: calc(0.64 + 0.20 * var(--glass-tint));
+
+  /* G2 — Regular elevated (dark) */
+  --glass-g2-rgb: 24, 30, 42;
+  --glass-g2-alpha: calc(0.84 + 0.10 * var(--glass-tint));
+}
+
+/* ---- C0: Content surface ------------------------------------------------- */
+
+.content-surface {
+  background: var(--color-content);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: none;
+}
+
+.content-surface--secondary {
+  background: var(--color-content-secondary);
+  border-color: transparent;
+}
+
+.content-surface--elevated {
+  background: var(--color-content-elevated);
+}
+
+/* ---- G1: Regular glass (navigation / floating toolbar) ------------------- */
+
+.glass-regular {
+  position: relative;
+  color: var(--color-text-primary);
+  /* background-color (not the shorthand) so MUI Paper overrides that set
+   * background-color: transparent to let the material show through combine
+   * predictably — a shorthand here would also reset background-image and
+   * fight with the navbar's layered veil. */
+  background-color: var(--glass-g1-fill);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-full);
+  box-shadow:
+    inset 0 1px 0 var(--glass-rim-top),
+    inset 0 -1px 0 var(--glass-rim-bottom),
+    var(--shadow-navigation);
+  -webkit-backdrop-filter: blur(var(--glass-g1-blur)) saturate(var(--glass-g1-saturation));
+  backdrop-filter: blur(var(--glass-g1-blur)) saturate(var(--glass-g1-saturation));
+}
+
+/* ---- G2: Elevated glass (menus / popovers / sheet headers) --------------- */
+
+.glass-elevated {
+  position: relative;
+  color: var(--color-text-primary);
+  background-color: var(--glass-g2-fill);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-menu);
+  box-shadow:
+    inset 0 1px 0 var(--glass-rim-top),
+    inset 0 -1px 0 var(--glass-rim-bottom),
+    var(--shadow-menu);
+  -webkit-backdrop-filter: blur(var(--glass-g2-blur)) saturate(var(--glass-g2-saturation));
+  backdrop-filter: blur(var(--glass-g2-blur)) saturate(var(--glass-g2-saturation));
+}
+
+/* MUI portals (Menu/Popover) carry .glass-elevated via slotProps.paper.className.
+ * MUI's own Emotion hash class on the same element has the same specificity
+ * but is injected later, so it wins the background. Doubling the class raises
+ * specificity to 0-2-0 so the material fill wins without !important. */
+.glass-elevated.glass-elevated {
+  background-color: var(--glass-g2-fill);
+}
+
+/* ---- G3: Clear control on media -------------------------------------------
+ * Only for controls floating directly on a media stage (preview close, copy,
+ * download). The stage MUST also carry .glass-clear-scrim so there is a
+ * localized dim behind the control — clear glass over arbitrary imagery is
+ * never legible on its own. */
+
+.glass-clear {
+  position: relative;
+  color: #fff;
+  background-color: var(--glass-clear-fill);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: var(--radius-full);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  -webkit-backdrop-filter: blur(var(--glass-clear-blur)) saturate(var(--glass-clear-saturation));
+  backdrop-filter: blur(var(--glass-clear-blur)) saturate(var(--glass-clear-saturation));
+}
+
+/* Localized dimming behind clear controls (plan §8.1, "scrim riêng bắt buộc"). */
+.glass-clear-scrim {
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.32) 0%,
+    rgba(0, 0, 0, 0) 32%
+  );
+  pointer-events: none;
+}
+
+/* ---- Fallbacks ----------------------------------------------------------- */
+
+/* No backdrop-filter support: solid, still legible, same layout. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass-regular {
+    background: var(--glass-fallback-fill);
+  }
+  .glass-elevated {
+    background: var(--glass-fallback-elevated);
+  }
+  .glass-clear {
+    background: rgba(20, 26, 38, 0.72);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* Reduced transparency — app toggle or OS signal. Solid surfaces, no filters,
+ * no specular layers; content stays exactly where it was. The navbar's scroll
+ * veil is inert in this mode (main.tsx detaches the --edge listener), so force
+ * the plain fill over its layered background too. */
+html[data-transparency='reduced'] .glass-regular,
+html[data-transparency='reduced'] .navbar-glass {
+  background-color: var(--glass-fallback-fill);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+html[data-transparency='reduced'] .glass-elevated {
+  background-color: var(--glass-fallback-elevated);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+html[data-transparency='reduced'] .glass-clear {
+  background-color: rgba(20, 26, 38, 0.85);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass-regular,
+  .navbar-glass {
+    background-color: var(--glass-fallback-fill);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .glass-elevated {
+    background-color: var(--glass-fallback-elevated);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .glass-clear {
+    background-color: rgba(20, 26, 38, 0.85);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: none;
+  }
+}
+
+/* Forced colors / high contrast: system colors, visible borders, no filters. */
+@media (forced-colors: active) {
+  .glass-regular,
+  .glass-elevated,
+  .glass-clear,
+  .content-surface {
+    background: Canvas;
+    color: CanvasText;
+    border: 1px solid ButtonBorder;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: none;
+  }
+  .glass-clear {
+    background: ButtonFace;
+    color: ButtonText;
+  }
+}
+
+/* Reduced motion — app toggle (data-motion) or OS signal. The navbar's scroll
+ * veil/box-shadow transitions are the only material-adjacent animations left
+ * outside motion.css's .pressable/.surface-enter coverage; collapse them too
+ * so the app switch has full effect without a reload (FIX-02). */
+html[data-motion='reduced'] .navbar-glass {
+  transition-duration: 80ms !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .navbar-glass {
+    transition-duration: 80ms !important;
+  }
+}

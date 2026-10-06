@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Typography } from '@mui/material';
 import { ApiDocsSection } from '../components/ApiDocsSection';
+import { useAppearance } from '../context/AppearanceContext';
 import { haptics } from '../lib/haptics';
 
 /* Hallmark · page: docs · macrostructure: Workbench · theme: Liquid Glass */
@@ -43,14 +44,20 @@ export const DocsPage: React.FC = () => {
     return () => observer.disconnect();
   }, []);
 
+  const { reduceMotion } = useAppearance();
+
   const scrollToSection = (id: string) => {
     haptics.playTick();
     setActiveId(id);
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Reduced motion (app toggle OR OS) jumps instead of smooth-scrolling.
+    document
+      .getElementById(id)
+      ?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
   };
 
   return (
     <Box>
+      {/* LG-10 — proper H1, no terminal-hero cosplay. */}
       <Box sx={{ mb: { xs: 3, md: 4 } }}>
         <Typography
           variant="h4"
@@ -58,23 +65,33 @@ export const DocsPage: React.FC = () => {
           sx={{
             fontFamily: 'var(--font-body)',
             fontWeight: 700,
-            fontSize: { xs: '1.25rem', sm: '1.5rem', md: '1.75rem' },
+            fontSize: { xs: '1.5rem', sm: '1.75rem', md: '2rem' },
             letterSpacing: '-0.02em',
+            color: 'var(--color-text-primary)',
           }}
         >
-          <Box component="span" sx={{ color: 'var(--color-accent)', mr: 1, fontFamily: 'var(--font-mono)' }}>$</Box>
-          imgstore api --docs
+          Tài liệu API
         </Typography>
         <Typography
           variant="body2"
-          color="text.secondary"
-          sx={{ mt: 1, fontFamily: 'var(--font-mono)', fontSize: 'var(--text-sm)' }}
+          sx={{ mt: 1, color: 'var(--color-text-secondary)', maxWidth: 560 }}
         >
-          # everything the web UI does, scriptable over plain HTTPS + API key.
+          Mọi thao tác trên web UI đều script được qua HTTPS + API key. Kết nối
+          key để chạy thử request ngay trong trang này.
         </Typography>
       </Box>
 
-      <Box sx={{ display: 'flex', gap: { md: 4 }, alignItems: 'flex-start' }}>
+      {/* maxWidth centers the TOC+content group; without it the fixed-cap
+          content column hugs the left and leaves dead space on the right. */}
+      <Box
+        sx={{
+          display: 'flex',
+          gap: { md: 4, lg: 6 },
+          alignItems: 'flex-start',
+          maxWidth: { lg: 1240 },
+          mx: 'auto',
+        }}
+      >
         {/* Sticky TOC — hidden below 600px; the section cards carry their own headers */}
         <Box
           component="nav"
@@ -160,7 +177,7 @@ export const DocsPage: React.FC = () => {
         </Box>
 
         {/* Docs content */}
-        <Box sx={{ flex: 1, minWidth: 0, maxWidth: { sm: 720, lg: 760 } }}>
+        <Box sx={{ flex: 1, minWidth: 0, maxWidth: { sm: 720, lg: 920 } }}>
           <ApiDocsSection />
         </Box>
       </Box>

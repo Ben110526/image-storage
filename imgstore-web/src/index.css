@@ -1,4 +1,19 @@
 @import '../tokens.css';
+@import './design/materials.css';
+@import './design/motion.css';
+
+/* Accessibility utility — visually hidden but available to assistive tech. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 
 *, *::before, *::after {
   box-sizing: border-box;
@@ -10,12 +25,12 @@ html, body {
   overflow-x: clip;
   min-height: 100vh;
   font-family: var(--font-body);
-  color: var(--color-ink);
-  background-color: var(--color-paper);
+  color: var(--color-text-primary);
+  background-color: var(--color-canvas);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  transition: background-color var(--dur-base) var(--ease-out), color var(--dur-base) var(--ease-out);
+  transition: background-color var(--duration-normal) var(--ease-standard), color var(--duration-normal) var(--ease-standard);
 }
 
 #root {
@@ -25,203 +40,65 @@ html, body {
   position: relative;
 }
 
-/* Hallmark · theme: Liquid Glass — vivid ambient blobs are REQUIRED for
- * glass to read as glass. A pane over a flat white background just looks like
- * a rectangle; over saturated moving colour the lensing is unmistakable.
- * Blobs are larger and more saturated than before so the refraction "pops". */
+/* Ambient background — scenery only, never the subject (plan §6.4). At most
+ * two static pastel gradients, alpha 0.06–0.10, wide fade: enough hue at the
+ * edges that G1/G2 panes have something to blur, never enough to compete with
+ * content. No noise, no particles, no full-viewport filter, nothing behind
+ * media regions that could shift perceived color. */
 .ambient-glow-bg {
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 0;
   background:
-    radial-gradient(48% 42% at 12% 8%,  rgba(129, 140, 248, 0.72) 0%, transparent 70%),
-    radial-gradient(54% 50% at 88% 10%, rgba(56,  189, 248, 0.62) 0%, transparent 72%),
-    radial-gradient(60% 56% at 72% 92%, rgba(196, 181, 253, 0.58) 0%, transparent 74%),
-    radial-gradient(44% 40% at 22% 88%, rgba(165, 243, 252, 0.50) 0%, transparent 70%),
-    radial-gradient(36% 32% at 50% 50%, rgba(224, 231, 255, 0.30) 0%, transparent 80%),
-    linear-gradient(160deg, rgba(255, 255, 255, 0.40) 0%, transparent 50%, rgba(255, 255, 255, 0.22) 100%);
-  /* Lower blur = sharper edges behind the panes, so the #glass-refraction
-     displacement has detail to bend (heavy blur made refraction invisible). */
-  filter: blur(26px);
+    radial-gradient(52% 44% at 10% 6%,  rgba(70, 88, 217, 0.09) 0%, transparent 72%),
+    radial-gradient(46% 40% at 90% 8%,  rgba(56, 189, 248, 0.07) 0%, transparent 74%);
 }
 
 [data-theme='dark'] .ambient-glow-bg {
   background:
-    radial-gradient(48% 42% at 12% 8%,  rgba(99,  102, 241, 0.55) 0%, transparent 70%),
-    radial-gradient(54% 50% at 88% 10%, rgba(14,  165, 233, 0.45) 0%, transparent 72%),
-    radial-gradient(60% 56% at 72% 92%, rgba(139,  92, 246, 0.42) 0%, transparent 74%),
-    radial-gradient(44% 40% at 22% 88%, rgba(34,  211, 238, 0.32) 0%, transparent 70%);
-  filter: blur(32px);
+    radial-gradient(52% 44% at 10% 6%,  rgba(164, 177, 255, 0.08) 0%, transparent 72%),
+    radial-gradient(46% 40% at 90% 8%,  rgba(145, 205, 255, 0.06) 0%, transparent 74%);
 }
 
-/* Liquid glass surface — a pane with a visible body: the --glass-body vertical
- * gradient (bright top, dimmer bottom) supplies the "thickness" of the glass,
- * the base tint + saturate keep the backdrop reading through, and the bright
- * Fresnel rim + diagonal glint sell the edge. Refraction of the backdrop is
- * handled by the SVG displacement filter in index.html when the browser
- * supports backdrop-filter: url() (Chromium); Safari/Firefox keep the pane. */
-.glass-surface {
-  position: relative;
-  isolation: isolate;
-  background: var(--glass-body), var(--color-paper-glass) !important;
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)) !important;
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)) !important;
-  border: 1px solid var(--color-border-glass) !important;
-  box-shadow: var(--shadow-card) !important;
-  border-radius: var(--radius-md) !important;
-  transition: border-color var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out) !important;
-}
-
-/* Refraction layer (Chromium): bends the backdrop at the glass edges. */
-.glass-surface.refract {
-  backdrop-filter: blur(var(--glass-blur)) url(#glass-refraction) saturate(var(--glass-saturate)) brightness(1.03) !important;
-  -webkit-backdrop-filter: blur(var(--glass-blur)) url(#glass-refraction) saturate(var(--glass-saturate)) brightness(1.03) !important;
-}
-
-.glass-surface::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: var(--glass-sheen);
-  pointer-events: none;
-}
-
-/* iOS "liquid" pointer-tracking specular: a soft light blob that follows the
- * cursor across the pane. --mx/--my are set by the pointer handler in main.tsx. */
-.glass-surface::after,
-.spatial-card::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  opacity: 0;
-  background: radial-gradient(
-    180px 180px at var(--mx, 50%) var(--my, 50%),
-    rgba(255, 255, 255, 0.22) 0%,
-    rgba(255, 255, 255, 0.06) 45%,
-    transparent 70%
-  );
-  transition: opacity var(--dur-base) var(--ease-out);
-}
-
-.glass-surface:hover::after,
-.spatial-card:hover::after {
-  opacity: 1;
-}
-
-/* Springy lift on hover — the pane rises toward the light, like iOS. */
-.glass-surface:hover,
-.spatial-card:hover {
-  border-color: var(--glass-border-light) !important;
-  box-shadow: var(--shadow-glass) !important;
-  transform: translateY(-2px) scale(1.005);
-}
-
-.glass-surface:active,
-.spatial-card:active {
-  transform: translateY(0) scale(0.995);
-  transition-duration: var(--dur-fast);
-}
-
-/* Frosted panel used by cards, dialogs, telemetry deck, search — same recipe. */
-.spatial-card {
-  position: relative;
-  isolation: isolate;
-  background: var(--glass-body), var(--color-paper-glass) !important;
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)) !important;
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)) !important;
-  border: 1px solid var(--color-border-glass) !important;
-  box-shadow: var(--shadow-card) !important;
-  border-radius: var(--radius-md) !important;
-  transition: border-color var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out) !important;
-}
-
-.spatial-card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: var(--glass-sheen);
-  pointer-events: none;
-}
-
-/* hover/active for .spatial-card live in the .glass-surface block above —
- * both classes share the same pointer-tracking specular + springy lift. */
-
-/* Chromium-only: real refraction — the backdrop bends at the glass edges via
- * the SVG feDisplacementMap in index.html (SourceAlpha edge-field map, not
- * random noise). Safari/Firefox ignore the url() and keep the clear pane. */
-@supports (backdrop-filter: url(#glass-refraction)) {
-  .spatial-card,
-  .glass-surface {
-    backdrop-filter: blur(var(--glass-blur)) url(#glass-refraction) saturate(var(--glass-saturate)) !important;
-    -webkit-backdrop-filter: blur(var(--glass-blur)) url(#glass-refraction) saturate(var(--glass-saturate)) !important;
-  }
-}
-
-@supports (backdrop-filter: url(#glass-refraction)) {
-  .navbar-glass,
-  .liquid-glass-dialog {
-    backdrop-filter: blur(var(--glass-blur)) url(#glass-refraction) saturate(var(--glass-saturate)) !important;
-    -webkit-backdrop-filter: blur(var(--glass-blur)) url(#glass-refraction) saturate(var(--glass-saturate)) !important;
-  }
-}
-
-/* Glass Action Button — Liquid Glass pill */
-.bevel-button {
-  font-family: var(--font-body) !important;
-  font-weight: 600 !important;
-  letter-spacing: -0.01em !important;
+/* ─── G1 navigation specifics ─────────────────────────────────────────────
+ * .glass-regular (materials.css) owns the material: fill driven by
+ * --glass-tint, blur/saturation from tokens, rim + shadow. This block only
+ * owns what the NAVBAR adds on top of the plain material:
+ *   - geometry (full pill radius), and
+ *   - the scroll edge effect: --edge (0→1, written by main.tsx) mixes a
+ *     canvas-coloured veil under the fill so text scrolling underneath dims
+ *     out instead of colliding with the nav labels.
+ * No blur scaling with --edge — repainting a backdrop-filter per scroll step
+ * is the stutter the plan forbids; the veil + hairline do the work. */
+.navbar-glass {
+  --edge: 0;
+  /* Geometry lives HERE, not in Navbar's sx: Emotion injects after the
+     stylesheet at equal specificity, so an sx borderRadius/border would win
+     and silently drop the edge effect below. */
   border-radius: var(--radius-full) !important;
-  backdrop-filter: blur(calc(var(--glass-blur) * 0.6)) saturate(160%) !important;
-  -webkit-backdrop-filter: blur(calc(var(--glass-blur) * 0.6)) saturate(160%) !important;
-  border: 1px solid var(--color-border-glass) !important;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-canvas) calc(var(--edge) * 62%), transparent),
+      color-mix(in srgb, var(--color-canvas) calc(var(--edge) * 62%), transparent)
+    ),
+    var(--glass-g1-fill);
   box-shadow:
-    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.7),
-    inset 0 -1px 1.5px 0 rgba(255, 255, 255, 0.2),
-    0 4px 16px -4px rgba(79, 70, 229, 0.18) !important;
-  transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out) !important;
+    0 1px 0 0 color-mix(in srgb, var(--color-border) calc(var(--edge) * 100%), transparent),
+    inset 0 1px 0 var(--glass-rim-top),
+    inset 0 -1px 0 var(--glass-rim-bottom),
+    var(--shadow-navigation);
+  transition: box-shadow var(--duration-sheet) var(--ease-standard), background var(--duration-sheet) var(--ease-standard);
 }
 
-.bevel-button:hover {
-  box-shadow:
-    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.9),
-    inset 0 -1px 1.5px 0 rgba(255, 255, 255, 0.3),
-    0 8px 28px -6px rgba(79, 70, 229, 0.35) !important;
-}
+/* Dialog/sheet ownership (plan §11, FIX-01.5): the BODY is C0 opaque — forms,
+ * prose and lists must stay readable at every tint; only the chrome could be
+ * G2, and for these small confirms/settings we deliberately keep the whole
+ * paper C0 (documented choice: no useless blur under an opaque body).
+ * MUI Dialog Paper picks this up via theme styleOverrides (theme.ts). */
 
-.bevel-button:active {
-  transform: translateY(1px) scale(0.97) !important;
-  box-shadow:
-    inset 0 2px 6px 0 rgba(79, 70, 229, 0.18),
-    inset 0 -1px 2px 0 rgba(255, 255, 255, 0.4) !important;
-}
-
-/* Navbar pointer-tracking specular (same recipe as .glass-surface::after) */
-.navbar-glass::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  opacity: 0;
-  background: radial-gradient(
-    220px 220px at var(--mx, 50%) var(--my, 50%),
-    rgba(255, 255, 255, 0.18) 0%,
-    rgba(255, 255, 255, 0.05) 45%,
-    transparent 70%
-  );
-  transition: opacity var(--dur-base) var(--ease-out);
-}
-
-.navbar-glass:hover::after {
-  opacity: 1;
-}
-
-/* Code & Telemetry Monospace Styles */
+/* Monospace utility */
 .font-mono {
   font-family: var(--font-mono) !important;
 }
@@ -241,12 +118,12 @@ html, body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-border-strong);
+  background: var(--color-control-border);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-ink-3);
+  background: var(--color-text-tertiary);
 }
 
 /* Focus Visible Accessibility */
@@ -265,73 +142,7 @@ textarea:focus-visible,
   outline: none !important;
 }
 
-/* Smaller-radius variant for compact panes (code blocks, inner papers) */
-.glass-surface-sm {
-  border-radius: var(--radius-sm) !important;
-}
-
 /* Docs TOC targets — land below the sticky navbar when scrolled to */
 [id^="api-"] {
   scroll-margin-top: 90px;
-}
-
-/* Liquid glass dialog — clear pane over blurred backdrop */
-.liquid-glass-dialog {
-  background: var(--color-paper-glass-strong) !important;
-  backdrop-filter: blur(calc(var(--glass-blur) * 1.5)) saturate(var(--glass-saturate)) !important;
-  -webkit-backdrop-filter: blur(calc(var(--glass-blur) * 1.5)) saturate(var(--glass-saturate)) !important;
-  border: 1px solid var(--color-border-glass) !important;
-  box-shadow: var(--shadow-glass) !important;
-  border-radius: var(--radius-lg) !important;
-}
-
-/* Glass for overlay surfaces that MUI renders in a portal (no className hook
- * from our components): dropdown menus, autocomplete listboxes, tooltips,
- * snackbars. All are descendants of <body>, not #root. */
-.MuiMenu-paper,
-.MuiPopover-paper,
-.MuiAutocomplete-listbox {
-  background: var(--glass-body), var(--color-paper-glass-strong) !important;
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)) !important;
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)) !important;
-  border: 1px solid var(--color-border-glass) !important;
-  box-shadow: var(--shadow-glass) !important;
-  border-radius: var(--radius-sm) !important;
-}
-
-.MuiTooltip-tooltip {
-  background: var(--glass-body), var(--color-paper-glass-strong) !important;
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)) !important;
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)) !important;
-  border: 1px solid var(--color-border-glass) !important;
-  box-shadow: var(--shadow-glass) !important;
-  border-radius: var(--radius-xs) !important;
-  color: var(--color-ink) !important;
-  font-family: var(--font-body) !important;
-}
-
-.MuiTooltip-arrow::before {
-  background: var(--color-paper-glass-strong) !important;
-  border: 1px solid var(--color-border-glass) !important;
-}
-
-/* notistack renders its snackbars with these classes */
-.notistack-SnackbarContainer .notistack-MuiContent,
-.notistack-SnackbarContainer .MuiPaper-root {
-  background: var(--glass-body), var(--color-paper-glass-strong) !important;
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)) !important;
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)) !important;
-  border: 1px solid var(--color-border-glass) !important;
-  box-shadow: var(--shadow-glass) !important;
-  border-radius: var(--radius-sm) !important;
-}
-
-/* Reduced Motion Override */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
 }

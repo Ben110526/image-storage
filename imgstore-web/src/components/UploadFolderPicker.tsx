@@ -117,7 +117,7 @@ export function UploadFolderPicker({ scope, value, onChange }: Props) {
 
   return (
     <Box
-      className="spatial-card"
+      className="content-surface"
       sx={{
         p: { xs: 1.5, sm: 2 },
         mb: 2.5,
@@ -426,7 +426,7 @@ export function UploadFolderPicker({ scope, value, onChange }: Props) {
           <Button
             variant="contained"
             size="small"
-            className="bevel-button"
+            className="pressable"
             onClick={() => {
               haptics.playClick();
               create.mutate(newPath);

@@ -1,85 +1,52 @@
 import { createTheme } from '@mui/material/styles';
+import {
+  MUI_PALETTE_LIGHT,
+  MUI_PALETTE_DARK,
+  RADIUS,
+  type PaletteMode,
+} from './design/tokens.generated';
 
-/* Hallmark · theme: Liquid Glass — neutral slate, indigo accent, soft radii */
+/* Hallmark · theme: Liquid Glass — palette, typography and shape are derived
+ * from the canonical token registry (design/tokens.json via
+ * tokens.generated.ts). MUI needs concrete sRGB values; CSS custom properties
+ * are used only inside styleOverrides, which run in the browser. */
 
-export const getAppTheme = (mode: 'light' | 'dark') =>
-  createTheme({
+export const getAppTheme = (mode: PaletteMode) => {
+  const palette = mode === 'dark' ? MUI_PALETTE_DARK : MUI_PALETTE_LIGHT;
+
+  return createTheme({
     palette: {
       mode,
-      ...(mode === 'dark'
-        ? {
-            primary: {
-              main: '#818cf8',
-              light: '#a5b4fc',
-              dark: '#6366f1',
-              contrastText: '#1e1b4b',
-            },
-            secondary: {
-              main: '#38bdf8',
-              light: '#7dd3fc',
-              dark: '#0284c7',
-              contrastText: '#082f49',
-            },
-            background: {
-              default: '#0f172a',
-              paper: '#1e293b',
-            },
-            text: {
-              primary: '#f1f5f9',
-              secondary: '#94a3b8',
-            },
-            divider: 'rgba(148, 163, 184, 0.16)',
-          }
-        : {
-            primary: {
-              main: '#4f46e5',
-              light: '#6366f1',
-              dark: '#4338ca',
-              contrastText: '#ffffff',
-            },
-            secondary: {
-              main: '#0ea5e9',
-              light: '#38bdf8',
-              dark: '#0284c7',
-              contrastText: '#ffffff',
-            },
-            background: {
-              default: '#f6f8fb',
-              paper: '#ffffff',
-            },
-            text: {
-              primary: '#1e293b',
-              secondary: '#475569',
-            },
-            divider: 'rgba(15, 23, 42, 0.10)',
-          }),
+      primary: palette.primary,
+      secondary: palette.secondary,
+      error: palette.error,
+      warning: palette.warning,
+      info: palette.info,
+      success: palette.success,
+      background: palette.background,
+      text: palette.text,
+      divider: palette.divider,
     },
     typography: {
-      fontFamily: [
-        '"Inter"',
-        'system-ui',
-        '-apple-system',
-        '"Segoe UI"',
-        'Roboto',
-        'sans-serif',
-      ].join(','),
-      // Glass-neutral type scale — Inter, hierarchy via weight/size/tracking
+      // System font stack — no webfont download for UI text (plan §7.1).
+      fontFamily:
+        'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       h1: {
         fontWeight: 700,
         letterSpacing: '-0.02em',
-        lineHeight: 1.15,
-        fontSize: '1.75rem',
+        lineHeight: 1.18,
+        fontSize: '2rem',
       },
       h2: {
-        fontWeight: 700,
+        fontWeight: 650,
         letterSpacing: '-0.015em',
-        lineHeight: 1.2,
+        lineHeight: 1.3,
         fontSize: '1.375rem',
       },
       h3: {
         fontWeight: 600,
         letterSpacing: '-0.01em',
-        lineHeight: 1.25,
+        lineHeight: 1.35,
         fontSize: '1.125rem',
       },
       h4: {
@@ -100,17 +67,20 @@ export const getAppTheme = (mode: 'light' | 'dark') =>
         lineHeight: 1.35,
         fontSize: '0.875rem',
       },
+      // Body at 16px — readable on touch devices, avoids iOS auto-zoom on
+      // focus for any input inheriting it (plan §7.1).
       body1: {
-        fontSize: '0.875rem',
+        fontSize: '1rem',
         lineHeight: 1.5,
       },
       body2: {
-        fontSize: '0.8125rem',
+        fontSize: '0.875rem',
         lineHeight: 1.45,
       },
       caption: {
         fontSize: '0.75rem',
-        lineHeight: 1.3,
+        fontWeight: 500,
+        lineHeight: 1.4,
       },
       overline: {
         fontSize: '0.75rem',
@@ -121,40 +91,48 @@ export const getAppTheme = (mode: 'light' | 'dark') =>
       button: {
         textTransform: 'none',
         fontWeight: 600,
+        fontSize: '0.9375rem',
       },
     },
     shape: {
-      borderRadius: 12,
+      borderRadius: parseInt(RADIUS.sm, 10),
     },
     components: {
       MuiButton: {
         styleOverrides: {
           root: {
-            borderRadius: 10,
+            borderRadius: RADIUS.full,
             boxShadow: 'none',
+            minHeight: 40,
             '&:hover': {
               boxShadow: 'none',
             },
           },
           contained: {
-            // Liquid Glass: soft accent fill, no heavy gradient
             boxShadow: 'none',
           },
           outlined: {
-            backgroundColor: 'var(--color-paper-glass)',
-            backdropFilter: 'blur(calc(var(--glass-blur) * 0.6)) saturate(var(--glass-saturate))',
-            WebkitBackdropFilter: 'blur(calc(var(--glass-blur) * 0.6)) saturate(var(--glass-saturate))',
-            borderColor: 'var(--color-border-glass)',
+            // Solid bordered control — no per-control backdrop blur (plan
+            // §3.3: inputs and chips inside glass use plain fills).
+            backgroundColor: 'transparent',
+            borderColor: 'var(--color-control-border)',
+          },
+        },
+      },
+      MuiIconButton: {
+        styleOverrides: {
+          root: {
+            // 44px hit area target (plan §6: WCAG target size).
+            width: 44,
+            height: 44,
           },
         },
       },
       MuiCard: {
         styleOverrides: {
           root: {
-            borderRadius: 12,
-            border: `1px solid ${
-              mode === 'dark' ? 'rgba(148, 163, 184, 0.16)' : 'rgba(15, 23, 42, 0.10)'
-            }`,
+            borderRadius: RADIUS.md,
+            border: '1px solid var(--color-border)',
             boxShadow: 'none',
           },
         },
@@ -165,7 +143,7 @@ export const getAppTheme = (mode: 'light' | 'dark') =>
             backgroundImage: 'none',
           },
           rounded: {
-            borderRadius: 12,
+            borderRadius: RADIUS.md,
           },
         },
       },
@@ -177,22 +155,22 @@ export const getAppTheme = (mode: 'light' | 'dark') =>
           },
         },
       },
-      /* Liquid Glass: outlined inputs are panes, not boxes */
+      // Fields: plain filled surface, no backdrop filter of their own (plan
+      // §3.3 — no glass nested inside glass).
       MuiOutlinedInput: {
         styleOverrides: {
           root: {
-            backgroundColor: 'var(--color-paper-glass)',
-            backdropFilter: 'var(--backdrop-blur)',
-            WebkitBackdropFilter: 'var(--backdrop-blur)',
-            borderRadius: 'var(--radius-sm)',
+            backgroundColor: 'var(--color-content-secondary)',
+            borderRadius: RADIUS.sm,
             '& .MuiOutlinedInput-notchedOutline': {
               borderColor: 'var(--color-border)',
             },
             '&:hover .MuiOutlinedInput-notchedOutline': {
-              borderColor: 'var(--color-border-strong)',
+              borderColor: 'var(--color-control-border)',
             },
             '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
               borderColor: 'var(--color-focus)',
+              borderWidth: 2,
             },
           },
         },
@@ -202,13 +180,10 @@ export const getAppTheme = (mode: 'light' | 'dark') =>
           root: {
             borderRadius: 8,
             fontWeight: 500,
-            fontFamily: 'JetBrains Mono, monospace',
           },
           outlined: {
-            backgroundColor: 'var(--color-paper-glass)',
-            backdropFilter: 'blur(calc(var(--glass-blur) * 0.6)) saturate(var(--glass-saturate))',
-            WebkitBackdropFilter: 'blur(calc(var(--glass-blur) * 0.6)) saturate(var(--glass-saturate))',
-            borderColor: 'var(--color-border-glass)',
+            backgroundColor: 'transparent',
+            borderColor: 'var(--color-control-border)',
           },
         },
       },
@@ -216,15 +191,82 @@ export const getAppTheme = (mode: 'light' | 'dark') =>
         defaultProps: {
           arrow: true,
         },
+        styleOverrides: {
+          tooltip: {
+            // Opaque, small, never glass (plan §11).
+            backgroundColor: 'var(--color-content-elevated)',
+            color: 'var(--color-text-primary)',
+            border: '1px solid var(--color-border)',
+            fontSize: '0.75rem',
+            maxWidth: 280,
+          },
+          arrow: {
+            color: 'var(--color-content-elevated)',
+          },
+        },
       },
       MuiAlert: {
         styleOverrides: {
           root: {
-            borderRadius: 'var(--radius-sm)',
-            backdropFilter: 'var(--backdrop-blur)',
-            WebkitBackdropFilter: 'var(--backdrop-blur)',
+            borderRadius: RADIUS.sm,
+          },
+        },
+      },
+      /* Dialog/sheet body is C0 opaque (FIX-01.5 — documented choice: no
+       * translucent form bodies; no blur wasted under opaque content). */
+      MuiDialog: {
+        styleOverrides: {
+          paper: {
+            borderRadius: RADIUS.dialog,
+            backgroundColor: 'var(--color-content)',
+            color: 'var(--color-text-primary)',
+            border: '1px solid var(--color-border)',
+            boxShadow: 'var(--shadow-dialog)',
+            backgroundImage: 'none',
+          },
+        },
+      },
+      /* Backdrop dims via token; blur only when transparency is full — with
+       * reduced transparency it must be a plain dim (FIX-02). */
+      MuiBackdrop: {
+        styleOverrides: {
+          root: {
+            backgroundColor: 'var(--color-backdrop)',
+            backdropFilter: 'blur(14px)',
+            WebkitBackdropFilter: 'blur(14px)',
+            'html[data-transparency="reduced"] &': {
+              backdropFilter: 'none',
+              WebkitBackdropFilter: 'none',
+            },
+            '@media (prefers-reduced-transparency: reduce)': {
+              backdropFilter: 'none',
+              WebkitBackdropFilter: 'none',
+            },
+          },
+        },
+      },
+      /* Menus/popovers are G2 chrome — the .glass-elevated class in
+       * materials.css carries fill/border/shadow/filter; here we only stop
+       * MUI Paper's default backgroundImage from layering over it (FIX-01.4:
+       * the override applies the material class, it does not make every
+       * Paper in the app glass). */
+      MuiMenu: {
+        styleOverrides: {
+          paper: {
+            borderRadius: RADIUS.menu,
+          },
+        },
+      },
+      MuiPopover: {
+        styleOverrides: {
+          paper: {
+            '&.glass-elevated': {
+              backgroundImage: 'none',
+              boxShadow: 'var(--shadow-menu)',
+            },
           },
         },
       },
     },
   });
+};

@@ -5,85 +5,62 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ImgStore — Cloud Media Hosting &amp; Instant CDN</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
+    <!-- Fonts: system stack only (plan §7.1) — no webfont requests. -->
   </head>
   <body>
-    <div id="root"></div>
     <!--
-      Liquid Glass refraction — Apple-style lens, not noise.
-
-      Real glass is FLAT in the middle and only bends light at its curved rim.
-      The old filter used feTurbulence (random noise) which warps the whole
-      surface uniformly and reads as "grainy plastic". Instead, this filter
-      derives the displacement map from the element's OWN silhouette:
-
-        SourceAlpha → blur → slope of that blur = distance-to-edge field
-
-      so the backdrop stays untouched in the flat center and magnifies/lenses
-      toward the rim — the actual "liquid" look. The map automatically follows
-      whatever border-radius the element has (pill navbar, card, dialog).
-      Negative scale = magnifying lens (Apple direction); positive = fish-eye.
+      Appearance bootstrap — runs BEFORE first paint so there is no theme flash.
+      Reads/validates `imgstore_appearance_v1`, migrates the legacy
+      `imgstore_theme` toggle once, resolves System against the OS scheme, and
+      stamps data-theme / data-transparency / data-motion / --glass-tint onto
+      <html>. React (AppearanceContext) re-derives the same values afterwards;
+      both use the identical algorithm so the post-hydration state matches the
+      pre-paint one. Default for a fresh install is LIGHT (plan §7); a stored
+      'system' choice is preserved. Any storage failure falls back to light
+      defaults without crashing the app.
     -->
-    <svg width="0" height="0" style="position: absolute" aria-hidden="true" focusable="false">
-      <filter id="glass-refraction" x="-4%" y="-4%" width="108%" height="108%" color-interpolation-filters="sRGB">
-        <!-- 1. distance-to-edge field: alpha blurred inward from the rim.
-             This is the glass "height map" — flat center, curved rim. -->
-        <feGaussianBlur in="SourceAlpha" stdDeviation="10" result="edgeField" />
-        <feComponentTransfer in="edgeField" result="lensMap">
-          <feFuncR type="gamma" amplitude="1" exponent="0.45" offset="0" />
-          <feFuncG type="gamma" amplitude="1" exponent="0.45" offset="0" />
-          <feFuncB type="gamma" amplitude="1" exponent="0.45" offset="0" />
-        </feComponentTransfer>
+    <script>
+      (function () {
+        var root = document.documentElement;
+        var pref = { theme: 'light', glassTint: 60, reduceTransparency: false, reduceMotion: false };
+        try {
+          var raw = localStorage.getItem('imgstore_appearance_v1');
+          if (raw) {
+            var p = JSON.parse(raw);
+            if (p && typeof p === 'object') {
+              if (p.theme === 'light' || p.theme === 'dark' || p.theme === 'system') pref.theme = p.theme;
+              var t = Number(p.glassTint);
+              if (isFinite(t)) pref.glassTint = Math.min(100, Math.max(0, Math.round(t)));
+              pref.reduceTransparency = p.reduceTransparency === true;
+              pref.reduceMotion = p.reduceMotion === true;
+            }
+          } else {
+            var legacy = localStorage.getItem('imgstore_theme');
+            if (legacy === 'light' || legacy === 'dark') {
+              pref.theme = legacy;
+              try {
+                localStorage.setItem('imgstore_appearance_v1', JSON.stringify({ version: 1, theme: legacy, glassTint: 60, reduceTransparency: false, reduceMotion: false }));
+                localStorage.removeItem('imgstore_theme');
+              } catch (e) {}
+            }
+          }
+        } catch (e) {}
 
-        <!-- 2. Refraction: lens the backdrop — flat center, magnified rim.
-             Stronger scale = the visible iOS "bulge" at the pane edges. -->
-        <feDisplacementMap
-          in="SourceGraphic"
-          in2="lensMap"
-          scale="52"
-          xChannelSelector="R"
-          yChannelSelector="G"
-          result="refracted"
-        />
+        var osDark = false, osRM = false, osRT = false;
+        try {
+          osDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          osRM = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+          osRT = window.matchMedia('(prefers-reduced-transparency: reduce)').matches;
+        } catch (e) {}
 
-        <!-- 3. Chromatic aberration: R/B split ~0.7px opposite ways at the rim -->
-        <feOffset in="refracted" dx="0.7" dy="0" result="rShift" />
-        <feOffset in="refracted" dx="-0.7" dy="0" result="bShift" />
-        <feColorMatrix in="rShift" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="rChan" />
-        <feColorMatrix in="refracted" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="gChan" />
-        <feColorMatrix in="bShift" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="bChan" />
-        <feBlend in="rChan" in2="gChan" mode="screen" result="rg" />
-        <feBlend in="rg" in2="bChan" mode="screen" result="lensed" />
-
-        <!-- 4. Specular rim light: the edge field lit by a distant light from
-             top-left. This is the bright "wet" bezel of iOS 26 — a real
-             lighting computation, not a painted inset shadow. -->
-        <feSpecularLighting
-          in="edgeField"
-          surfaceScale="7"
-          specularConstant="1.1"
-          specularExponent="16"
-          lighting-color="#ffffff"
-          result="spec"
-        >
-          <feDistantLight azimuth="230" elevation="48" />
-        </feSpecularLighting>
-        <!-- keep the light only on the rim band (subtract the flat center) -->
-        <feComponentTransfer in="edgeField" result="rimBand">
-          <feFuncA type="linear" slope="2.2" intercept="-0.85" />
-        </feComponentTransfer>
-        <feComposite in="spec" in2="rimBand" operator="in" result="specRim" />
-        <feComposite in="specRim" in2="SourceAlpha" operator="in" result="specClipped" />
-
-        <!-- 5. Composite: refracted backdrop + specular rim -->
-        <feComposite in="lensed" in2="specClipped" operator="arithmetic" k1="0" k2="1" k3="0.75" k4="0" />
-      </filter>
-    </svg>
+        var resolved = pref.theme === 'system' ? (osDark ? 'dark' : 'light') : pref.theme;
+        root.setAttribute('data-theme', resolved);
+        root.setAttribute('data-transparency', (pref.reduceTransparency || osRT) ? 'reduced' : 'full');
+        root.setAttribute('data-motion', (pref.reduceMotion || osRM) ? 'reduced' : 'full');
+        root.style.setProperty('--glass-tint', (pref.glassTint / 100).toFixed(3));
+      })();
+    </script>
+    <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
