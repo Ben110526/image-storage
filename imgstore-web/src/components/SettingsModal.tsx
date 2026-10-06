@@ -122,12 +122,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) =
   };
 
   const handleReset = async () => {
+    /* C2 — reset runs the SAME verification flow as save, so it must hold the
+     * pending flag for its own duration: without it, a slow /auth/me after
+     * Reset left Save/Reset/X clickable while the app was mid-verification. */
     if (saving) return;
     haptics.playClick();
+    setSaving(true);
+    setSaveError(null);
     resetApiConfig();
     setApiUrl(import.meta.env.VITE_API_URL || 'http://localhost:8787');
     setApiKey('');
     await refreshConnection();
+    setSaving(false);
     enqueueSnackbar('Settings reset to build defaults', { variant: 'info' });
   };
 
@@ -189,9 +195,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) =
         <IconButton
           aria-label="Đóng cài đặt"
           onClick={() => {
+            // C2 — the X button is a close path too: while a connection
+            // verification is in flight it must not silently dismiss the
+            // dialog (the save outcome would be hidden and the callback would
+            // continue against a closed modal).
+            if (saving) return;
             haptics.playClick();
             onClose();
           }}
+          disabled={saving}
           size="small"
         >
           <CloseIcon fontSize="small" />
