@@ -8,24 +8,22 @@ import { Box, type SxProps, type Theme } from '@mui/material';
  *   clear    (G3) — controls floating directly on media; the parent media
  *                   stage MUST render a .glass-clear-scrim behind them
  *
- * `lens` opts the pane into SVG refraction once the flag-gated lens system is
- * QA'd on real GPUs (plan §8.6); it is off by default and the CSS baseline is
- * the production rendering. Accepts `sx` for layout only. */
+ * Real refraction (canvas displacement, ADR-ENGINE Đường B) is layered on by
+ * GlassPane via the optics registry; this component stays the CSS material
+ * that is also the reduced-transparency / no-canvas fallback.
+ * Accepts `sx` for layout only. */
 
 export interface GlassSurfaceProps extends HTMLAttributes<HTMLDivElement> {
   variant?: 'regular' | 'elevated' | 'clear';
-  /** Opt into the SVG refraction lens. Off by default; CSS-only baseline. */
-  lens?: boolean;
   sx?: SxProps<Theme>;
 }
 
 export const GlassSurface = forwardRef<HTMLDivElement, GlassSurfaceProps>(
-  ({ variant = 'regular', lens = false, className, sx, ...rest }, ref) => {
+  ({ variant = 'regular', className, sx, ...rest }, ref) => {
     const classes = [
       variant === 'regular' && 'glass-regular',
       variant === 'elevated' && 'glass-elevated',
       variant === 'clear' && 'glass-clear',
-      lens && 'glass-lens',
       className,
     ]
       .filter(Boolean)

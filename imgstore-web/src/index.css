@@ -42,13 +42,26 @@ html, body {
 
 /* Static canvas scenery makes backdrop sampling visible at default settings.
  * Two broad, token-owned color fields; opaque content/media surfaces keep
- * their original colors. No animated background or viewport-wide filter. */
+ * their original colors. No animated background or viewport-wide filter.
+ *
+ * V2-03: the scenery is drawn by <GlassScene> (canvas 2D) so the optics
+ * registry can sample it for real refraction. .ambient-glow-bg remains as the
+ * no-JS / pre-hydration fallback — it hides once the canvas has painted. */
 .ambient-glow-bg {
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 0;
   background: var(--canvas-scenery);
+}
+
+.glass-scene {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
 }
 
 /* ─── G1 navigation specifics ─────────────────────────────────────────────

@@ -153,6 +153,35 @@
   pointer-events: none;
 }
 
+/* ---- Optical mode (V2-03) -------------------------------------------------
+ * .glass-optical marks a glass surface whose backdrop is rendered by the
+ * optics registry (canvas displacement, ADR-ENGINE Đường B) instead of the
+ * CSS backdrop-filter blur. The fill, specular rim, border and shadow stay —
+ * only the blur/saturation filter is dropped so the displaced scene pixels
+ * are not blurred on top (double-processing) and the tint does not fight the
+ * refraction. The registry's canvas sits behind the content (z-index below).
+ *
+ * The mode is applied by GlassPane only when the registry is active; reduced
+ * transparency / forced-colors rules below still win (they come later in the
+ * stylesheet and disable everything including the canvas via GlassPane's
+ * own enable check). */
+.glass-optical {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/* The material canvas painted by the optics registry. Absolute-filled into
+ * the GlassPane host; transparent pixels (outside the scene / off-map) let
+ * the CSS fill show through. */
+.glass-optics-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
 /* ---- Fallbacks ----------------------------------------------------------- */
 
 /* No backdrop-filter support: solid, still legible, same layout. */

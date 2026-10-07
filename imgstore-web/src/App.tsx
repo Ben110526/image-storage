@@ -20,6 +20,7 @@ import { DocsPage } from './pages/DocsPage';
 import { SettingsModal } from './components/SettingsModal';
 import { ApiKeyDialog } from './components/ApiKeyDialog';
 import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
+import { GlassScene } from './design/optics/GlassScene';
 import { haptics } from './lib/haptics';
 import { useHashRoute, type Route } from './lib/router';
 import { useAuth } from './context/AuthContext';
@@ -125,8 +126,10 @@ export const AppContent: React.FC = () => {
             upload, its File handle and its server slot survive navigation
             (LG-06). Pages only render this state. */}
         <UploadQueueProvider>
-        {/* Atmospheric Ambient Glow Background */}
-        <div className="ambient-glow-bg" />
+        {/* App-owned backdrop scene (V2-03): canvas 2D scenery the optics
+            registry samples for real refraction; same gradients as the old
+            .ambient-glow-bg. Static between redraws — no idle RAF. */}
+        <GlassScene />
 
         <Box
           sx={{

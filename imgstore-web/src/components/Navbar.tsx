@@ -30,6 +30,8 @@ import {
 import { useHealth } from '../hooks/useImages';
 import { useAuth } from '../context/AuthContext';
 import { useAppearance, type ThemePreference } from '../context/AppearanceContext';
+import { getAppScene } from '../design/optics/GlassScene';
+import { useGlassPane } from '../design/optics/useGlassPane';
 import { haptics } from '../lib/haptics';
 import type { Route } from '../lib/router';
 
@@ -71,6 +73,11 @@ export const Navbar: React.FC<NavbarProps> = ({
   const { user, isAuthenticated, isLoading: authLoading, showApiKeyDialog, logout } = useAuth();
   const { pref, setTheme } = useAppearance();
 
+  /* V2-03 — the navbar is the first real optical pane: real refraction of the
+   * app-owned GlassScene backdrop (canvas displacement, no CSS blur). Falls
+   * back to the CSS material under reduced transparency. */
+  const navbarRef = useGlassPane<HTMLElement>('navbar', 'pill', getAppScene());
+
   const [userAnchor, setUserAnchor] = useState<null | HTMLElement>(null);
   const [utilAnchor, setUtilAnchor] = useState<null | HTMLElement>(null);
 
@@ -82,6 +89,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <Box
+      ref={navbarRef}
       component="header"
       className="navbar-glass glass-regular"
       sx={{
