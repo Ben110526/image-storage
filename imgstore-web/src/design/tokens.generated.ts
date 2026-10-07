@@ -37,11 +37,11 @@ export const MUI_PALETTE_LIGHT = {
   },
   "background": {
     "default": "#F5F7FA",
-    "paper": "#FFFFFF"
+    "paper": "#F7F9FC"
   },
   "text": {
-    "primary": "#18202E",
-    "secondary": "#48566A",
+    "primary": "#152238",
+    "secondary": "#4B5C74",
     "disabled": "#626F82"
   },
   "divider": "#D8DFEA"
@@ -78,11 +78,11 @@ export const MUI_PALETTE_DARK = {
   },
   "background": {
     "default": "#0B0D12",
-    "paper": "#151922"
+    "paper": "#141E2B"
   },
   "text": {
-    "primary": "#F2F5FA",
-    "secondary": "#B4BFD0",
+    "primary": "#F4F7FB",
+    "secondary": "#B8C5D6",
     "disabled": "#8D9BB0"
   },
   "divider": "#394457"
