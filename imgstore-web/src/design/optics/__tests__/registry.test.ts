@@ -3,6 +3,12 @@
  * lifecycle contract: register/unregister bookkeeping, batched invalidation,
  * motion watcher self-stop, and that unregister removes every observer path.
  *
+ * RV-01 adds PIXEL-LEVEL render-contract tests: the stubbed 2d contexts below
+ * record putImageData, so the pill fixture from plan §16.3 can assert the
+ * renderer samples the map at pane-origin + padding coordinates (edge bends
+ * the correct direction on both rims, center neutral, no padding margin
+ * leaking onto the silhouette).
+ *
  * Because the registry is a module singleton, each test file gets a fresh
  * module graph via vi.resetModules + dynamic import. */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -31,6 +37,88 @@ function stub2d(canvas: HTMLCanvasElement): void {
     clearRect: () => {},
   } as unknown as CanvasRenderingContext2D;
   canvas.getContext = ((..._args: unknown[]) => ctx) as HTMLCanvasElement['getContext'];
+}
+
+/* RV-01 render-contract stubs: an identifiable scene (each pixel carries its
+ * own coordinates) and a pane canvas whose putImageData we capture, so the
+ * output can be read back pixel by pixel. */
+interface SceneStub {
+  source: SceneSourceLike;
+  /** scene pixel (x,y) → channel marker: R=x&255, G=y&255, B=170, A=255 */
+  expectedAt: (x: number, y: number) => [number, number, number, number];
+}
+interface SceneSourceLike {
+  canvas: HTMLCanvasElement;
+  rect: () => DOMRect;
+}
+
+function makeIdentifiableScene(w = 800, h = 600): SceneStub {
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const pixels = new Uint8ClampedArray(w * h * 4);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      pixels[i] = x & 255;
+      pixels[i + 1] = y & 255;
+      pixels[i + 2] = 170;
+      pixels[i + 3] = 255;
+    }
+  }
+  const ctx = {
+    getImageData: (x: number, y: number, sw: number, sh: number) => {
+      const data = new Uint8ClampedArray(Math.max(0, sw * sh * 4));
+      for (let row = 0; row < sh; row++) {
+        for (let col = 0; col < sw; col++) {
+          const sx = x + col;
+          const sy = y + row;
+          const di = (row * sw + col) * 4;
+          if (sx >= 0 && sy >= 0 && sx < w && sy < h) {
+            const si = (sy * w + sx) * 4;
+            data[di] = pixels[si];
+            data[di + 1] = pixels[si + 1];
+            data[di + 2] = pixels[si + 2];
+            data[di + 3] = pixels[si + 3];
+          }
+        }
+      }
+      return { data, width: sw, height: sh } as ImageData;
+    },
+  } as unknown as CanvasRenderingContext2D;
+  canvas.getContext = (() => ctx) as unknown as HTMLCanvasElement['getContext'];
+  return {
+    source: {
+      canvas,
+      rect: () => ({ left: 0, top: 0, width: w, height: h, right: w, bottom: h, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect,
+    },
+    expectedAt: (x, y) => [x & 255, y & 255, 170, 255],
+  };
+}
+
+interface CapturedPane {
+  canvas: HTMLCanvasElement;
+  /** Last frame put into the pane canvas (null until the first render). */
+  frame: () => { data: Uint8ClampedArray; width: number; height: number } | null;
+}
+
+function makeCapturingPaneCanvas(): CapturedPane {
+  const canvas = document.createElement('canvas');
+  let frame: { data: Uint8ClampedArray; width: number; height: number } | null = null;
+  const ctx = {
+    createImageData: (w: number, h: number) =>
+      ({ data: new Uint8ClampedArray(Math.max(0, w * h * 4)), width: w, height: h }) as ImageData,
+    putImageData: (img: ImageData) => {
+      frame = { data: new Uint8ClampedArray(img.data), width: img.width, height: img.height };
+    },
+    clearRect: () => {
+      frame = null;
+    },
+    getImageData: (_x: number, _y: number, w: number, h: number) =>
+      ({ data: new Uint8ClampedArray(Math.max(0, w * h * 4)), width: w, height: h }) as ImageData,
+  } as unknown as CanvasRenderingContext2D;
+  canvas.getContext = (() => ctx) as unknown as HTMLCanvasElement['getContext'];
+  return { canvas, frame: () => frame };
 }
 
 function makeScene() {
@@ -169,5 +257,226 @@ describe('trackPaneMotion', () => {
     // stopping the current watcher must not throw and must clear the map
     stop2();
     expect(true).toBe(true);
+  });
+});
+
+/* ── RV-01 — render-contract tests (plan §16.3/§16.5 mục 1) ───────────────
+ * The §16.3 reproduction: pill 240×64, DPR1, edgeBand 14, displacement 7,
+ * padding 4. With the buggy mapping (map stretched over the pane), pane pixel
+ * (0,32) read map (0,36) — the transparent padding margin with dx −7 — so the
+ * LEFT rim sampled the scene shifted right or not at all. With the fixed
+ * mapping (pane origin + padding), (0,32) reads map (4,36): alpha 255, dx +7
+ * → the left rim samples the scene shifted LEFT (inward against the outward
+ * normal). The identifiable scene encodes each pixel's coordinates, so the
+ * output frame directly reveals where the renderer sampled. */
+describe('RV-01 render contract — renderer reads the map at pane-origin + padding', () => {
+  function pixelAt(f: { data: Uint8ClampedArray; width: number }, x: number, y: number) {
+    const i = (y * f.width + x) * 4;
+    return [f.data[i], f.data[i + 1], f.data[i + 2], f.data[i + 3]];
+  }
+
+  async function renderPill(width = 240, height = 64) {
+    const reg = await freshRegistry();
+    const rafQueue: FrameRequestCallback[] = [];
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
+      rafQueue.push(cb);
+      return rafQueue.length;
+    });
+    const scene = makeIdentifiableScene(800, 600);
+    const host = makeHost(width, height);
+    const pane = makeCapturingPaneCanvas();
+    reg.registerPane('fixture-pill', 'pill', host, pane.canvas, scene.source);
+    // flush the register-invalidation frame
+    const q = rafQueue.splice(0);
+    q.forEach((cb) => cb(0));
+    return { pane, scene };
+  }
+
+  it('left rim samples the scene shifted LEFT (dx > 0), not the padding margin', async () => {
+    const { pane, scene } = await renderPill();
+    const frame = pane.frame();
+    expect(frame).not.toBeNull();
+    // pane pixel (0,32) — on the silhouette, inside the curved band.
+    const [r, g, b, a] = pixelAt(frame!, 0, 32);
+    expect(a).toBe(255); // must NOT be the transparent padding margin
+    // displacement +7 → the renderer samples scene x = 0 + 7 = 7 (rounded);
+    // allow ±1 for sub-pixel rounding of the edge fade.
+    expect(r).toBeGreaterThanOrEqual(6);
+    expect(r).toBeLessThanOrEqual(8);
+    expect([g, b]).toEqual([...scene.expectedAt(7, 32)].slice(1, 3));
+  });
+
+  it('right rim samples shifted RIGHT with the mirrored magnitude', async () => {
+    const { pane } = await renderPill();
+    const frame = pane.frame()!;
+    const [r, , , a] = pixelAt(frame, 239, 32);
+    expect(a).toBe(255);
+    // mirrored rim: scene x = 239 − 7 = 232, within the same rounding window.
+    expect(r).toBeGreaterThanOrEqual(231);
+    expect(r).toBeLessThanOrEqual(233);
+  });
+
+  it('center stays neutral — output equals the scene 1:1 at the pane middle', async () => {
+    const { pane, scene } = await renderPill();
+    const frame = pane.frame()!;
+    const got = pixelAt(frame, 120, 32);
+    expect(got).toEqual([...scene.expectedAt(120, 32)]);
+  });
+
+  it('interior pixels are never transparent (padding margin cannot leak in)', async () => {
+    const { pane } = await renderPill();
+    const frame = pane.frame()!;
+    // scan a horizontal line through the middle of the pill
+    for (let x = 0; x < 240; x += 7) {
+      const [, , , a] = pixelAt(frame, x, 32);
+      expect(a).toBe(255);
+    }
+  });
+
+  it('sampled scene content matches the identifiable scene (no global shift)', async () => {
+    const { pane, scene } = await renderPill();
+    const frame = pane.frame()!;
+    // deep-interior point: displacement ~0 → output pixel == scene pixel at
+    // the same coordinates. A global shift (map stretched) would show up as a
+    // constant offset across these samples.
+    for (const [x, y] of [[120, 32], [100, 20], [140, 44]] as const) {
+      expect(pixelAt(frame, x, y)).toEqual([...scene.expectedAt(x, y)]);
+    }
+  });
+
+  /* §16.4 requires the render fixture across DPR 1/1.5/2 and on a panel shape.
+   * The coordinate contract (canvas px → map px via +MAP_PADDING·dpr) must hold
+   * at every render scale — a DPR-specific bug would show as rim alpha 0 or a
+   * doubled/halved displacement magnitude. */
+
+  async function renderPanel(width: number, height: number, dpr: number) {
+    const reg = await freshRegistry();
+    const rafQueue: FrameRequestCallback[] = [];
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
+      rafQueue.push(cb);
+      return rafQueue.length;
+    });
+    vi.spyOn(window, 'devicePixelRatio', 'get').mockReturnValue(dpr);
+    const scene = makeIdentifiableScene(1600, 1200);
+    const host = makeHost(width, height);
+    host.style.borderRadius = '12px'; // panel corner radius for shapeFromHost
+    host.style.borderRadius = '12px'; // panel corner radius for shapeFromHost
+    const pane = makeCapturingPaneCanvas();
+    reg.registerPane('fixture-panel', 'panel', host, pane.canvas, scene.source);
+    const q = rafQueue.splice(0);
+    q.forEach((cb) => cb(0));
+    return { pane, scene };
+  }
+
+  it.each([1, 1.5, 2])('panel DPR %s: rim alpha 255 and corner displacement direction correct', async (dpr) => {
+    const { pane } = await renderPanel(320, 200, dpr);
+    const frame = pane.frame()!;
+    expect(frame.width).toBe(Math.round(320 * dpr));
+    expect(frame.height).toBe(Math.round(200 * dpr));
+
+    // panel profile: edgeBand 22, displacement 12 (CSS px) → device px × dpr.
+    // Sample just inside the rounded corner on the top edge (x = 40 CSS,
+    // y = 0 CSS — the top rim, outside the corner arc) and the left rim
+    // (x = 0, y = 100 CSS).
+    const topX = Math.round(40 * dpr);
+    const topY = 0;
+    const leftX = 0;
+    const leftY = Math.round(100 * dpr);
+
+    const [, topG, , topA] = pixelAt(frame, topX, topY);
+    const [leftR, , , leftA] = pixelAt(frame, leftX, leftY);
+
+    // Rim pixels must be opaque — padding margin must not leak onto the
+    // silhouette at any DPR.
+    expect(topA).toBe(255);
+    expect(leftA).toBe(255);
+
+    // Outward normal at the top rim points UP → sample pulled from below:
+    // output G (= scene y) > topY. At the left rim the normal points LEFT →
+    // sample pulled from the right: output R (= scene x) > leftX.
+    expect(topG).toBeGreaterThan(0);
+    expect(leftR).toBeGreaterThan(0);
+  });
+
+  it('panel corner bends diagonally — both axes displaced away from the corner', async () => {
+    const { pane } = await renderPanel(320, 200, 2);
+    const frame = pane.frame()!;
+    // On the 45° diagonal of the top-left corner arc (radius 12 CSS): the
+    // outward normal is (-1,-1)/√2, so the sample is pulled right AND down.
+    // CSS (2.5,2.5) is at distance (12−2.5)·√2 ≈ 13.4 from the corner center —
+    // inside the silhouette, inside the arc's diagonal region. Device (5,5).
+    const x = 5;
+    const y = 5;
+    const [r, g, , a] = pixelAt(frame, x, y);
+    expect(a).toBe(255);
+    // sampled scene x > x AND scene y > y → corner pulls inward on both axes.
+    expect(r).toBeGreaterThan(x);
+    expect(g).toBeGreaterThan(y);
+  });
+});
+
+/* ── RV-05 — map cache key covers radius and DPR, not just width/height ──
+ * onGeometry must rebuild the displacement map when the corner radius or the
+ * device pixel ratio changes even if CSS width/height stay put; otherwise the
+ * pane keeps sampling through a map rasterized for the wrong geometry. */
+describe('RV-05 map cache key — radius-only and DPR-only changes rebuild the map', () => {
+  function makeSceneAt(width = 800, height = 600) {
+    return {
+      canvas: makePaneCanvas(),
+      rect: () => ({ left: 0, top: 0, width, height, right: width, bottom: height, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect,
+    };
+  }
+
+  it('radius-only change (same width/height) rebuilds the map', async () => {
+    const reg = await freshRegistry();
+    const rafQueue: FrameRequestCallback[] = [];
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
+      rafQueue.push(cb);
+      return rafQueue.length;
+    });
+    const host = makeHost(300, 200);
+    host.style.borderRadius = '12px';
+    reg.registerPane('radius-panel', 'panel', host, makePaneCanvas(), makeSceneAt());
+    // flush register frame
+    rafQueue.splice(0).forEach((cb) => cb(0));
+
+    const mapSpy = vi.spyOn(reg, 'paneStats'); // renders tick on rebuild+invalidate
+    const rendersBefore = reg.paneStats()['radius-panel'].renders;
+
+    // Change ONLY the radius — width/height identical.
+    host.style.borderRadius = '48px';
+    // Trigger the ResizeObserver path manually: jsdom RO never fires, so call
+    // the geometry handler via a window resize event.
+    window.dispatchEvent(new Event('resize'));
+    rafQueue.splice(0).forEach((cb) => cb(16));
+
+    const rendersAfter = reg.paneStats()['radius-panel'].renders;
+    expect(rendersAfter).toBeGreaterThan(rendersBefore);
+    expect(mapSpy).toHaveBeenCalled();
+  });
+
+  it('DPR-only change (same CSS width/height) rebuilds the map', async () => {
+    const reg = await freshRegistry();
+    const rafQueue: FrameRequestCallback[] = [];
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
+      rafQueue.push(cb);
+      return rafQueue.length;
+    });
+    const dprSpy = vi.spyOn(window, 'devicePixelRatio', 'get');
+    dprSpy.mockReturnValue(1);
+    const host = makeHost(240, 64);
+    const pane = makeCapturingPaneCanvas();
+    reg.registerPane('dpr-pill', 'pill', host, pane.canvas, makeSceneAt());
+    rafQueue.splice(0).forEach((cb) => cb(0));
+    expect(pane.frame()!.width).toBe(240); // 240 CSS × DPR1
+
+    // Move to a DPR2 display — same CSS size.
+    dprSpy.mockReturnValue(2);
+    window.dispatchEvent(new Event('resize'));
+    rafQueue.splice(0).forEach((cb) => cb(16));
+
+    const frame = pane.frame()!;
+    expect(frame.width).toBe(480); // rebuilt at 240 CSS × DPR2
+    expect(frame.height).toBe(128);
   });
 });

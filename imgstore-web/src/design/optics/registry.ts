@@ -96,10 +96,22 @@ function renderPane(entry: PaneEntry): void {
   const sceneData = sctx.getImageData(sx0, sy0, winW, winH);
   const output = ctx.createImageData(cw, ch);
 
-  const mapW = map.width;
-  const mapH = map.height;
   const mapArr = map.data;
   const scale = map.scale;
+  /* RV-01 (plan §16.3) — map/source coordinate contract.
+   * The map is rasterized at (shape + 2·MAP_PADDING) × dpr, with map pixel
+   * (0,0) sitting at pane-CSS (-MAP_PADDING, -MAP_PADDING). A canvas pixel
+   * (x,y) is pane-CSS (x/dpr, y/dpr), so its map pixel is
+   *   round((x/dpr + MAP_PADDING) * dpr) = x + MAP_PADDING*dpr.
+   * The previous code read round(x/cw * mapW) — it stretched the PADDED map
+   * across the pane, pulling the transparent margin onto the silhouette and
+   * flipping the edge displacement direction (left rim sampled dx−7 instead
+   * of dx+7 in the pill fixture). Sample ONLY the interior window
+   * [pad, pad+shapeW*dpr): the margin exists so the SDF can compute edge
+   * normals, not to be composited. */
+  const padPx = MAP_PADDING * dpr;
+  const interiorW = shapeWidth(entry.shape) * dpr; // map window width, device px
+  const interiorH = shapeHeight(entry.shape) * dpr;
 
   for (let y = 0; y < ch; y++) {
     for (let x = 0; x < cw; x++) {
@@ -109,9 +121,15 @@ function renderPane(entry: PaneEntry): void {
       const wx = x - (sx0 - px);
       const wy = y - (sy0 - py);
 
-      const mx = Math.min(mapW - 1, Math.round((x / cw) * mapW));
-      const my = Math.min(mapH - 1, Math.round((y / ch) * mapH));
-      const mi = (my * mapW + mx) * 4;
+      /* Map pixel for this canvas pixel, interior window only. The canvas can
+       * be ±1 device px larger than shapeW*dpr from rounding — clamp. */
+      const mx = Math.max(padPx, Math.min(padPx + interiorW - 1, Math.round(x + padPx)));
+      const my = Math.max(padPx, Math.min(padPx + interiorH - 1, Math.round(y + padPx)));
+      const mi = (Math.round(my) * map.width + Math.round(mx)) * 4;
+
+      /* Map alpha 0 means outside the silhouette (padding margin or exterior)
+       * — leave the output transparent so the CSS fill shows. */
+      if (mapArr[mi + 3] === 0) continue;
 
       const dx = ((mapArr[mi] / 255) - 0.5) * scale * dpr;
       const dy = ((mapArr[mi + 1] / 255) - 0.5) * scale * dpr;
@@ -192,14 +210,23 @@ export function registerPane(
   };
   buildMap(entry);
 
+  /* RV-05 (plan §16.4) — the displacement map cache key is the full geometry:
+   * width, height, RADIUS, and DPR (buildDisplacementMap bakes PROFILE_VERSION
+   * via GLASS_PROFILES, and cappedDpr() re-reads window.devicePixelRatio at
+   * build time). A radius-only change (theme radius tokens, responsive corner
+   * overrides) or a move to a display with a different DPR — with unchanged
+   * CSS width/height — must still rebuild the map; the old code keyed on
+   * width/height alone and kept serving a stale map. */
   const onGeometry = () => {
     const next = shapeFromHost(host, role);
-    const resized =
+    const geometryChanged =
       shapeWidth(next.shape) !== shapeWidth(entry.shape) ||
-      shapeHeight(next.shape) !== shapeHeight(entry.shape);
+      shapeHeight(next.shape) !== shapeHeight(entry.shape) ||
+      next.radius !== entry.radius ||
+      cappedDpr() !== entry.dpr;
     entry.shape = next.shape;
     entry.radius = next.radius;
-    if (resized) buildMap(entry);
+    if (geometryChanged) buildMap(entry);
     invalidatePanes();
   };
 
