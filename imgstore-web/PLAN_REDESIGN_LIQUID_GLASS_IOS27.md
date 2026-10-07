@@ -2,6 +2,8 @@
 
 # Kế hoạch redesign toàn bộ ImgStore theo Liquid Glass — iOS 27
 
+> Cập nhật sau phản hồi thị giác 06/10/2026: công thức alpha ở §8.3 và mức nền ở §6.4 được thay bởi [hiệu chỉnh kính mặc định](./QA_GLASS_DEFAULT.md). Các giá trị cũ bên dưới là baseline lịch sử; người dùng không phải chỉnh Settings để thấy hiệu ứng.
+
 Ngày lập: **06/10/2026**. Phạm vi: toàn bộ frontend `imgstore-web`, gồm Upload, Library, API Docs, các dialog/menu/toast và trang Privacy. Trạng thái: **đề xuất thiết kế và triển khai; chưa triển khai UI**.
 
 ## 1. Quyết định thiết kế

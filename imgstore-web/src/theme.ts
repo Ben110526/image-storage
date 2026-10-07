@@ -263,12 +263,19 @@ export const getAppTheme = (mode: PaletteMode, reduceMotion = false) => {
               backdropFilter: 'none',
               WebkitBackdropFilter: 'none',
             },
+            /* Menu/Popover use an invisible click catcher, not a modal dim.
+             * Blurring it hides the contrast between the glass and backdrop. */
+            '&.MuiBackdrop-invisible': {
+              backgroundColor: 'transparent',
+              backdropFilter: 'none',
+              WebkitBackdropFilter: 'none',
+            },
           },
         },
       },
       /* Menus/popovers are G2 chrome — the .glass-elevated class in
-       * materials.css carries fill/border/shadow/filter; here we only stop
-       * MUI Paper's default backgroundImage from layering over it (FIX-01.4:
+       * materials.css carries fill/border/shadow/filter; here we route MUI's
+       * Paper image/shadow to that same recipe (FIX-01.4:
        * the override applies the material class, it does not make every
        * Paper in the app glass). */
       MuiMenu: {
@@ -285,8 +292,11 @@ export const getAppTheme = (mode: PaletteMode, reduceMotion = false) => {
         styleOverrides: {
           paper: {
             '&.glass-elevated': {
-              backgroundImage: 'none',
-              boxShadow: 'var(--shadow-menu)',
+              backgroundImage: 'var(--glass-specular)',
+              boxShadow: 'var(--glass-g2-shadow)',
+              '@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)))': {
+                backgroundImage: 'none',
+              },
             },
           },
         },

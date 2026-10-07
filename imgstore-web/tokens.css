@@ -72,21 +72,21 @@
   --color-type-archive: #9A6A1A;
   --color-type-file: #5A6B84;
   --color-code-bg: #EEF1F6;
-  --glass-regular-fill: rgba(248, 250, 255, 0.70);
-  --glass-elevated-fill: rgba(248, 250, 255, 0.86);
+  --glass-regular-fill: rgba(248, 250, 255, 0.40);
+  --glass-elevated-fill: rgba(248, 250, 255, 0.66);
   --glass-clear-fill: rgba(255, 255, 255, 0.12);
-  --glass-regular-blur: 18px;
-  --glass-elevated-blur: 22px;
+  --glass-regular-blur: 20px;
+  --glass-elevated-blur: 24px;
   --glass-clear-blur: 8px;
-  --glass-regular-saturation: 125%;
-  --glass-elevated-saturation: 120%;
+  --glass-regular-saturation: 140%;
+  --glass-elevated-saturation: 130%;
   --glass-clear-saturation: 110%;
   --glass-fallback-fill: #F4F6FB;
   --glass-fallback-elevated: #FFFFFF;
-  --glass-rim-top: rgba(255, 255, 255, 0.65);
-  --glass-rim-bottom: rgba(18, 28, 45, 0.08);
-  --glass-border: rgba(255, 255, 255, 0.55);
-  --shadow-navigation: 0 6px 20px rgba(18, 28, 45, 0.10);
+  --glass-rim-top: rgba(255, 255, 255, 0.90);
+  --glass-rim-bottom: rgba(18, 28, 45, 0.12);
+  --glass-border: rgba(255, 255, 255, 0.70);
+  --shadow-navigation: 0 8px 24px rgba(18, 28, 45, 0.12);
   --shadow-menu: 0 14px 36px rgba(18, 28, 45, 0.15);
   --shadow-dialog: 0 24px 64px rgba(18, 28, 45, 0.20);
   --glass-border-light: rgba(255, 255, 255, 0.9);
@@ -112,6 +112,14 @@
   --color-on-warning: #FFFFFF;
   --color-on-info: #FFFFFF;
   --color-on-info-dark: #FFFFFF;
+  --glass-regular-alpha-base: 0.28;
+  --glass-regular-alpha-range: 0.20;
+  --glass-elevated-alpha-base: 0.54;
+  --glass-elevated-alpha-range: 0.20;
+  --glass-rim-side: rgba(255, 255, 255, 0.28);
+  --glass-specular: linear-gradient(120deg, rgba(255,255,255,0.24) 0%, rgba(255,255,255,0.07) 36%, rgba(255,255,255,0.02) 64%, rgba(255,255,255,0.12) 100%);
+  --glass-scroll-veil: 18%;
+  --canvas-scenery: radial-gradient(68% 64% at 8% 2%, rgba(70,88,217,0.22) 0%, transparent 74%), radial-gradient(62% 72% at 94% 88%, rgba(56,160,210,0.18) 0%, transparent 76%);
 }
 
 /* Legacy aliases (light). Point old names at the new registry so existing
@@ -183,21 +191,21 @@
   --color-type-archive: #D6A658;
   --color-type-file: #8D9BB0;
   --color-code-bg: #1D2330;
-  --glass-regular-fill: rgba(24, 30, 42, 0.76);
-  --glass-elevated-fill: rgba(24, 30, 42, 0.90);
+  --glass-regular-fill: rgba(24, 30, 42, 0.46);
+  --glass-elevated-fill: rgba(24, 30, 42, 0.72);
   --glass-clear-fill: rgba(10, 14, 22, 0.18);
   --glass-regular-blur: 22px;
   --glass-elevated-blur: 26px;
   --glass-clear-blur: 10px;
-  --glass-regular-saturation: 115%;
-  --glass-elevated-saturation: 110%;
+  --glass-regular-saturation: 135%;
+  --glass-elevated-saturation: 125%;
   --glass-clear-saturation: 110%;
   --glass-fallback-fill: #1B212E;
   --glass-fallback-elevated: #242C3B;
-  --glass-rim-top: rgba(255, 255, 255, 0.18);
-  --glass-rim-bottom: rgba(0, 0, 0, 0.25);
-  --glass-border: rgba(255, 255, 255, 0.14);
-  --shadow-navigation: 0 8px 24px rgba(0, 0, 0, 0.30);
+  --glass-rim-top: rgba(255, 255, 255, 0.40);
+  --glass-rim-bottom: rgba(0, 0, 0, 0.40);
+  --glass-border: rgba(255, 255, 255, 0.24);
+  --shadow-navigation: 0 8px 28px rgba(0, 0, 0, 0.36);
   --shadow-menu: 0 18px 44px rgba(0, 0, 0, 0.42);
   --shadow-dialog: 0 24px 64px rgba(0, 0, 0, 0.50);
   --glass-border-light: rgba(255, 255, 255, 0.22);
@@ -218,6 +226,14 @@
   --color-on-warning: #261B08;
   --color-on-success: #0E241A;
   --color-on-info-dark: #101C28;
+  --glass-regular-alpha-base: 0.34;
+  --glass-regular-alpha-range: 0.20;
+  --glass-elevated-alpha-base: 0.60;
+  --glass-elevated-alpha-range: 0.20;
+  --glass-rim-side: rgba(255, 255, 255, 0.16);
+  --glass-specular: linear-gradient(120deg, rgba(255,255,255,0.13) 0%, rgba(255,255,255,0.04) 36%, rgba(255,255,255,0.01) 64%, rgba(255,255,255,0.08) 100%);
+  --glass-scroll-veil: 16%;
+  --canvas-scenery: radial-gradient(68% 64% at 8% 2%, rgba(117,141,228,0.24) 0%, transparent 74%), radial-gradient(62% 72% at 94% 88%, rgba(95,175,213,0.18) 0%, transparent 76%);
 }
 
 [data-theme='dark'] {

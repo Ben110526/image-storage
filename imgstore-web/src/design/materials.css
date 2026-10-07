@@ -18,10 +18,11 @@
  */
 
 /* ---- alpha derivation ----------------------------------------------------
- * Each role exposes --_fill-rgb + --_alpha-base; the effective fill recomputes
- * alpha from the slider. The ranges come straight from plan §8.3:
- *   G1 light: 0.58 + 0.20t   G1 dark: 0.64 + 0.20t
- *   G2 light: 0.80 + 0.10t   G2 dark: 0.84 + 0.10t
+ * Web approximation of Apple's material hierarchy, not a native glass API.
+ * The registry owns each role's base/range. Recalibrated after visual review
+ * so the default t=0.6 already reveals the backdrop without a setting change:
+ *   G1 light: 0.28 + 0.20t   G1 dark: 0.34 + 0.20t
+ *   G2 light: 0.54 + 0.20t   G2 dark: 0.60 + 0.20t
  * G3 keeps its own scrim and is NOT driven by the slider (the slider may never
  * remove the localized dimming that makes clear controls legible).
  * ------------------------------------------------------------------------ */
@@ -33,27 +34,37 @@
    * color-mix instead of rgba(var(--rgb), calc(...)): nested var() inside
    * rgba() with a calc alpha does not recompute on some engines. */
   --glass-g1-rgb: 248, 250, 255;
-  --glass-g1-alpha: calc(0.58 + 0.20 * var(--glass-tint));
+  --glass-g1-alpha: calc(var(--glass-regular-alpha-base) + var(--glass-regular-alpha-range) * var(--glass-tint));
   --glass-g1-fill: color-mix(in srgb, rgb(var(--glass-g1-rgb)) calc(var(--glass-g1-alpha) * 100%), transparent);
   --glass-g1-blur: var(--glass-regular-blur);
   --glass-g1-saturation: var(--glass-regular-saturation);
 
   /* G2 — Regular elevated (light) */
   --glass-g2-rgb: 248, 250, 255;
-  --glass-g2-alpha: calc(0.80 + 0.10 * var(--glass-tint));
+  --glass-g2-alpha: calc(var(--glass-elevated-alpha-base) + var(--glass-elevated-alpha-range) * var(--glass-tint));
   --glass-g2-fill: color-mix(in srgb, rgb(var(--glass-g2-rgb)) calc(var(--glass-g2-alpha) * 100%), transparent);
   --glass-g2-blur: var(--glass-elevated-blur);
   --glass-g2-saturation: var(--glass-elevated-saturation);
+  --glass-g1-shadow:
+    inset 0 1px 0 var(--glass-rim-top),
+    inset 0 -1px 0 var(--glass-rim-bottom),
+    inset 1px 0 0 var(--glass-rim-side),
+    inset -1px 0 0 var(--glass-rim-side),
+    var(--shadow-navigation);
+  --glass-g2-shadow:
+    inset 0 1px 0 var(--glass-rim-top),
+    inset 0 -1px 0 var(--glass-rim-bottom),
+    inset 1px 0 0 var(--glass-rim-side),
+    inset -1px 0 0 var(--glass-rim-side),
+    var(--shadow-menu);
 }
 
 [data-theme='dark'] {
   /* G1 — Regular navigation (dark) */
   --glass-g1-rgb: 24, 30, 42;
-  --glass-g1-alpha: calc(0.64 + 0.20 * var(--glass-tint));
 
   /* G2 — Regular elevated (dark) */
   --glass-g2-rgb: 24, 30, 42;
-  --glass-g2-alpha: calc(0.84 + 0.10 * var(--glass-tint));
 }
 
 /* ---- C0: Content surface ------------------------------------------------- */
@@ -85,12 +96,10 @@
    * predictably — a shorthand here would also reset background-image and
    * fight with the navbar's layered veil. */
   background-color: var(--glass-g1-fill);
+  background-image: var(--glass-specular);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-full);
-  box-shadow:
-    inset 0 1px 0 var(--glass-rim-top),
-    inset 0 -1px 0 var(--glass-rim-bottom),
-    var(--shadow-navigation);
+  box-shadow: var(--glass-g1-shadow);
   -webkit-backdrop-filter: blur(var(--glass-g1-blur)) saturate(var(--glass-g1-saturation));
   backdrop-filter: blur(var(--glass-g1-blur)) saturate(var(--glass-g1-saturation));
 }
@@ -101,12 +110,10 @@
   position: relative;
   color: var(--color-text-primary);
   background-color: var(--glass-g2-fill);
+  background-image: var(--glass-specular);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-menu);
-  box-shadow:
-    inset 0 1px 0 var(--glass-rim-top),
-    inset 0 -1px 0 var(--glass-rim-bottom),
-    var(--shadow-menu);
+  box-shadow: var(--glass-g2-shadow);
   -webkit-backdrop-filter: blur(var(--glass-g2-blur)) saturate(var(--glass-g2-saturation));
   backdrop-filter: blur(var(--glass-g2-blur)) saturate(var(--glass-g2-saturation));
 }
@@ -150,10 +157,10 @@
 
 /* No backdrop-filter support: solid, still legible, same layout. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .glass-regular {
+  .glass-regular.glass-regular {
     background: var(--glass-fallback-fill);
   }
-  .glass-elevated {
+  .glass-elevated.glass-elevated {
     background: var(--glass-fallback-elevated);
   }
   .glass-clear {
@@ -170,11 +177,13 @@
 html[data-transparency='reduced'] .glass-regular,
 html[data-transparency='reduced'] .navbar-glass {
   background-color: var(--glass-fallback-fill);
+  background-image: none;
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }
 html[data-transparency='reduced'] .glass-elevated {
   background-color: var(--glass-fallback-elevated);
+  background-image: none;
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }
@@ -189,11 +198,13 @@ html[data-transparency='reduced'] .glass-clear {
   .glass-regular,
   .navbar-glass {
     background-color: var(--glass-fallback-fill);
+    background-image: none !important;
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
-  .glass-elevated {
+  .glass-elevated.glass-elevated {
     background-color: var(--glass-fallback-elevated);
+    background-image: none !important;
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
@@ -207,11 +218,11 @@ html[data-transparency='reduced'] .glass-clear {
 
 /* Forced colors / high contrast: system colors, visible borders, no filters. */
 @media (forced-colors: active) {
-  .glass-regular,
-  .glass-elevated,
+  .glass-regular.glass-regular,
+  .glass-elevated.glass-elevated,
   .glass-clear,
   .content-surface {
-    background: Canvas;
+    background: Canvas !important;
     color: CanvasText;
     border: 1px solid ButtonBorder;
     -webkit-backdrop-filter: none;

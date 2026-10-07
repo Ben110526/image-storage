@@ -1,5 +1,7 @@
 # FIX-11 — QA Evidence (Corrections Plan Liquid Glass iOS 27)
 
+> Evidence vật liệu mới nhất: [kính rõ ở cấu hình mặc định](./QA_GLASS_DEFAULT.md), working tree trên `eab8a1b`. Công thức alpha/nền và bundle trong các đợt cũ bên dưới là dữ liệu lịch sử, không phải mức hiện hành.
+
 Ngày cập nhật: **2026-10-06**, working tree trên `e3a20d0`, sau sửa D1 (toast/URL reduced motion) và font input URL mobile. Các evidence C1–C5/đợt trước được giữ với phạm vi riêng; không coi đó là replay toàn bộ trên working tree mới.
 Môi trường lượt sửa D1: macOS, Vite tại `127.0.0.1:5191`, browser tích hợp Codex; fixture read-only tại `127.0.0.1:8811`, viewport 375×852 và kiểm tra font desktop 1024×900. Không đo browser engine/version trong lượt này. Version Playwright/Chrome ở matrix phía dưới là metadata của các đợt trước.
 

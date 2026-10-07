@@ -1,5 +1,7 @@
 # Plan bổ sung: đưa implementation Liquid Glass về đúng baseline ban đầu
 
+> Bổ sung 06/10/2026: acceptance về alpha G1/G2 của FIX-01/02 dùng công thức mới trong [hiệu chỉnh kính mặc định](./QA_GLASS_DEFAULT.md), theo yêu cầu mới của người dùng. Phân lớp C0/G1/G2/G3 và các guard accessibility vẫn áp dụng.
+
 Ngày kiểm tra: **06/10/2026**. Phạm vi: checkout hiện tại của `imgstore-web`, đối chiếu [plan redesign ban đầu](./PLAN_REDESIGN_LIQUID_GLASS_IOS27.md).
 
 ## 1. Kết luận kiểm tra
