@@ -647,3 +647,116 @@ function makeSceneAt2(width = 1280, height = 800) {
     rect: () => ({ left: 0, top: 0, width, height, right: width, bottom: height, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect,
   };
 }
+
+/* ── RV-06 — capability/preferences gate (plan §16.4) ─────────────────────
+ * The gate must stop the engine when it closes MID-SESSION, including while
+ * a portal pane is open: no renders, no RAF, and a safe restore when the
+ * gate re-opens. */
+describe('RV-06 capability gate', () => {
+  function pumpingRaf2() {
+    const rafQueue: FrameRequestCallback[] = [];
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
+      rafQueue.push(cb);
+      return rafQueue.length;
+    });
+    let t = 0;
+    return {
+      pump: (n = 1) => {
+        for (let i = 0; i < n; i++) {
+          const q = rafQueue.splice(0);
+          q.forEach((cb) => cb((t += 16)));
+        }
+      },
+      queued: () => rafQueue.length,
+    };
+  }
+
+  it('opticsEnabled() reads all three inputs', async () => {
+    vi.resetModules();
+    const caps = await import('../capabilities');
+    document.documentElement.setAttribute('data-transparency', 'full');
+    /* jsdom lacks matchMedia — stub it to "no forced colors" so the gate is
+     * decided by the two inputs this test toggles. */
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      writable: true,
+      value: (q: string) => ({
+        media: q, matches: false,
+        addEventListener: () => {}, removeEventListener: () => {},
+        addListener: () => {}, removeListener: () => {},
+        onchange: null, dispatchEvent: () => false,
+      }),
+    });
+    /* jsdom canvas has no 2d context — stub getContext so the readback probe
+     * sees a working canvas (the probe caches its result, so stub before the
+     * first opticsEnabled() call). */
+    const realCreate = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation(((tag: string, ...rest: unknown[]) => {
+      const el = realCreate(tag, ...(rest as []));
+      if (tag === 'canvas') stub2d(el as HTMLCanvasElement);
+      return el;
+    }) as typeof document.createElement);
+    expect(caps.opticsEnabled()).toBe(true);
+
+    document.documentElement.setAttribute('data-transparency', 'reduced');
+    expect(caps.opticsEnabled()).toBe(false);
+    document.documentElement.setAttribute('data-transparency', 'full');
+    expect(caps.opticsEnabled()).toBe(true);
+  });
+
+  it('forced-colors subscription fires listeners on change', async () => {
+    vi.resetModules();
+    const caps = await import('../capabilities');
+
+    let forcedColors = false;
+    const listeners: ((e: { matches: boolean }) => void)[] = [];
+    /* jsdom has no window.matchMedia — assign a stub directly (spyOn needs an
+     * existing function). */
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      writable: true,
+      value: (q: string) => ({
+        media: q,
+        matches: q.includes('forced-colors') ? forcedColors : false,
+        addEventListener: (_: string, cb: (e: { matches: boolean }) => void) => listeners.push(cb),
+        removeEventListener: () => {},
+        addListener: () => {},
+        removeListener: () => {},
+        onchange: null,
+        dispatchEvent: () => false,
+      }),
+    });
+
+    const seen: boolean[] = [];
+    const off = caps.onForcedColorsChange((active) => seen.push(active));
+    expect(caps.forcedColorsActive()).toBe(false);
+
+    // OS flips forced-colors on while a portal could be open.
+    forcedColors = true;
+    listeners.forEach((cb) => cb({ matches: true }));
+    expect(seen).toEqual([true]);
+    expect(caps.forcedColorsActive()).toBe(true);
+    expect(caps.opticsEnabled()).toBe(false);
+
+    off();
+    forcedColors = false;
+    listeners.forEach((cb) => cb({ matches: false }));
+    expect(seen).toEqual([true]); // unsubscribed — no more calls
+  });
+
+  it('registry keeps working after a pane unregisters mid-gate-flip (cleanup leaves no dirty work)', async () => {
+    const reg = await freshRegistry();
+    const raf = pumpingRaf2();
+    const un = reg.registerPane('portal-menu', 'panel', makeHost(), makePaneCanvas(), makeSceneAt2());
+    reg.registerPane('navbar', 'pill', makeHost(), makePaneCanvas(), makeSceneAt2());
+    raf.pump(2);
+
+    /* Gate closes → the hook's cleanup unregisters the portal pane. */
+    un();
+    reg.invalidatePanes();
+    raf.pump(1);
+    expect(reg.paneStats()['portal-menu']).toBeUndefined();
+    expect(reg.paneStats()['navbar'].renders).toBeGreaterThan(0);
+    expect(raf.queued()).toBe(0); // no lingering scheduled work
+  });
+});

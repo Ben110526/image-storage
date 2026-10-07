@@ -5,7 +5,7 @@ export default defineConfig({
     /* Optics tests: displacement is pure math (node is fine), but registry +
      * preference parity touch document/localStorage → jsdom. */
     environment: 'jsdom',
-    include: ['src/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
     setupFiles: ['src/design/optics/__tests__/setup.ts'],
   },
 });

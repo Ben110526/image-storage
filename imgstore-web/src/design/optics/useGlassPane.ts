@@ -15,23 +15,9 @@
  *
  * Returns a ref to attach to the host. */
 import { useCallback, useEffect, useState } from 'react';
+import { opticsEnabled, onForcedColorsChange } from './capabilities';
 import { registerPane, trackPaneMotion } from './registry';
 import type { GlassRole, SceneSource } from './types';
-
-function canvas2dAvailable(): boolean {
-  try {
-    return !!document.createElement('canvas').getContext('2d');
-  } catch {
-    return false;
-  }
-}
-
-function readEnabled(): boolean {
-  return (
-    canvas2dAvailable() &&
-    document.documentElement.getAttribute('data-transparency') !== 'reduced'
-  );
-}
 
 export function useGlassPane<T extends HTMLElement>(
   id: string,
@@ -43,7 +29,7 @@ export function useGlassPane<T extends HTMLElement>(
   opts?: { trackMotion?: boolean },
 ) {
   const [host, setHost] = useState<T | null>(null);
-  const [enabled, setEnabled] = useState(readEnabled);
+  const [enabled, setEnabled] = useState(opticsEnabled);
   const trackMotion = opts?.trackMotion ?? false;
 
   /* Callback ref: fires when the host mounts (including late portal mounts)
@@ -53,12 +39,20 @@ export function useGlassPane<T extends HTMLElement>(
     setHost(node);
   }, []);
 
-  /* Reactive to mid-session reduce-transparency flips (plan §9). */
+  /* RV-06 — reactive to BOTH gate inputs flipping mid-session, including
+   * while a portal pane is open: reduce-transparency (attribute observer)
+   * and forced-colors (live media query). A flip re-runs the effect below,
+   * which unregisters the pane and removes its canvas (cleanup path). */
   useEffect(() => {
     const root = document.documentElement;
-    const observer = new MutationObserver(() => setEnabled(readEnabled()));
+    const recheck = () => setEnabled(opticsEnabled());
+    const observer = new MutationObserver(recheck);
     observer.observe(root, { attributes: true, attributeFilter: ['data-transparency'] });
-    return () => observer.disconnect();
+    const offForcedColors = onForcedColorsChange(recheck);
+    return () => {
+      observer.disconnect();
+      offForcedColors();
+    };
   }, []);
 
   useEffect(() => {

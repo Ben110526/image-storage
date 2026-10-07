@@ -19,8 +19,9 @@
  * (idle budget, plan §12.1).
  */
 
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAppearance } from '../../context/AppearanceContext';
+import { opticsEnabled, onForcedColorsChange } from './capabilities';
 import { cappedDpr } from './profiles';
 import { notifySceneRepaint } from './registry';
 import type { SceneSource } from './types';
@@ -91,8 +92,36 @@ const SCENES: Record<'light' | 'dark', SceneSpec> = {
  * provider re-render. */
 let appScene: SceneSource | null = null;
 
+/* RV-06 — stable lazy handle. Callers used to snapshot getAppScene() at
+ * render time; when the capability gate closed, the scene canvas unmounted
+ * (appScene = null), and on gate re-open the panes' render happened BEFORE
+ * the scene effect re-published appScene — they captured null forever and
+ * never re-registered. The handle below has a STABLE identity and resolves
+ * the live canvas at use time, so a pane effect that runs early still ends
+ * up pointing at the scene once it remounts. */
+const lazyAppScene: SceneSource = {
+  get canvas(): HTMLCanvasElement {
+    /* A pane render without a live scene is a no-op by contract; hand back a
+     * detached 1×1 canvas so the registry's readback path stays total. */
+    if (!appScene) {
+      lazyCanvas.width = 1;
+      lazyCanvas.height = 1;
+      return lazyCanvas;
+    }
+    return appScene.canvas;
+  },
+  rect: () => appScene?.rect() ?? new DOMRect(0, 0, 1, 1),
+};
+const lazyCanvas = typeof document !== 'undefined' ? document.createElement('canvas') : ({} as HTMLCanvasElement);
+
+/** Stable scene handle — safe to capture at render time. */
 export function getAppScene(): SceneSource | null {
-  return appScene;
+  return lazyAppScene;
+}
+
+/** Whether the scene canvas is live right now (evidence/tests). */
+export function hasLiveAppScene(): boolean {
+  return appScene !== null;
 }
 
 /* Medium-scale detail: curved contour bands sweeping under the navbar and
@@ -163,6 +192,12 @@ function drawStructuralGrid(
 export function GlassScene() {
   const { resolvedTheme } = useAppearance();
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  /* RV-06 — the scene is part of the engine: when the capability gate closes
+   * (reduced transparency, forced-colors, dead readback) the scene canvas
+   * must stop too — no decorative layer painting over system colors, no
+   * redraw work nobody can see. The CSS @media (forced-colors) and
+   * data-transparency rules supply the plain background instead. */
+  const [enabled, setEnabled] = useState(opticsEnabled);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -204,9 +239,25 @@ export function GlassScene() {
     drawStructuralGrid(ctx, spec, w, h);
   }, [resolvedTheme]);
 
+  /* RV-06 — gate subscription: attribute (data-transparency) + forced-colors
+   * media query. When the gate closes the canvas unmounts entirely (below) —
+   * no RAF, no readback, no decorative paint. When it re-opens the canvas
+   * remounts fresh and draws once (restore path is the mount path). */
+  useEffect(() => {
+    const root = document.documentElement;
+    const recheck = () => setEnabled(opticsEnabled());
+    const observer = new MutationObserver(recheck);
+    observer.observe(root, { attributes: true, attributeFilter: ['data-transparency'] });
+    const offForcedColors = onForcedColorsChange(recheck);
+    return () => {
+      observer.disconnect();
+      offForcedColors();
+    };
+  }, []);
+
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!enabled || !canvas) return;
 
     appScene = {
       canvas,
@@ -215,6 +266,9 @@ export function GlassScene() {
     };
 
     draw();
+    /* RV-06 — panes that registered while the scene was down sampled the lazy
+     * 1×1 fallback; the repaint notification re-renders them against the live
+     * scene now. */
     notifySceneRepaint();
 
     const onResize = () => {
@@ -226,7 +280,9 @@ export function GlassScene() {
       window.removeEventListener('resize', onResize);
       appScene = null;
     };
-  }, [draw]);
+  }, [draw, enabled]);
+
+  if (!enabled) return null;
 
   return (
     <canvas

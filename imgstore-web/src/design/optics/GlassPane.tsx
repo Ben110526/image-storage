@@ -11,6 +11,7 @@
  */
 
 import React, { useEffect, useRef, useState } from 'react';
+import { opticsEnabled, onForcedColorsChange } from './capabilities';
 import { registerPane } from './registry';
 import type { GlassRole, SceneSource } from './types';
 
@@ -24,33 +25,24 @@ interface GlassPaneProps {
   children?: React.ReactNode;
 }
 
-function canvas2dAvailable(): boolean {
-  try {
-    return !!document.createElement('canvas').getContext('2d');
-  } catch {
-    return false;
-  }
-}
-
 export function GlassPane({ id, role, scene, className, style, children }: GlassPaneProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [enabled, setEnabled] = useState(
-    () =>
-      canvas2dAvailable() &&
-      document.documentElement.getAttribute('data-transparency') !== 'reduced',
-  );
+  const [enabled, setEnabled] = useState(opticsEnabled);
 
-  /* React to mid-session reduce-transparency flips (reactive per plan §9). */
+  /* RV-06 — react to BOTH gate inputs mid-session: reduce-transparency
+   * (attribute) and forced-colors (live media query, can flip while this
+   * pane is open in a portal). */
   useEffect(() => {
     const root = document.documentElement;
-    const observer = new MutationObserver(() => {
-      setEnabled(
-        canvas2dAvailable() && root.getAttribute('data-transparency') !== 'reduced',
-      );
-    });
+    const recheck = () => setEnabled(opticsEnabled());
+    const observer = new MutationObserver(recheck);
     observer.observe(root, { attributes: true, attributeFilter: ['data-transparency'] });
-    return () => observer.disconnect();
+    const offForcedColors = onForcedColorsChange(recheck);
+    return () => {
+      observer.disconnect();
+      offForcedColors();
+    };
   }, []);
 
   useEffect(() => {

@@ -286,7 +286,11 @@ html[data-transparency='reduced'] .glass-clear {
   }
 }
 
-/* Forced colors / high contrast: system colors, visible borders, no filters. */
+/* Forced colors / high contrast: system colors, visible borders, no filters.
+ * RV-06 — the optics canvases (per-pane + app scene) are decorative layers
+ * that must never paint over system colors; the engine unmounts them via the
+ * capability gate, and these rules are the CSS backstop for any canvas still
+ * in the DOM mid-transition. */
 @media (forced-colors: active) {
   .glass-regular.glass-regular,
   .glass-elevated.glass-elevated,
@@ -299,10 +303,21 @@ html[data-transparency='reduced'] .glass-clear {
     backdrop-filter: none;
     box-shadow: none;
   }
+  .glass-optics-canvas,
+  .glass-scene {
+    display: none !important;
+  }
   .glass-clear {
     background: ButtonFace;
     color: ButtonText;
   }
+}
+
+/* Reduced transparency (app toggle or OS): the engine gate unmounts the scene
+ * and pane canvases; hide any stragglers so nothing decorative stays up. */
+html[data-transparency='reduced'] .glass-optics-canvas,
+html[data-transparency='reduced'] .glass-scene {
+  display: none !important;
 }
 
 /* Reduced motion — app toggle (data-motion) or OS signal. The navbar's scroll
