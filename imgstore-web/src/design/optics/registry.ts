@@ -15,7 +15,7 @@ import {
   type PaneShape,
 } from './displacement';
 import { cappedDpr, GLASS_PROFILES, MAP_PADDING } from './profiles';
-import type { PaneRegistration, PaneRenderStats } from './types';
+import type { FrameTrace, OpticsFrameStats, PaneRegistration, PaneRenderStats } from './types';
 
 interface PaneEntry extends PaneRegistration {
   shape: PaneShape;
@@ -24,12 +24,53 @@ interface PaneEntry extends PaneRegistration {
   dpr: number;
   stats: PaneRenderStats;
   cleanup: () => void;
+  /* RV-04 — per-pane dirty tracking. */
+  /** Scene revision this pane last rendered against. */
+  lastSceneRevision: number;
+  /** Set while the pane's host rect is animating (trackPaneMotion). */
+  moving: boolean;
+  /** Set when geometry changed (map rebuilt) — needs render even off-viewport. */
+  geometryDirty: boolean;
 }
 
 const panes = new Map<string, PaneEntry>();
+
+/* ── RV-04 — dirty set + frame scheduler (plan §16.4) ─────────────────────
+ * The old renderDirty() re-rendered EVERY pane on any invalidation — a menu
+ * animating re-rendered the untouched DropZone in the same frame. Now:
+ *
+ *  - dirtySet holds pane ids; invalidatePane(id) is the narrow path
+ *    (motion ticks, geometry changes), invalidatePanes() is the broadcast
+ *    (scroll/resize — pane↔scene geometry changed for everyone).
+ *  - notifySceneRepaint() bumps sceneRevision; a scene-broadcast invalidation
+ *    only re-renders a pane if its lastSceneRevision differs, so a repaint
+ *    notification that arrives twice (draw + resize echo) does not double-
+ *    render panes that already rendered the current scene.
+ *  - Hidden/zero-area panes (mobile-navigation is 0×0 on desktop) are skipped
+ *    and stay dirty — they render when they next become visible AND dirty.
+ *  - Frame budget: renders run in priority order (moving > geometry-dirty >
+ *    plain); once FRAME_BUDGET_MS is spent the rest stay dirty and one more
+ *    RAF is scheduled, so a many-pane frame never blocks input past budget.
+ */
+const dirtySet = new Set<string>();
 let dirtyScheduled = false;
 let visibilityHooked = false;
 let paused = false;
+let sceneRevision = 0;
+
+/** Soft per-frame render budget; overflow defers to the next RAF. */
+const FRAME_BUDGET_MS = 12;
+
+/* RV-04 — bounded frame trace ring + buffer accounting for evidence. */
+const TRACE_RING = 30;
+const frameTraces: FrameTrace[] = [];
+let frameCounter = 0;
+const hiddenPanes = new Set<string>();
+
+function pushTrace(trace: FrameTrace): void {
+  frameTraces.push(trace);
+  if (frameTraces.length > TRACE_RING) frameTraces.shift();
+}
 
 /** Compute shape + border radius from the host's rendered size. */
 function shapeFromHost(host: HTMLElement, role: PaneEntry['role']): { shape: PaneShape; radius: number } {
@@ -57,12 +98,21 @@ function buildMap(entry: PaneEntry): void {
 /* Per-pixel displacement render — the Gate-G1-proven loop from the lab.
  * output[x,y] = scene[x+dx, y+dy] with the map decoded per pixel; tint is
  * composited after putImageData because putImageData writes opaque pixels. */
-function renderPane(entry: PaneEntry): void {
-  if (!entry.map) return;
+function renderPane(entry: PaneEntry): number {
+  if (!entry.map) return 0;
   const t0 = performance.now();
 
   const { canvas, host, scene, map, dpr } = entry;
   const rect = host.getBoundingClientRect();
+
+  /* RV-04 — hidden/zero-area panes are skipped entirely (mobile-navigation is
+   * 0×0 on desktop). They stay dirty; rendering resumes when they show. */
+  if (rect.width < 1 || rect.height < 1) {
+    hiddenPanes.add(entry.id);
+    return 0;
+  }
+  hiddenPanes.delete(entry.id);
+
   const cw = Math.max(1, Math.round(rect.width * dpr));
   const ch = Math.max(1, Math.round(rect.height * dpr));
   if (canvas.width !== cw) canvas.width = cw;
@@ -70,7 +120,7 @@ function renderPane(entry: PaneEntry): void {
 
   const ctx = canvas.getContext('2d');
   const sctx = scene.canvas.getContext('2d');
-  if (!ctx || !sctx) return;
+  if (!ctx || !sctx) return 0;
 
   const sceneRect = scene.rect();
   const px = Math.round((rect.left - sceneRect.left) * dpr);
@@ -81,7 +131,7 @@ function renderPane(entry: PaneEntry): void {
   const sh = scene.canvas.height;
   if (px >= sw || py >= sh || px + cw <= 0 || py + ch <= 0) {
     ctx.clearRect(0, 0, cw, ch);
-    return;
+    return 0;
   }
 
   /* Clamp the sampled window to the scene bounds; the pane may hang off the
@@ -154,19 +204,71 @@ function renderPane(entry: PaneEntry): void {
   entry.stats.renders += 1;
   entry.stats.lastMs = ms;
   if (ms > entry.stats.maxMs) entry.stats.maxMs = ms;
+  entry.lastSceneRevision = sceneRevision;
+  entry.geometryDirty = false;
+  return ms;
 }
 
 function renderDirty(): void {
   dirtyScheduled = false;
   if (paused) return;
-  for (const entry of panes.values()) {
-    renderPane(entry);
+
+  /* RV-04 — priority: animating panes first (visual continuity while a portal
+   * moves), then geometry-dirty (map was rebuilt — stale output on screen),
+   * then the rest in registration order. */
+  const ids = [...dirtySet];
+  ids.sort((a, b) => {
+    const ea = panes.get(a);
+    const eb = panes.get(b);
+    if (!ea || !eb) return 0;
+    const pa = (ea.moving ? 2 : 0) + (ea.geometryDirty ? 1 : 0);
+    const pb = (eb.moving ? 2 : 0) + (eb.geometryDirty ? 1 : 0);
+    return pb - pa;
+  });
+
+  const trace: FrameTrace = { frame: ++frameCounter, totalMs: 0, rendered: [], deferred: [] };
+
+  for (const id of ids) {
+    const entry = panes.get(id);
+    if (!entry) {
+      dirtySet.delete(id);
+      continue;
+    }
+    /* Frame budget: once spent, keep the rest dirty for the next frame. */
+    if (trace.totalMs >= FRAME_BUDGET_MS) {
+      trace.deferred.push(id);
+      continue;
+    }
+    dirtySet.delete(id);
+    const ms = renderPane(entry);
+    trace.totalMs += ms;
+    if (ms > 0) trace.rendered.push({ id, ms });
   }
+
+  pushTrace(trace);
+
+  /* Deferred panes still need their frame — schedule one more RAF. */
+  if (dirtySet.size > 0 && !dirtyScheduled) {
+    dirtyScheduled = true;
+    requestAnimationFrame(renderDirty);
+  }
+}
+
+/** Mark one pane dirty (narrow path — motion ticks, own geometry change). */
+export function invalidatePane(id: string): void {
+  if (!panes.has(id)) return;
+  dirtySet.add(id);
+  scheduleDirty();
 }
 
 /** Mark every pane dirty and render them in one batched frame. */
 export function invalidatePanes(): void {
-  if (dirtyScheduled || panes.size === 0) return;
+  for (const id of panes.keys()) dirtySet.add(id);
+  scheduleDirty();
+}
+
+function scheduleDirty(): void {
+  if (dirtyScheduled || dirtySet.size === 0) return;
   dirtyScheduled = true;
   requestAnimationFrame(renderDirty);
 }
@@ -207,6 +309,9 @@ export function registerPane(
     dpr: 1,
     stats: { renders: 0, lastMs: 0, maxMs: 0 },
     cleanup: () => {},
+    lastSceneRevision: sceneRevision,
+    moving: false,
+    geometryDirty: true,
   };
   buildMap(entry);
 
@@ -226,8 +331,11 @@ export function registerPane(
       cappedDpr() !== entry.dpr;
     entry.shape = next.shape;
     entry.radius = next.radius;
-    if (geometryChanged) buildMap(entry);
-    invalidatePanes();
+    if (geometryChanged) {
+      buildMap(entry);
+      entry.geometryDirty = true;
+    }
+    invalidatePane(id);
   };
 
   const ro = new ResizeObserver(onGeometry);
@@ -240,6 +348,8 @@ export function registerPane(
     window.removeEventListener('resize', onGeometry);
     window.removeEventListener('scroll', invalidatePanes, { capture: true });
     panes.delete(id);
+    dirtySet.delete(id);
+    hiddenPanes.delete(id);
   };
 
   panes.set(id, entry);
@@ -249,7 +359,14 @@ export function registerPane(
 
 /** Re-render all panes after the scene repainted (GlassScene draw, media load). */
 export function notifySceneRepaint(): void {
-  invalidatePanes();
+  /* RV-04 — scene revision: a pane whose lastSceneRevision already equals the
+   * new revision has nothing new to sample, so a doubled repaint notification
+   * (draw + resize echo) does not re-render it. */
+  sceneRevision += 1;
+  for (const [id, entry] of panes) {
+    if (entry.lastSceneRevision !== sceneRevision) dirtySet.add(id);
+  }
+  scheduleDirty();
 }
 
 /* V2-05 — portal panes (MUI Drawer/Dialog/Menu) move WITHOUT a scroll or
@@ -272,7 +389,8 @@ export function trackPaneMotion(id: string, host: HTMLElement, settleFrames = 6)
   let raf = 0;
 
   const tick = () => {
-    if (!panes.has(id)) return; // unregistered mid-animation
+    const entry = panes.get(id);
+    if (!entry) return; // unregistered mid-animation
     const rect = host.getBoundingClientRect();
     const moved =
       rect.left !== last.left || rect.top !== last.top ||
@@ -280,8 +398,12 @@ export function trackPaneMotion(id: string, host: HTMLElement, settleFrames = 6)
     if (moved) {
       last = rect;
       stable = 0;
-      invalidatePanes();
+      /* RV-04 — narrow invalidation: only the moving pane re-renders; the
+       * DropZone under it stays untouched (plan §16.4 acceptance row). */
+      entry.moving = true;
+      invalidatePane(id);
     } else if (++stable >= settleFrames) {
+      entry.moving = false;
       motionWatchers.delete(id);
       return; // settled — stop the watcher, no idle RAF
     }
@@ -304,6 +426,30 @@ export function paneStats(): Record<string, PaneRenderStats> {
   return out;
 }
 
+/* RV-04 — frame-level workload evidence: per-frame totals (not just one
+ * pane's lastMs), deferred panes, hidden panes, and bounded buffer accounting
+ * (canvas backing stores = width × height × 4 bytes). */
+export function frameStats(): OpticsFrameStats {
+  const buffers: OpticsFrameStats['buffers'] = {};
+  let totalBufferBytes = 0;
+  for (const [id, e] of panes) {
+    const bytes = e.canvas.width * e.canvas.height * 4;
+    buffers[id] = { width: e.canvas.width, height: e.canvas.height, bytes };
+    totalBufferBytes += bytes;
+  }
+  return {
+    frames: frameTraces.map((f) => ({ ...f, rendered: [...f.rendered], deferred: [...f.deferred] })),
+    hiddenPanes: [...hiddenPanes],
+    buffers,
+    totalBufferBytes,
+  };
+}
+
+/** Current scene revision (test hook — scene-revision invalidation). */
+export function currentSceneRevision(): number {
+  return sceneRevision;
+}
+
 /* V2-07 — expose the singleton's stats on window for in-page evidence
  * gathering (Playwright): a dynamic import('/src/design/optics/registry.ts')
  * from the console creates a SECOND module instance under Vite and would read
@@ -311,4 +457,5 @@ export function paneStats(): Record<string, PaneRenderStats> {
  * builds. */
 if (import.meta.env?.DEV && typeof window !== 'undefined') {
   (window as unknown as { __imgstoreOpticsStats: typeof paneStats }).__imgstoreOpticsStats = paneStats;
+  (window as unknown as { __imgstoreOpticsFrameStats: typeof frameStats }).__imgstoreOpticsFrameStats = frameStats;
 }

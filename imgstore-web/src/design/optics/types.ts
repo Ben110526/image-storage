@@ -41,3 +41,28 @@ export interface PaneRenderStats {
   lastMs: number;
   maxMs: number;
 }
+
+/* RV-04 — per-frame workload trace (plan §16.4: "trace cả frame ở viewport/pane
+ * thực, có tổng thời gian và memory"). The registry keeps a bounded ring of
+ * the most recent frames so evidence can report workload across MANY panes in
+ * one frame, not just one pane's lastMs. */
+export interface FrameTrace {
+  /** Monotonic frame counter since module load. */
+  frame: number;
+  /** Total ms spent rendering panes in this frame. */
+  totalMs: number;
+  /** Panes actually rendered, with per-pane ms. */
+  rendered: { id: string; ms: number }[];
+  /** Panes deferred to the next frame because the frame budget ran out. */
+  deferred: string[];
+}
+
+/** Aggregate workload snapshot for evidence (dev-only window hook). */
+export interface OpticsFrameStats {
+  frames: FrameTrace[];
+  /** Panes skipped at least once because their rect was 0×0 (hidden). */
+  hiddenPanes: string[];
+  /** Bounded buffer accounting: canvas backing stores, bytes. */
+  buffers: Record<string, { width: number; height: number; bytes: number }>;
+  totalBufferBytes: number;
+}

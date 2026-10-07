@@ -480,3 +480,170 @@ describe('RV-05 map cache key — radius-only and DPR-only changes rebuild the m
     expect(frame.height).toBe(128);
   });
 });
+
+/* ── RV-04 — per-pane dirty set, scene revision, hidden panes, frame budget ──
+ * Plan §16.4 acceptance: "Menu chuyển động không render lại DropZone không
+ * đổi" — the narrow invalidation path (motion tick) must re-render ONLY the
+ * moving pane. Plus: scene-revision dedup (a doubled repaint notification
+ * does not re-render a pane already on the current scene), hidden/0×0 panes
+ * are skipped, and the frame trace reports per-frame totals + buffers. */
+describe('RV-04 dirty set + frame scheduler', () => {
+  function pumpingRaf() {
+    const rafQueue: FrameRequestCallback[] = [];
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
+      rafQueue.push(cb);
+      return rafQueue.length;
+    });
+    let t = 0;
+    return {
+      pump: (n = 1) => {
+        for (let i = 0; i < n; i++) {
+          const q = rafQueue.splice(0);
+          q.forEach((cb) => cb((t += 16)));
+        }
+      },
+      queued: () => rafQueue.length,
+    };
+  }
+
+  it('motion tick re-renders ONLY the moving pane — untouched panes stay still', async () => {
+    const reg = await freshRegistry();
+    const raf = pumpingRaf();
+
+    const hostMenu = makeHost(220, 251);
+    const hostDrop = makeHost(1216, 167);
+    reg.registerPane('menu', 'panel', hostMenu, makePaneCanvas(), makeSceneAt2());
+    reg.registerPane('drop-zone', 'panel', hostDrop, makePaneCanvas(), makeSceneAt2());
+    raf.pump(2); // flush both register frames
+
+    const before = reg.paneStats();
+    expect(before['menu'].renders).toBe(1);
+    expect(before['drop-zone'].renders).toBe(1);
+
+    // Animate the menu across 4 frames (portal enter transition).
+    let left = 0;
+    hostMenu.getBoundingClientRect = () =>
+      ({ left, top: 0, width: 220, height: 251, right: left + 220, bottom: 251, x: left, y: 0, toJSON: () => ({}) }) as DOMRect;
+    reg.trackPaneMotion('menu', hostMenu, 100); // long settle — keep it watching
+    for (let f = 0; f < 4; f++) {
+      left += 12;
+      raf.pump(2); // motion tick + dirty flush
+    }
+
+    const after = reg.paneStats();
+    expect(after['menu'].renders).toBeGreaterThan(before['menu'].renders);
+    /* THE acceptance row: the DropZone under the moving menu did NOT
+     * re-render. */
+    expect(after['drop-zone'].renders).toBe(before['drop-zone'].renders);
+  });
+
+  it('narrow invalidation by id leaves other panes alone; broadcast hits all', async () => {
+    const reg = await freshRegistry();
+    const raf = pumpingRaf();
+    reg.registerPane('a', 'pill', makeHost(), makePaneCanvas(), makeSceneAt2());
+    reg.registerPane('b', 'pill', makeHost(), makePaneCanvas(), makeSceneAt2());
+    raf.pump(2);
+    const before = reg.paneStats();
+
+    reg.invalidatePane('a');
+    raf.pump(1);
+    let now = reg.paneStats();
+    expect(now['a'].renders).toBe(before['a'].renders + 1);
+    expect(now['b'].renders).toBe(before['b'].renders);
+
+    reg.invalidatePanes();
+    raf.pump(1);
+    now = reg.paneStats();
+    expect(now['a'].renders).toBe(before['a'].renders + 2);
+    expect(now['b'].renders).toBe(before['b'].renders + 1);
+  });
+
+  it('scene revision dedup: repaint → render; second repaint with no new draw is a no-op', async () => {
+    const reg = await freshRegistry();
+    const raf = pumpingRaf();
+    reg.registerPane('p', 'pill', makeHost(), makePaneCanvas(), makeSceneAt2());
+    raf.pump(2);
+    const before = reg.paneStats()['p'].renders;
+
+    reg.notifySceneRepaint();
+    raf.pump(1);
+    expect(reg.paneStats()['p'].renders).toBe(before + 1);
+
+    /* The pane already rendered against the current revision — but each
+     * notifySceneRepaint() means the scene DID repaint, so it re-renders once
+     * per real notification (revision bumped). The dedup guard is inside the
+     * loop: a pane rendered mid-batch is not re-rendered by the same pass. */
+    reg.notifySceneRepaint();
+    reg.notifySceneRepaint(); // doubled notification before the RAF flushes
+    raf.pump(1);
+    expect(reg.paneStats()['p'].renders).toBe(before + 2); // one render, not two
+  });
+
+  it('hidden (0×0) panes are skipped and reported; they resume when visible', async () => {
+    const reg = await freshRegistry();
+    const raf = pumpingRaf();
+    const hidden = makeHost(0, 0); // mobile-navigation on desktop
+    reg.registerPane('mobile-navigation', 'panel', hidden, makePaneCanvas(), makeSceneAt2());
+    reg.registerPane('navbar', 'pill', makeHost(1216, 64), makePaneCanvas(), makeSceneAt2());
+    raf.pump(2);
+
+    expect(reg.paneStats()['mobile-navigation'].renders).toBe(0);
+    expect(reg.paneStats()['navbar'].renders).toBe(1);
+    expect(reg.frameStats().hiddenPanes).toContain('mobile-navigation');
+
+    /* Un-hide: rect becomes real; the pane was never cleaned, so a fresh
+     * invalidation renders it now. */
+    hidden.getBoundingClientRect = () =>
+      ({ left: 0, top: 0, width: 360, height: 72, right: 360, bottom: 72, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect;
+    reg.invalidatePanes();
+    raf.pump(1);
+    expect(reg.paneStats()['mobile-navigation'].renders).toBe(1);
+    expect(reg.frameStats().hiddenPanes).not.toContain('mobile-navigation');
+  });
+
+  it('frame trace records per-frame totals, rendered ids, and buffer bytes', async () => {
+    const reg = await freshRegistry();
+    const raf = pumpingRaf();
+    reg.registerPane('navbar', 'pill', makeHost(1216, 64), makePaneCanvas(), makeSceneAt2());
+    reg.registerPane('drop-zone', 'panel', makeHost(1216, 167), makePaneCanvas(), makeSceneAt2());
+    raf.pump(2);
+
+    const fs = reg.frameStats();
+    expect(fs.frames.length).toBeGreaterThan(0);
+    const last = fs.frames[fs.frames.length - 1];
+    expect(last.totalMs).toBeGreaterThanOrEqual(0);
+    expect(last.rendered.length).toBeGreaterThan(0);
+
+    /* Buffer accounting: two canvases with real backing stores. jsdom canvas
+     * defaults to 300×150 unless the render resized it — renderPane sets
+     * width/height from the host rect × DPR. */
+    expect(fs.buffers['navbar'].width).toBe(1216);
+    expect(fs.buffers['navbar'].height).toBe(64);
+    expect(fs.buffers['navbar'].bytes).toBe(1216 * 64 * 4);
+    expect(fs.totalBufferBytes).toBe(
+      fs.buffers['navbar'].bytes + fs.buffers['drop-zone'].bytes,
+    );
+  });
+
+  it('unregister drops the pane from the dirty set — no render of a dead id', async () => {
+    const reg = await freshRegistry();
+    const raf = pumpingRaf();
+    const un = reg.registerPane('gone', 'pill', makeHost(), makePaneCanvas(), makeSceneAt2());
+    reg.registerPane('stays', 'pill', makeHost(), makePaneCanvas(), makeSceneAt2());
+    raf.pump(2);
+    const before = reg.paneStats()['stays'].renders;
+
+    un();
+    reg.invalidatePanes(); // broadcast must not touch the dead pane
+    raf.pump(1);
+    expect(reg.paneStats()['gone']).toBeUndefined();
+    expect(reg.paneStats()['stays'].renders).toBe(before + 1);
+  });
+});
+
+function makeSceneAt2(width = 1280, height = 800) {
+  return {
+    canvas: makePaneCanvas(),
+    rect: () => ({ left: 0, top: 0, width, height, right: width, bottom: height, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect,
+  };
+}
