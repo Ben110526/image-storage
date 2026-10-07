@@ -153,6 +153,47 @@
   pointer-events: none;
 }
 
+/* ---- Toast (V2-06) --------------------------------------------------------
+ * notistack snackbars reuse the G2 elevated material so every floating
+ * surface speaks the same glass language (plan §8.6: toast stays readable,
+ * one shared material — no per-toast optical renderer). The success/error
+ * variants keep their semantic accent on the icon/text, not the fill, so the
+ * fill never fights the glass tint. */
+.notistack-Snackbar .notistack-MuiContent {
+  background-color: var(--glass-g2-fill);
+  background-image: var(--glass-specular);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-menu);
+  box-shadow: var(--glass-g2-shadow);
+  -webkit-backdrop-filter: blur(var(--glass-g2-blur)) saturate(var(--glass-g2-saturation));
+  backdrop-filter: blur(var(--glass-g2-blur)) saturate(var(--glass-g2-saturation));
+  color: var(--color-text-primary);
+}
+html[data-transparency='reduced'] .notistack-Snackbar .notistack-MuiContent {
+  background-color: var(--glass-fallback-elevated);
+  background-image: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+@media (prefers-reduced-transparency: reduce) {
+  .notistack-Snackbar .notistack-MuiContent {
+    background-color: var(--glass-fallback-elevated);
+    background-image: none !important;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+@media (forced-colors: active) {
+  .notistack-Snackbar .notistack-MuiContent {
+    background: Canvas !important;
+    color: CanvasText;
+    border: 1px solid ButtonBorder;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: none;
+  }
+}
+
 /* ---- Optical mode (V2-03) -------------------------------------------------
  * .glass-optical marks a glass surface whose backdrop is rendered by the
  * optics registry (canvas displacement, ADR-ENGINE Đường B) instead of the

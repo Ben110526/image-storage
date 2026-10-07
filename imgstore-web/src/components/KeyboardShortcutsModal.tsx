@@ -9,6 +9,8 @@ import {
   Divider,
 } from '@mui/material';
 import { Close as CloseIcon, Keyboard as KeyboardIcon } from '@mui/icons-material';
+import { getAppScene } from '../design/optics/GlassScene';
+import { useGlassPane } from '../design/optics/useGlassPane';
 
 /* KeyboardShortcutsModal — plan §11.3: G2 chrome, <kbd> tokens from the
  * registry, Vietnamese labels, divider-free rhythm via row spacing. */
@@ -64,6 +66,15 @@ export const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
   open,
   onClose,
 }) => {
+  /* V2-06 — titlebar chrome optical (portal mount transition → trackMotion);
+   * the <kbd> rows stay C0 for readability. */
+  const titleRef = useGlassPane<HTMLDivElement>(
+    'shortcuts-dialog-titlebar',
+    'pill',
+    getAppScene(),
+    { trackMotion: true },
+  );
+
   return (
     <Dialog
       open={open}
@@ -78,7 +89,9 @@ export const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
       }}
     >
       <DialogTitle
+        ref={titleRef}
         component="div"
+        className="glass-elevated"
         sx={{
           display: 'flex',
           alignItems: 'center',

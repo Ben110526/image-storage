@@ -35,6 +35,8 @@ import {
 import { haptics } from '../lib/haptics';
 import { useAppearance, type ThemePreference } from '../context/AppearanceContext';
 import { useAuth } from '../context/AuthContext';
+import { getAppScene } from '../design/optics/GlassScene';
+import { useGlassPane } from '../design/optics/useGlassPane';
 
 /* SettingsModal — plan §11. Appearance preferences (theme / glass tint /
  * reduce transparency / reduce motion) are saved independently of Connection
@@ -86,6 +88,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) =
   /* R8 — tint slider: live drag preview (CSS var only); persisted value
    * commits on release. null = not dragging. */
   const [tintPreview, setTintPreview] = useState<number | null>(null);
+
+  /* V2-06 — titlebar chrome optical (plan §8.6); the form body (sliders,
+   * inputs, alerts) keeps its opaque readable fill. Bottom-sheet slide on
+   * phones → trackMotion. */
+  const titleRef = useGlassPane<HTMLDivElement>(
+    'settings-dialog-titlebar',
+    'pill',
+    getAppScene(),
+    { trackMotion: true },
+  );
 
   useEffect(() => {
     if (open) {
@@ -175,7 +187,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) =
       }}
     >
       <DialogTitle
+        ref={titleRef}
         component="div"
+        className="glass-elevated"
         sx={{
           m: 0,
           p: 2.5,

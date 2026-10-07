@@ -8,11 +8,14 @@ import {
   Button,
 } from '@mui/material';
 import { haptics } from '../lib/haptics';
+import { getAppScene } from '../design/optics/GlassScene';
+import { useGlassPane } from '../design/optics/useGlassPane';
 
 /* ConfirmDialog — plan §11.2: destructive confirms default-focus CANCEL so
  * Enter/Space never deletes by accident; the destructive action requires a
- * deliberate move. Body AND chrome are C0 opaque (R5: the dialog material is
- * the theme's opaque paper; G2 glass-elevated is reserved for menus/popovers).
+ * deliberate move. V2-06: the TITLEBAR chrome is an optical pane (plan §8.6:
+ * "dialog/sheet thử vỏ/chrome kính trước"); the body keeps its opaque readable
+ * fill so confirm text and the destructive action stay semantic and legible.
  *
  * FIX-08 — a pending confirm blocks EVERY dismissal path (Escape, backdrop
  * click, the close affordances): an in-flight destructive request must not
@@ -39,6 +42,15 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   onConfirm,
   onCancel,
 }) => {
+  /* V2-06 — titlebar chrome optical; the Dialog scale/fade on open animates
+   * the portal without scroll/resize events → trackMotion. */
+  const titleRef = useGlassPane<HTMLDivElement>(
+    'confirm-dialog-titlebar',
+    'pill',
+    getAppScene(),
+    { trackMotion: true },
+  );
+
   return (
     <Dialog
       open={open}
@@ -57,6 +69,9 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       }}
     >
       <DialogTitle
+        ref={titleRef}
+        component="div"
+        className="glass-elevated"
         sx={{
           fontWeight: 600,
           fontSize: '1.05rem',

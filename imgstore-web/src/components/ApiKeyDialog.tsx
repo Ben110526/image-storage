@@ -21,6 +21,8 @@ import {
   CheckCircleOutlined as SuccessIcon,
 } from '@mui/icons-material';
 import { haptics } from '../lib/haptics';
+import { getAppScene } from '../design/optics/GlassScene';
+import { useGlassPane } from '../design/optics/useGlassPane';
 
 /* ApiKeyDialog — plan §11.1: G2 elevated chrome, C0 input field, Vietnamese
  * copy, honest description of what connecting does. Focus moves to the input
@@ -44,6 +46,16 @@ export const ApiKeyDialog: React.FC<ApiKeyDialogProps> = ({
   const [apiKey, setApiKey] = useState('');
   const [showKey, setShowKey] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  /* V2-06 — titlebar chrome optical (plan §8.6: vỏ/chrome kính); the input,
+   * error and helper body keep their opaque readable fill. The sheet slides
+   * up on phones → trackMotion re-samples the scene until it settles. */
+  const titleRef = useGlassPane<HTMLDivElement>(
+    'apikey-dialog-titlebar',
+    'pill',
+    getAppScene(),
+    { trackMotion: true },
+  );
 
   // Reset state when dialog opens
   useEffect(() => {
@@ -85,7 +97,9 @@ export const ApiKeyDialog: React.FC<ApiKeyDialogProps> = ({
       }}
     >
       <DialogTitle
+        ref={titleRef}
         component="div"
+        className="glass-elevated"
         sx={{
           m: 0,
           px: 2.5,

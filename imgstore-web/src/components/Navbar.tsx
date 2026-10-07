@@ -78,6 +78,17 @@ export const Navbar: React.FC<NavbarProps> = ({
    * back to the CSS material under reduced transparency. */
   const navbarRef = useGlassPane<HTMLElement>('navbar', 'pill', getAppScene());
 
+  /* V2-06 — the account + overflow menus are MUI portal surfaces: they mount
+   * with a grow/fade transition whose transform never fires scroll/resize, so
+   * trackMotion re-renders the displaced scene until the paper settles (plan
+   * §8.6: menus get a medium optical pane at their true portal position). */
+  const userMenuRef = useGlassPane<HTMLDivElement>('navbar-menu-user', 'panel', getAppScene(), {
+    trackMotion: true,
+  });
+  const utilMenuRef = useGlassPane<HTMLDivElement>('navbar-menu-util', 'panel', getAppScene(), {
+    trackMotion: true,
+  });
+
   const [userAnchor, setUserAnchor] = useState<null | HTMLElement>(null);
   const [utilAnchor, setUtilAnchor] = useState<null | HTMLElement>(null);
 
@@ -296,6 +307,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
               slotProps={{
                 paper: {
+                  ref: userMenuRef,
                   className: 'glass-elevated',
                   sx: { mt: 1, minWidth: 240 },
                 },
@@ -361,6 +373,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
           slotProps={{
             paper: {
+              ref: utilMenuRef,
               className: 'glass-elevated',
               sx: { mt: 1, minWidth: 220 },
             },

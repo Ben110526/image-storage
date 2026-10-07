@@ -7,8 +7,14 @@
  * off — the registry's displaced pixels are the backdrop), and registers the
  * pane. Cleanup removes the canvas and restores the CSS material.
  *
+ * V2-06 — the returned ref is a CALLBACK ref backed by state, not a bare
+ * useRef: MUI portal surfaces (Menu/Dialog/Drawer papers) attach their DOM
+ * node AFTER the parent component's first effect ran, so a useRef-based hook
+ * would see host=null forever. With a callback ref the hook re-runs its
+ * registration effect the moment the portal mounts the paper element.
+ *
  * Returns a ref to attach to the host. */
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { registerPane, trackPaneMotion } from './registry';
 import type { GlassRole, SceneSource } from './types';
 
@@ -36,9 +42,16 @@ export function useGlassPane<T extends HTMLElement>(
    * host's rect changes, self-stopping once it settles. */
   opts?: { trackMotion?: boolean },
 ) {
-  const hostRef = useRef<T>(null);
+  const [host, setHost] = useState<T | null>(null);
   const [enabled, setEnabled] = useState(readEnabled);
   const trackMotion = opts?.trackMotion ?? false;
+
+  /* Callback ref: fires when the host mounts (including late portal mounts)
+   * and with null when it unmounts — both update state so the effect below
+   * registers/unregisters against the REAL element lifecycle. */
+  const hostRef = useCallback((node: T | null) => {
+    setHost(node);
+  }, []);
 
   /* Reactive to mid-session reduce-transparency flips (plan §9). */
   useEffect(() => {
@@ -49,7 +62,6 @@ export function useGlassPane<T extends HTMLElement>(
   }, []);
 
   useEffect(() => {
-    const host = hostRef.current;
     if (!enabled || !host || !scene) return;
 
     const canvas = document.createElement('canvas');
@@ -80,7 +92,7 @@ export function useGlassPane<T extends HTMLElement>(
       host.style.overflow = prevOverflow;
       canvas.remove();
     };
-  }, [enabled, id, role, scene, trackMotion]);
+  }, [enabled, host, id, role, scene, trackMotion]);
 
   return hostRef;
 }

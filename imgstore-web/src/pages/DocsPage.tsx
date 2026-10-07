@@ -7,6 +7,8 @@ import {
 import { ApiDocsSection } from '../components/ApiDocsSection';
 import { useAppearance } from '../context/AppearanceContext';
 import { haptics } from '../lib/haptics';
+import { getAppScene } from '../design/optics/GlassScene';
+import { useGlassPane } from '../design/optics/useGlassPane';
 
 /* Docs — plan §10.4, FIX-07: the TOC sidebar exists only from 900px up;
  * below that a "Mục lục" button opens a bottom sheet with the same section
@@ -27,6 +29,18 @@ export const DocsPage: React.FC = () => {
   const [activeId, setActiveId] = useState<string>(TOC_ITEMS[0].id);
   const [tocSheetOpen, setTocSheetOpen] = useState(false);
   const isDesktop = useMediaQuery('(min-width:900px)');
+
+  /* V2-06 — mobile TOC sheet as an optical pane, same treatment as the
+   * Library folder sheet (V2-05): the shell is glass, section links inside
+   * stay readable via the .glass-elevated tint; the sheet slides up via
+   * transform → trackMotion. The docs body itself stays C0 (plan §8.5:
+   * prose/code/tables never get glassed). */
+  const tocSheetRef = useGlassPane<HTMLDivElement>(
+    'docs-toc-sheet',
+    'panel',
+    getAppScene(),
+    { trackMotion: true },
+  );
 
   // Scrollspy: highlight the TOC entry whose section is in view.
   // rootMargin pins the "active line" just under the sticky navbar.
@@ -224,11 +238,14 @@ export const DocsPage: React.FC = () => {
         onClose={() => setTocSheetOpen(false)}
         slotProps={{
           paper: {
+            ref: tocSheetRef,
+            className: 'glass-elevated',
             sx: {
               borderTopLeftRadius: 'var(--radius-lg)',
               borderTopRightRadius: 'var(--radius-lg)',
               maxHeight: '70dvh',
-              backgroundColor: 'var(--color-content)',
+              /* Opaque fill dropped — glass material + optical canvas provide
+               * the surface (same as the Library folder sheet, V2-05). */
             },
           },
         }}
