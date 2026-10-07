@@ -20,6 +20,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ensureFolderPath, fetchFolders } from '../api/client';
 import type { FolderMetadata } from '../types';
 import { haptics } from '../lib/haptics';
+import { getAppScene } from '../design/optics/GlassScene';
+import { useGlassPane } from '../design/optics/useGlassPane';
 
 /* Hallmark · component: upload-folder-picker · macrostructure: Workbench toolbar · theme: Terminal */
 
@@ -115,14 +117,19 @@ export function UploadFolderPicker({ scope, value, onChange }: Props) {
   // Retain the selected option even during a stale refetch after creation.
   if (value && !children.some(f => f.id === value.id)) children.push(value);
 
+  /* V2-04 — destination toolbar as an optical pane: the shell is glass
+   * (plan §150 "vỏ panel chọn folder"), controls inside stay content (C0).
+   * The opaque paper-2 fill is dropped so scene transmission shows through. */
+  const toolbarRef = useGlassPane<HTMLDivElement>('upload-folder-picker', 'pill', getAppScene());
+
   return (
     <Box
-      className="content-surface"
+      ref={toolbarRef}
+      className="glass-regular"
       sx={{
         p: { xs: 1.5, sm: 2 },
         mb: 2.5,
         borderRadius: 'var(--radius-sm)',
-        backgroundColor: 'var(--color-paper-2)',
         border: '1px solid var(--color-border)',
         transition: 'border-color var(--dur-base) var(--ease-out)',
         '&:hover': {

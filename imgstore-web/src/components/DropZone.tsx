@@ -36,6 +36,8 @@ import { useSnackbar } from 'notistack';
 import { haptics } from '../lib/haptics';
 import { useAuth } from '../context/AuthContext';
 import { getApiBaseUrl } from '../api/client';
+import { getAppScene } from '../design/optics/GlassScene';
+import { useGlassPane } from '../design/optics/useGlassPane';
 import { UploadFolderPicker } from './UploadFolderPicker';
 import { CopyButton } from './ui/CopyButton';
 import { TextField, Collapse } from '@mui/material';
@@ -336,6 +338,11 @@ export const DropZone: React.FC = () => {
 
   const hasCompleted = queue.some((i) => i.status === 'success');
 
+  /* V2-04 — the DropZone shell at rest is a glass control panel (plan §150):
+   * the empty area shows real transmission of the app scene; the queue list
+   * below stays a content surface (C0) so rows remain readable. */
+  const dropZoneRef = useGlassPane<HTMLDivElement>('drop-zone', 'panel', getAppScene());
+
   return (
     <Box sx={{ width: '100%', mb: 4 }}>
       {canUpload && <UploadFolderPicker key={folderScope} scope={folderScope} value={selectedFolder}
@@ -355,7 +362,8 @@ export const DropZone: React.FC = () => {
           onDragOver: handlePaperDragOver,
           onDrop: handlePaperDrop,
         })}
-        className="content-surface"
+        ref={dropZoneRef}
+        className="glass-regular"
         sx={{
           p: { xs: 2.5, sm: 4, md: 5 },
           minHeight: { xs: 200, md: 220 },
@@ -370,10 +378,10 @@ export const DropZone: React.FC = () => {
           borderRadius: 'var(--radius-md) !important',
           borderStyle: 'dashed !important',
           borderWidth: '2px !important',
-          borderColor: isDragActive ? 'var(--color-accent) !important' : 'var(--color-control-border) !important',
-          backgroundColor: isDragActive
-            ? 'var(--color-accent-soft) !important'
-            : 'var(--color-content) !important',
+          borderColor: isDragActive ? 'var(--color-accent) !important' : 'var(--color-border) !important',
+          /* Drag active keeps its deliberate accent fill (a state fill, not
+           * glass); at rest the glass material + optical canvas show through. */
+          backgroundColor: isDragActive ? 'var(--color-accent-soft) !important' : undefined,
           transition: 'border-color var(--duration-fast) var(--ease-standard), background-color var(--duration-fast) var(--ease-standard)',
         }}
       >

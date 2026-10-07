@@ -5,6 +5,8 @@ import {
   PhotoLibraryOutlined as LibraryIcon,
   MenuBookOutlined as DocsIcon,
 } from '@mui/icons-material';
+import { getAppScene } from '../../design/optics/GlassScene';
+import { useGlassPane } from '../../design/optics/useGlassPane';
 import type { Route } from '../../lib/router';
 
 /* MobileNavigation — bottom destination bar for <900px viewports (plan §5.2).
@@ -23,8 +25,14 @@ export interface MobileNavigationProps {
 }
 
 export const MobileNavigation: React.FC<MobileNavigationProps> = ({ route }) => {
+  /* V2-04 — bottom destination bar as an optical pane: real refraction of the
+   * app-owned GlassScene backdrop. Falls back to the CSS material under
+   * reduced transparency. */
+  const navRef = useGlassPane<HTMLElement>('mobile-navigation', 'pill', getAppScene());
+
   return (
     <Box
+      ref={navRef}
       component="nav"
       aria-label="Điều hướng chính"
       className="glass-regular"
