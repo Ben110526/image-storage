@@ -276,3 +276,12 @@ export function paneStats(): Record<string, PaneRenderStats> {
   for (const [id, e] of panes) out[id] = { ...e.stats };
   return out;
 }
+
+/* V2-07 — expose the singleton's stats on window for in-page evidence
+ * gathering (Playwright): a dynamic import('/src/design/optics/registry.ts')
+ * from the console creates a SECOND module instance under Vite and would read
+ * an empty map. Dev-only: import.meta.env.DEV is stripped from production
+ * builds. */
+if (import.meta.env?.DEV && typeof window !== 'undefined') {
+  (window as unknown as { __imgstoreOpticsStats: typeof paneStats }).__imgstoreOpticsStats = paneStats;
+}
