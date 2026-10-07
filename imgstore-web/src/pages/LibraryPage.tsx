@@ -10,6 +10,8 @@ import { PageHeader } from '../components/ui/PageHeader';
 import { getApiBaseUrl } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { haptics } from '../lib/haptics';
+import { getAppScene } from '../design/optics/GlassScene';
+import { useGlassPane } from '../design/optics/useGlassPane';
 import type { FolderMetadata } from '../types';
 
 /* Library — plan §5.3/§10.2, FIX-06: one clear H1; the current folder is
@@ -42,6 +44,17 @@ export const LibraryPage: React.FC = () => {
   };
 
   const folderLabel = selected ? `/${selected.path}` : 'Tất cả file';
+
+  /* V2-05 — mobile folder sheet as an optical pane. The sheet lives in a MUI
+   * portal and slides in/out: trackMotion re-renders the displaced scene while
+   * the transform animates, self-stopping once it settles. Sheet content
+   * (folder rows) stays C0; only the shell is glass. */
+  const sheetRef = useGlassPane<HTMLDivElement>(
+    'library-folder-sheet',
+    'panel',
+    getAppScene(),
+    { trackMotion: true },
+  );
 
   return (
     <Box>
@@ -132,11 +145,15 @@ export const LibraryPage: React.FC = () => {
         onClose={() => setFolderSheetOpen(false)}
         slotProps={{
           paper: {
+            ref: sheetRef,
+            className: 'glass-elevated',
             sx: {
               borderTopLeftRadius: 'var(--radius-lg)',
               borderTopRightRadius: 'var(--radius-lg)',
               maxHeight: '70dvh',
-              backgroundColor: 'var(--color-content)',
+              /* Opaque fill dropped — the glass material + optical canvas
+               * provide the surface; rows inside stay readable via the
+               * .glass-elevated tint. */
             },
           },
         }}

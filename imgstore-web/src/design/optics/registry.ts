@@ -225,6 +225,51 @@ export function notifySceneRepaint(): void {
   invalidatePanes();
 }
 
+/* V2-05 — portal panes (MUI Drawer/Dialog/Menu) move WITHOUT a scroll or
+ * resize event: their position animates via transform during enter/exit, and
+ * their bounds change while the viewport stays still. trackPaneMotion polls
+ * the host's rect each frame while the portal transition runs and re-renders
+ * when it moves; the watcher stops itself after the rect is stable for
+ * `settleFrames` consecutive frames so there is no idle RAF. */
+const motionWatchers = new Map<string, () => void>();
+
+/**
+ * Watch a pane's rect while it may be animating (portal mount/unmount).
+ * Stops automatically once the rect stops changing. Returns a stop function.
+ */
+export function trackPaneMotion(id: string, host: HTMLElement, settleFrames = 6): () => void {
+  motionWatchers.get(id)?.();
+
+  let last = host.getBoundingClientRect();
+  let stable = 0;
+  let raf = 0;
+
+  const tick = () => {
+    if (!panes.has(id)) return; // unregistered mid-animation
+    const rect = host.getBoundingClientRect();
+    const moved =
+      rect.left !== last.left || rect.top !== last.top ||
+      rect.width !== last.width || rect.height !== last.height;
+    if (moved) {
+      last = rect;
+      stable = 0;
+      invalidatePanes();
+    } else if (++stable >= settleFrames) {
+      motionWatchers.delete(id);
+      return; // settled — stop the watcher, no idle RAF
+    }
+    raf = requestAnimationFrame(tick);
+  };
+  raf = requestAnimationFrame(tick);
+
+  const stop = () => {
+    cancelAnimationFrame(raf);
+    motionWatchers.delete(id);
+  };
+  motionWatchers.set(id, stop);
+  return stop;
+}
+
 /** Evidence hook — read-only snapshot for perf traces (G3). */
 export function paneStats(): Record<string, PaneRenderStats> {
   const out: Record<string, PaneRenderStats> = {};

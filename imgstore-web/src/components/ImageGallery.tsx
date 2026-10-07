@@ -27,6 +27,8 @@ import { ImagePreviewModal } from './ImagePreviewModal';
 import { DataState } from './ui/DataState';
 import type { ImageMetadata } from '../types';
 import { haptics } from '../lib/haptics';
+import { getAppScene } from '../design/optics/GlassScene';
+import { useGlassPane } from '../design/optics/useGlassPane';
 
 /* ImageGallery — plan §10.2: toolbar (search/clear/refresh) over a C0 grid.
  * Render states are strictly separated (plan §3.3 P0): needs-auth ≠ empty,
@@ -114,6 +116,9 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({ folderId, folderLabe
 
   const images = data?.images || [];
   const pagination = data?.pagination;
+
+  /* V2-05 — optical pane for the toolbar shell (search/refresh/upload). */
+  const toolbarRef = useGlassPane<HTMLDivElement>('gallery-toolbar', 'pill', getAppScene());
 
   const renderBody = () => {
     /* FIX-05 — auth restore is its own state: while the session is being
@@ -242,8 +247,11 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({ folderId, folderLabe
 
   return (
     <Box sx={{ width: '100%', mb: 6 }}>
-      {/* Toolbar: title/count, search, refresh, upload shortcut */}
+      {/* V2-05 — gallery toolbar as an optical pane: search/refresh/upload
+       * chrome is glass; the grid below stays C0 content (plan §10.2). */}
       <Box
+        ref={toolbarRef}
+        className="glass-regular"
         sx={{
           display: 'flex',
           flexDirection: { xs: 'column', sm: 'row' },
@@ -251,6 +259,8 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({ folderId, folderLabe
           alignItems: { xs: 'stretch', sm: 'center' },
           gap: 2,
           mb: 3,
+          p: { xs: 1, sm: 1.25 },
+          borderRadius: 'var(--radius-md)',
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>

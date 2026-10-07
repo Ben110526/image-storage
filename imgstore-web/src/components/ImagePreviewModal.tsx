@@ -27,6 +27,8 @@ import {
 import type { ImageMetadata } from '../types';
 import { haptics } from '../lib/haptics';
 import { CopyButton } from './ui/CopyButton';
+import { getAppScene } from '../design/optics/GlassScene';
+import { useGlassPane } from '../design/optics/useGlassPane';
 
 /* ImagePreviewModal — plan §10.3:
  * - Media stage is NEUTRAL DARK regardless of app theme, so imagery reads
@@ -55,6 +57,17 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
   onClose,
 }) => {
   const [tabIndex, setTabIndex] = useState(0);
+
+  /* V2-05 — preview chrome (title bar) as an optical pane (plan §8.4:
+   * controls float over media with lensing; media pixels stay untouched).
+   * The Dialog animates scale/fade on open → trackMotion re-samples while the
+   * portal settles. The media stage below stays neutral dark, never glass. */
+  const titleRef = useGlassPane<HTMLDivElement>(
+    'preview-titlebar',
+    'pill',
+    getAppScene(),
+    { trackMotion: true },
+  );
 
   if (!image) return null;
 
@@ -118,7 +131,9 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
       }}
     >
       <DialogTitle
+        ref={titleRef}
         component="div"
+        className="glass-elevated"
         sx={{
           m: 0,
           px: 2.5,

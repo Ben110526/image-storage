@@ -9,7 +9,7 @@
  *
  * Returns a ref to attach to the host. */
 import { useEffect, useRef, useState } from 'react';
-import { registerPane } from './registry';
+import { registerPane, trackPaneMotion } from './registry';
 import type { GlassRole, SceneSource } from './types';
 
 function canvas2dAvailable(): boolean {
@@ -31,9 +31,14 @@ export function useGlassPane<T extends HTMLElement>(
   id: string,
   role: GlassRole,
   scene: SceneSource | null,
+  /** V2-05 — portal panes (Drawer/Dialog/Menu) animate position without any
+   * scroll/resize event: enable a motion watcher that re-renders while the
+   * host's rect changes, self-stopping once it settles. */
+  opts?: { trackMotion?: boolean },
 ) {
   const hostRef = useRef<T>(null);
   const [enabled, setEnabled] = useState(readEnabled);
+  const trackMotion = opts?.trackMotion ?? false;
 
   /* Reactive to mid-session reduce-transparency flips (plan §9). */
   useEffect(() => {
@@ -64,14 +69,18 @@ export function useGlassPane<T extends HTMLElement>(
     host.style.overflow = 'clip';
 
     const unregister = registerPane(id, role, host, canvas, scene);
+    /* Portal transitions (slide/fade) change the rect with no scroll/resize
+     * event — watch until the pane settles, then the watcher stops itself. */
+    const stopMotion = trackMotion ? trackPaneMotion(id, host) : undefined;
     return () => {
+      stopMotion?.();
       unregister();
       host.classList.remove('glass-optical');
       host.style.position = prevPosition;
       host.style.overflow = prevOverflow;
       canvas.remove();
     };
-  }, [enabled, id, role, scene]);
+  }, [enabled, id, role, scene, trackMotion]);
 
   return hostRef;
 }
