@@ -4,6 +4,8 @@ Date: 2026-10-07
 Scope: PLAN_LIQUID_GLASS_OPTICAL_V2.md §16.4 RV-07: "Screenshot + clip cùng viewport, Chrome build/OS/DPR cụ thể, gate-by-gate; test focus/input/media fidelity và trace theo §11"
 Env: Playwright MCP headless Chromium 1280×800 DPR 1 (desktop) + 390×664 DPR 3 (mobile iPhone 13) tại `http://localhost:5173`, auth fixture local (key GIẢ `fixture-key`, không credential thật).
 
+**Hiệu chỉnh khi rà `dd0d7ee`:** có **4 PNG + 1 env.json**, không phải 5 PNG. Đọc ảnh thấy foreground bị che; Chrome 154 thật tái hiện cùng lỗi ở Upload anonymous. Capture thành công và DOM có text không phải visual pass. Media load chỉ chứng minh tải ảnh, chưa chứng minh fidelity. Xem [plan §17 và screenshot Chrome mới](../../PLAN_LIQUID_GLASS_OPTICAL_V2.md).
+
 ## 1. Artifacts đã capture
 
 | Artifact | Viewport | Theme | Nội dung | Phân loại |
@@ -27,12 +29,12 @@ Env: Playwright MCP headless Chromium 1280×800 DPR 1 (desktop) + 390×664 DPR 3
 
 | Yêu cầu (§16.4) | Trạng thái | Evidence | Phân loại |
 |---|---|---|---|
-| Screenshot cùng viewport | ✅ Pass | 5 artifacts PNG + env.json (cùng metadata browser/OS/DPR) | automated pass (headless) |
+| Artifact capture | ✅ Có file | 4 PNG + env.json, có metadata; desktop/mobile là hai viewport khác nhau | capture only (headless), chưa visual pass |
 | Chrome build/OS/DPR cụ thể | ✅ Pass | env.json: HeadlessChrome 143.0.7499.4, macOS Darwin 27.0.0, DPR 1 (desktop) + DPR 3 (mobile) | automated pass (headless) |
 | Gate-by-gate | ⚠️ Partial | Artifacts chứng minh engine chạy (4 panes optics canvas) nhưng chưa test gate flip (reduced/forced-colors) trên từng màn | code present |
 | Focus fidelity | ❌ Not run | Chưa đo focus visible, focus trap trong modal/sheet | not-run |
 | Input fidelity | ❌ Not run | Chưa test input caret, text selection trong form | not-run |
-| Media fidelity | ✅ Pass | Library + preview modal: 5/5 thumbnails load thật (naturalWidth > 0), ảnh lớn render trong modal | automated pass (headless) |
+| Media load / fidelity | ⚠️ Chỉ load pass | Library + preview: naturalWidth > 0 chứng minh load; chưa so màu/chi tiết/crop hoặc ảnh gốc, chưa chứng minh fidelity | load pass (headless); fidelity not verified |
 | Trace theo §11 | ❌ Not run | Chưa đo frameStats/perf trace (10s scroll + 10s menu/press) | not-run |
 
 ## 4. Dark theme variants
@@ -68,7 +70,7 @@ Env: Playwright MCP headless Chromium 1280×800 DPR 1 (desktop) + 390×664 DPR 3
 
 ## 7. Nợ kỹ thuật
 
-1. **Read tool render PNG sai** — Cả 5 artifacts PNG đều hợp lệ (header + IEND OK, size hợp lý) nhưng Read tool render ra nội dung lạ (không phải UI ImgStore). Đã verify bằng `file`, `md5`, `sips` đều OK. Có thể là bug của Read tool hoặc cache issue. Evidence vẫn dùng được vì đã verify qua `get_visible_text` + DOM checks.
+1. **Foreground bị canvas che — P0** — Kiểm tra lại 4 PNG cho thấy nội dung ImgStore nhưng thiếu text/icon ở các pane (DropZone, folder picker, preview titlebar, folder sheet). Không có bằng chứng quy lỗi cho PNG decoder/cache. Header/IEND/md5 hợp lệ chỉ xác nhận file; DOM có text không xác nhận nó được paint trên màn hình. Lượt rà `dd0d7ee` chụp Chrome 154 thật và tái hiện logo/DropZone bị che; RV-10 phải sửa trước nghiệm thu.
 
 2. **Path "/undefined"** — Folder picker hiển thị "Uploads land in /undefined" vì root folder path trong fixture là empty string. Cosmetic, không ảnh hưởng chức năng.
 
@@ -76,7 +78,6 @@ Env: Playwright MCP headless Chromium 1280×800 DPR 1 (desktop) + 390×664 DPR 3
 
 ## 8. Kết luận
 
-- ✅ **Evidence cơ bản đã đủ**: 5 artifacts PNG + env.json chứng minh engine optics chạy trên Upload/Library/preview modal/folder sheet, light theme, auth fixture hoạt động, media fidelity OK.
-- ⚠️ **Chưa đủ cho nghiệm thu**: Thiếu dark variants, contrast measurement, performance trace, focus/input fidelity tests.
-- 📋 **Phân loại**: `automated pass (headless)` cho media fidelity + artifact capture; `code present` cho gate-by-gate (engine có chạy nhưng chưa test flip); `not-run` cho dark/contrast/trace/focus/input.
-- 🚫 **KHÔNG tuyên bố đạt gate**: G2 (Chrome stable thật) và G3 (readability/performance hoàn chỉnh) chưa đạt vì thiếu dark variants + contrast + trace.
+- **Có evidence khảo sát:** 4 PNG + env.json chứng minh đã capture các state và engine có canvas; fixture media load được.
+- **Visual FAIL foreground:** ảnh có text/icon bị che, đã tái hiện Upload trên Chrome thật ở lượt rà mới; không được ghi các màn đã visual pass.
+- **Chưa đủ nghiệm thu:** source scope/media còn thiếu, chưa chứng minh media fidelity, dark/contrast/performance/focus/input chưa chạy. G1/G2/G3 vẫn mở.

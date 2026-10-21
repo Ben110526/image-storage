@@ -47,7 +47,7 @@
   --color-content-secondary: #EEF1F6;
   --color-content-elevated: #FFFFFF;
   --color-text-primary: #152238;
-  --color-text-secondary: #4B5C74;
+  --color-text-secondary: #35475F;
   --color-text-tertiary: #626F82;
   --color-accent: #4658D9;
   --color-accent-hover: #394BC1;
@@ -74,7 +74,7 @@
   --color-code-bg: #EEF1F6;
   --glass-regular-fill: rgba(248, 250, 255, 0.40);
   --glass-elevated-fill: rgba(248, 250, 255, 0.66);
-  --glass-clear-fill: rgba(255, 255, 255, 0.12);
+  --glass-clear-fill: rgba(10, 18, 30, 0.52);
   --glass-regular-blur: 20px;
   --glass-elevated-blur: 24px;
   --glass-clear-blur: 8px;
@@ -193,7 +193,7 @@
   --color-code-bg: #1D2330;
   --glass-regular-fill: rgba(24, 30, 42, 0.46);
   --glass-elevated-fill: rgba(24, 30, 42, 0.72);
-  --glass-clear-fill: rgba(10, 14, 22, 0.18);
+  --glass-clear-fill: rgba(10, 18, 30, 0.52);
   --glass-regular-blur: 22px;
   --glass-elevated-blur: 26px;
   --glass-clear-blur: 10px;

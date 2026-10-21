@@ -1,0 +1,145 @@
+/* V2-01 glass lab styles — self-contained, no app tokens. */
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  background: #0b1220;
+  color: #fff;
+}
+
+.lab { min-height: 100vh; display: flex; flex-direction: column; }
+
+.lab-toolbar {
+  display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
+  padding: 10px 16px; background: #111a2c; border-bottom: 1px solid #2a3552;
+  font-size: 13px; position: relative; z-index: 10;
+}
+.lab-toolbar select, .lab-toolbar input { accent-color: #6ea8fe; }
+
+.stage-wrap { flex: 1; overflow: auto; position: relative; }
+.stage {
+  position: relative; min-height: 130vh; /* room to scroll for scene c */
+  overflow: hidden;
+}
+
+/* ---- scenes -------------------------------------------------------- */
+.scene { position: absolute; inset: 0; }
+
+.scene-canvas {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  display: block;
+}
+
+.scene-colorful { background: linear-gradient(160deg, #0e2a52 0%, #144d8f 40%, #0b1c38 100%); }
+.scene-colorful .blob { position: absolute; border-radius: 50%; filter: blur(2px); }
+.scene-colorful .stem {
+  position: absolute; width: 8px; height: 260px; border-radius: 4px;
+  background: linear-gradient(180deg, #062, #2a4);
+}
+
+/* Dark variants (G2 light/dark check) — same structure, dark palette. */
+.lab[data-scene-mode='dark'] .lab-toolbar { background: #0a0f1a; border-bottom-color: #1c2438; }
+.lab[data-scene-mode='dark'] .scene-colorful-canvas { filter: brightness(0.62) saturate(0.85); }
+.lab[data-scene-mode='dark'] .scene-grid-canvas { filter: brightness(0.5) saturate(0.7); }
+.lab[data-scene-mode='dark'] .scene-dom { background: #0d1424; }
+.lab[data-scene-mode='dark'] .mock-card {
+  background: #1c2740; color: #dbe4f5; border-color: #31405f;
+}
+.lab[data-scene-mode='dark'] body { background: #060a12; }
+
+/* Occlusion probe (G2 §11.3): an OPAQUE card placed between the scene and
+ * the moving glass pane. The pane must NOT show scene pixels through where
+ * the card stands — the renderer has no knowledge of the card, so the check
+ * is visual: the card stays fully opaque on top of the pane's canvas layer. */
+.occluder {
+  position: absolute; z-index: 3;
+  background: #e8b93b; color: #1a2438; border-radius: 8px;
+  border: 1px solid #b78f1f;
+  padding: 8px 12px; font: 600 12px/1.3 ui-monospace, monospace;
+  box-shadow: 0 4px 14px rgba(0,0,0,.4);
+  pointer-events: none;
+}
+
+.scene-grid {
+  background:
+    repeating-linear-gradient(0deg, transparent 0 39px, rgba(255,255,255,.55) 39px 40px),
+    repeating-linear-gradient(90deg, transparent 0 39px, rgba(255,255,255,.55) 39px 40px),
+    linear-gradient(150deg, #25385c, #101c33);
+}
+.grid-num {
+  position: absolute; font: 600 13px/1 ui-monospace, monospace;
+  color: rgba(255,255,255,.85);
+}
+
+.scene-dom { background: #22314e; padding: 24px; position: absolute; overflow: visible; }
+.mock-card {
+  background: #f4f7fc; color: #1a2438; border-radius: 12px;
+  padding: 14px 16px; margin: 0 0 14px; max-width: 560px;
+  border: 1px solid #c9d4e6; box-shadow: 0 2px 8px rgba(0,0,0,.25);
+}
+.mock-card p { margin: 6px 0 0; font-size: 14px; line-height: 1.5; }
+
+/* ---- panes ---------------------------------------------------------- */
+.pane-row {
+  position: absolute; left: 8%; right: 8%;
+  display: flex; align-items: center; gap: 48px;
+}
+.lab-fixed .pane-row { position: fixed; }
+
+.pane {
+  position: relative; flex: none;
+  box-shadow: 0 10px 32px rgba(2, 10, 26, 0.35);
+}
+
+.pane-material {
+  position: absolute; inset: 0;
+  background: rgba(255, 255, 255, 0.10); /* thin body tint — alpha per plan §6.3 */
+  pointer-events: none;
+}
+
+.pane-material-canvas {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  /* No CSS background tint here — the canvas writes opaque pixels via
+   * putImageData, so the tint is composited inside renderPane() instead. */
+  pointer-events: none;
+}
+
+.pane-rim {
+  position: absolute; inset: 0; pointer-events: none;
+  box-shadow:
+    inset 0 1px 0.5px rgba(255, 255, 255, 0.65),
+    inset 0 -1px 1px rgba(8, 18, 38, 0.28),
+    inset 1px 0 1px rgba(255, 255, 255, 0.18),
+    inset -1px 0 1px rgba(255, 255, 255, 0.18);
+}
+
+.pane-foreground {
+  position: relative; z-index: 1;
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.pane::after {
+  content: attr(data-label);
+  position: absolute; top: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+  font: 500 11px/1 ui-monospace, monospace; color: rgba(255,255,255,.75);
+  white-space: nowrap; text-shadow: 0 1px 2px rgba(0,0,0,.6);
+}
+
+.pill-text { font-size: 17px; font-weight: 600; letter-spacing: 0.01em; }
+
+.panel-body { padding: 24px 26px; text-align: left; width: 100%; }
+.panel-body h3 { margin: 0 0 8px; font-size: 19px; }
+.panel-body p { margin: 0 0 16px; font-size: 13.5px; line-height: 1.5; opacity: 0.92; }
+.panel-btn {
+  border: 1px solid rgba(255,255,255,.5); background: rgba(255,255,255,.16);
+  color: #fff; border-radius: 999px; padding: 8px 20px; font-size: 14px; font-weight: 600;
+  cursor: pointer;
+}
+
+.reference-note { max-width: 300px; font-size: 12.5px; line-height: 1.55; color: rgba(255,255,255,.85); }
+.reference-note code { background: rgba(255,255,255,.14); padding: 1px 5px; border-radius: 4px; }

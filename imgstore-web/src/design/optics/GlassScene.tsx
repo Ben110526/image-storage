@@ -6,8 +6,8 @@
  *
  * RV-02 (plan §16.4): the scene is no longer three alpha blobs on a flat
  * fill. It is a STRUCTURED composition built from the §5.2 palette — broad
- * color fields to shape the environment, plus medium-scale detail (curved
- * contour bands and a fine structural grid) sitting exactly where the navbar
+ * color fields to shape the environment, plus medium-scale folded ribbons
+ * and directional crests sitting exactly where the navbar
  * and the DropZone live, so refraction has recognizable structure to bend at
  * every pane edge. The scene is procedural (drawn here, owned by the project,
  * no external asset, no private user imagery — §5.1 items 5/7), static at
@@ -24,6 +24,7 @@ import { useAppearance } from '../../context/AppearanceContext';
 import { opticsEnabled, onForcedColorsChange } from './capabilities';
 import { cappedDpr } from './profiles';
 import { notifySceneRepaint } from './registry';
+import { appSceneVisibleBehind } from './sourceScope';
 import type { SceneSource } from './types';
 
 /* §5.2 palette — broad fields. `field` = large soft regions that set the
@@ -47,9 +48,6 @@ interface SceneSpec {
   /** Curved contour band color (scene cyan). */
   band: string;
   bandAlpha: number;
-  /** Structural grid line color. */
-  grid: string;
-  gridAlpha: number;
   /** Warm counterweight accent (scene warm). */
   warm: string;
 }
@@ -59,17 +57,15 @@ const SCENES: Record<'light' | 'dark', SceneSpec> = {
     base: '#E9EFF7',
     fields: [
       // Scene blue — broad region upper-left, behind the navbar zone.
-      { x: 0.1, y: 0.06, r: 0.62, color: '46,134,237', alpha: 0.34 },
+      { x: 0.1, y: 0.06, r: 0.9, color: '46,134,237', alpha: 0.46 },
       // Scene cyan — light spill lower-right.
-      { x: 0.92, y: 0.9, r: 0.55, color: '116,216,238', alpha: 0.3 },
+      { x: 0.92, y: 0.9, r: 0.75, color: '116,216,238', alpha: 0.45 },
       // Scene warm — bounded counterweight, center-right where the DropZone
       // sits on desktop widths.
-      { x: 0.66, y: 0.46, r: 0.3, color: '237,146,125', alpha: 0.22 },
+      { x: 0.66, y: 0.46, r: 0.48, color: '237,146,125', alpha: 0.4 },
     ],
     band: '116,216,238',
-    bandAlpha: 0.5,
-    grid: '21,52,102',
-    gridAlpha: 0.05,
+    bandAlpha: 0.55,
     warm: '237,146,125',
   },
   dark: {
@@ -81,8 +77,6 @@ const SCENES: Record<'light' | 'dark', SceneSpec> = {
     ],
     band: '35,126,153',
     bandAlpha: 0.55,
-    grid: '180,205,240',
-    gridAlpha: 0.05,
     warm: '164,109,104',
   },
 };
@@ -100,6 +94,7 @@ let appScene: SceneSource | null = null;
  * the live canvas at use time, so a pane effect that runs early still ends
  * up pointing at the scene once it remounts. */
 const lazyAppScene: SceneSource = {
+  kind: 'app-scene',
   get canvas(): HTMLCanvasElement {
     /* A pane render without a live scene is a no-op by contract; hand back a
      * detached 1×1 canvas so the registry's readback path stays total. */
@@ -111,6 +106,7 @@ const lazyAppScene: SceneSource = {
     return appScene.canvas;
   },
   rect: () => appScene?.rect() ?? new DOMRect(0, 0, 1, 1),
+  canSample: (host, rect) => !!appScene && appSceneVisibleBehind(host, rect),
 };
 const lazyCanvas = typeof document !== 'undefined' ? document.createElement('canvas') : ({} as HTMLCanvasElement);
 
@@ -134,58 +130,32 @@ function drawContourBands(
   w: number,
   h: number,
 ): void {
-  const minDim = Math.min(w, h);
   ctx.save();
-  ctx.strokeStyle = `rgba(${spec.band},${spec.bandAlpha})`;
-  ctx.lineWidth = Math.max(10, minDim * 0.02);
-  ctx.lineCap = 'round';
-
-  // Band 1 — sweeps the top strip, directly under the navbar (y ≈ 8% of h).
-  ctx.beginPath();
-  ctx.moveTo(-w * 0.05, h * 0.1);
-  ctx.bezierCurveTo(w * 0.3, h * 0.02, w * 0.55, h * 0.16, w * 1.05, h * 0.06);
-  ctx.stroke();
-
-  // Band 2 — crosses the upper-middle region where the DropZone sits
-  // (y ≈ 30–45% of h), warmer tint on the light scene's warm field side.
-  ctx.strokeStyle = `rgba(${spec.warm},${spec.bandAlpha * 0.8})`;
-  ctx.beginPath();
-  ctx.moveTo(-w * 0.05, h * 0.42);
-  ctx.bezierCurveTo(w * 0.35, h * 0.3, w * 0.6, h * 0.5, w * 1.05, h * 0.34);
-  ctx.stroke();
-
-  // Band 3 — lower sweep, keeps detail present for bottom navigation.
-  ctx.strokeStyle = `rgba(${spec.band},${spec.bandAlpha * 0.7})`;
-  ctx.beginPath();
-  ctx.moveTo(-w * 0.05, h * 0.82);
-  ctx.bezierCurveTo(w * 0.25, h * 0.72, w * 0.7, h * 0.92, w * 1.05, h * 0.78);
-  ctx.stroke();
-  ctx.restore();
-}
-
-/* Fine structural grid — subtle, but it gives pane edges a straight line to
- * visibly bend (RV-02: "chi tiết vừa để thấy mép bị uốn", and §5.1 item 2 —
- * detail is geometric structure, not noise). */
-function drawStructuralGrid(
-  ctx: CanvasRenderingContext2D,
-  spec: SceneSpec,
-  w: number,
-  h: number,
-): void {
-  const step = Math.max(56, Math.round(Math.min(w, h) / 12));
-  ctx.save();
-  ctx.strokeStyle = `rgba(${spec.grid},${spec.gridAlpha})`;
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  for (let x = step; x < w; x += step) {
-    ctx.moveTo(x + 0.5, 0);
-    ctx.lineTo(x + 0.5, h);
+  // Broad folded ribbons with a narrow crest: both color and recognizable
+  // detail pass through glass. The debug grid belongs in the lab, not the UI.
+  for (let i = 0; i < 6; i++) {
+    const y = (i * 0.19 - 0.12) * h;
+    const color = i === 2 || i === 4 ? spec.warm : spec.band;
+    const gradient = ctx.createLinearGradient(0, y, w, y + h * 0.27);
+    gradient.addColorStop(0, `rgba(${color},${spec.bandAlpha * 0.12})`);
+    gradient.addColorStop(0.32, `rgba(${color},${spec.bandAlpha * 0.8})`);
+    gradient.addColorStop(0.7, `rgba(${color},${spec.bandAlpha * 0.22})`);
+    gradient.addColorStop(1, `rgba(${color},${spec.bandAlpha * 0.7})`);
+    ctx.beginPath();
+    ctx.moveTo(-w * 0.1, y + h * 0.24);
+    ctx.bezierCurveTo(w * 0.12, y - h * 0.11, w * 0.48, y + h * 0.37, w * 1.1, y + h * 0.02);
+    ctx.lineTo(w * 1.1, y + h * 0.23);
+    ctx.bezierCurveTo(w * 0.6, y + h * 0.48, w * 0.14, y + h * 0.02, -w * 0.1, y + h * 0.38);
+    ctx.closePath();
+    ctx.fillStyle = gradient;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-w * 0.1, y + h * 0.24);
+    ctx.bezierCurveTo(w * 0.12, y - h * 0.11, w * 0.48, y + h * 0.37, w * 1.1, y + h * 0.02);
+    ctx.strokeStyle = spec.base === '#091525' ? 'rgba(160,218,246,.2)' : 'rgba(255,255,255,.55)';
+    ctx.lineWidth = Math.max(1.5, Math.min(w, h) * 0.0025);
+    ctx.stroke();
   }
-  for (let y = step; y < h; y += step) {
-    ctx.moveTo(0, y + 0.5);
-    ctx.lineTo(w, y + 0.5);
-  }
-  ctx.stroke();
   ctx.restore();
 }
 
@@ -202,12 +172,12 @@ export function GlassScene() {
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) return;
 
-    const dpr = cappedDpr();
     const w = window.innerWidth;
     const h = window.innerHeight;
+    const dpr = Math.min(cappedDpr(), Math.sqrt(1_500_000 / Math.max(1, w * h)));
     canvas.width = Math.round(w * dpr);
     canvas.height = Math.round(h * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -220,7 +190,7 @@ export function GlassScene() {
     ctx.fillRect(0, 0, w, h);
 
     /* Broad color fields (soft radial regions — environment shaping, §5.1
-     * item 2's "vùng màu lớn"). Not pre-blurred into mush: the bands and grid
+     * item 2's "vùng màu lớn"). Not pre-blurred into mush: the ribbons
      * on top keep hard structure (§5.1 item 3). */
     const minDim = Math.min(w, h);
     for (const f of spec.fields) {
@@ -236,7 +206,6 @@ export function GlassScene() {
     }
 
     drawContourBands(ctx, spec, w, h);
-    drawStructuralGrid(ctx, spec, w, h);
   }, [resolvedTheme]);
 
   /* RV-06 — gate subscription: attribute (data-transparency) + forced-colors

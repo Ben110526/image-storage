@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Box,
   Typography,
@@ -74,24 +74,32 @@ export const Navbar: React.FC<NavbarProps> = ({
   const { pref, setTheme } = useAppearance();
 
   /* V2-03 — the navbar is the first real optical pane: real refraction of the
-   * app-owned GlassScene backdrop (canvas displacement, no CSS blur). Falls
-   * back to the CSS material under reduced transparency. */
+   * app-owned GlassScene backdrop. Native backdrop handles overlapping DOM;
+   * preferences disable the decorative engine. */
   const navbarRef = useGlassPane<HTMLElement>('navbar', 'pill', getAppScene());
 
-  /* V2-06 — the account + overflow menus are MUI portal surfaces: they mount
-   * with a grow/fade transition whose transform never fires scroll/resize, so
-   * trackMotion re-renders the displaced scene until the paper settles (plan
-   * §8.6: menus get a medium optical pane at their true portal position). */
-  const userMenuRef = useGlassPane<HTMLDivElement>('navbar-menu-user', 'panel', getAppScene(), {
+  /* Portal menus use the actual browser backdrop at their current position.
+   * They must never sample the app wallpaper through intervening content. */
+  const userMenuRef = useGlassPane<HTMLDivElement>('navbar-menu-user', 'panel', null, {
     trackMotion: true,
   });
-  const utilMenuRef = useGlassPane<HTMLDivElement>('navbar-menu-util', 'panel', getAppScene(), {
+  const utilMenuRef = useGlassPane<HTMLDivElement>('navbar-menu-util', 'panel', null, {
     trackMotion: true,
   });
 
   const [userAnchor, setUserAnchor] = useState<null | HTMLElement>(null);
   const [utilAnchor, setUtilAnchor] = useState<null | HTMLElement>(null);
-
+  // Keep dropdowns from changing the viewport width via body scroll lock.
+  // Dismiss on background scroll so the floating menu stays with its anchor.
+  useEffect(() => {
+    const closeOnScroll = (event: Event) => {
+      if ((event.target as Element | null)?.closest?.('[role="menu"]')) return;
+      setUserAnchor(null);
+      setUtilAnchor(null);
+    };
+    window.addEventListener('scroll', closeOnScroll, { capture: true, passive: true });
+    return () => window.removeEventListener('scroll', closeOnScroll, { capture: true });
+  }, []);
   const handleLogout = async () => {
     haptics.playDelete();
     setUserAnchor(null);
@@ -300,6 +308,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </Tooltip>
 
             <Menu
+              disableScrollLock
               anchorEl={userAnchor}
               open={Boolean(userAnchor)}
               onClose={() => setUserAnchor(null)}
@@ -366,6 +375,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </Tooltip>
 
         <Menu
+          disableScrollLock
           anchorEl={utilAnchor}
           open={Boolean(utilAnchor)}
           onClose={() => setUtilAnchor(null)}

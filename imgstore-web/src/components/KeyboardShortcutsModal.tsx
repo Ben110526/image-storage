@@ -9,7 +9,6 @@ import {
   Divider,
 } from '@mui/material';
 import { Close as CloseIcon, Keyboard as KeyboardIcon } from '@mui/icons-material';
-import { getAppScene } from '../design/optics/GlassScene';
 import { useGlassPane } from '../design/optics/useGlassPane';
 
 /* KeyboardShortcutsModal — plan §11.3: G2 chrome, <kbd> tokens from the
@@ -66,12 +65,12 @@ export const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
   open,
   onClose,
 }) => {
-  /* V2-06 — titlebar chrome optical (portal mount transition → trackMotion);
+  /* Native title material uses the dialog backdrop;
    * the <kbd> rows stay C0 for readability. */
   const titleRef = useGlassPane<HTMLDivElement>(
     'shortcuts-dialog-titlebar',
     'pill',
-    getAppScene(),
+    null, // Dialog/sheet scope: native backdrop, never app wallpaper.
     { trackMotion: true },
   );
 

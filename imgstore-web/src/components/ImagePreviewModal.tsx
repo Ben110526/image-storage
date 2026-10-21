@@ -28,7 +28,7 @@ import {
 import type { ImageMetadata } from '../types';
 import { haptics } from '../lib/haptics';
 import { CopyButton } from './ui/CopyButton';
-import { getAppScene } from '../design/optics/GlassScene';
+import { MediaGlassStage } from './ui/MediaGlassStage';
 import { useGlassPane } from '../design/optics/useGlassPane';
 
 /* ImagePreviewModal — plan §10.3:
@@ -63,14 +63,12 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
 }) => {
   const [tabIndex, setTabIndex] = useState(0);
 
-  /* V2-05 — preview chrome (title bar) as an optical pane (plan §8.4:
-   * controls float over media with lensing; media pixels stay untouched).
-   * The Dialog animates scale/fade on open → trackMotion re-samples while the
-   * portal settles. The media stage below stays neutral dark, never glass. */
+  /* The title belongs to the dialog shell, so it uses native material.
+   * Only MediaGlassStage controls sample the actual image beneath them. */
   const titleRef = useGlassPane<HTMLDivElement>(
     'preview-titlebar',
     'pill',
-    getAppScene(),
+    null, // Dialog/sheet scope: native backdrop, never app wallpaper.
     { trackMotion: true },
   );
 
@@ -202,7 +200,7 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
 
       <DialogContent sx={{ p: { xs: 2, md: 3 } }}>
         {/* Media stage — neutral dark, theme-independent, never tinted. */}
-        <Box
+        {isImage ? <MediaGlassStage key={cdnUrl} src={cdnUrl} name={image.name} downloadUrl={downloadUrl} onClose={onClose} /> : <Box
           sx={{
             position: 'relative',
             display: 'flex',
@@ -217,19 +215,7 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
             overflow: 'hidden',
           }}
         >
-          {isImage ? (
-            <Box
-              component="img"
-              src={cdnUrl}
-              alt={image.name}
-              sx={{
-                maxWidth: '100%',
-                maxHeight: { xs: 260, sm: 360, md: 460 },
-                objectFit: 'contain',
-                borderRadius: 'var(--radius-sm)',
-              }}
-            />
-          ) : isVideo ? (
+          {isVideo ? (
             <Box
               component="video"
               controls
@@ -312,7 +298,7 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
               </Button>
             </Box>
           )}
-        </Box>
+        </Box>}
 
         {/* Embed snippet tabs */}
         <Tabs

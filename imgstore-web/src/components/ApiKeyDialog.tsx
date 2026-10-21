@@ -21,7 +21,6 @@ import {
   CheckCircleOutlined as SuccessIcon,
 } from '@mui/icons-material';
 import { haptics } from '../lib/haptics';
-import { getAppScene } from '../design/optics/GlassScene';
 import { useGlassPane } from '../design/optics/useGlassPane';
 
 /* ApiKeyDialog — plan §11.1: G2 elevated chrome, C0 input field, Vietnamese
@@ -47,13 +46,11 @@ export const ApiKeyDialog: React.FC<ApiKeyDialogProps> = ({
   const [showKey, setShowKey] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  /* V2-06 — titlebar chrome optical (plan §8.6: vỏ/chrome kính); the input,
-   * error and helper body keep their opaque readable fill. The sheet slides
-   * up on phones → trackMotion re-samples the scene until it settles. */
+  /* Native title material belongs to the dialog; the form stays opaque. */
   const titleRef = useGlassPane<HTMLDivElement>(
     'apikey-dialog-titlebar',
     'pill',
-    getAppScene(),
+    null, // Dialog/sheet scope: native backdrop, never app wallpaper.
     { trackMotion: true },
   );
 

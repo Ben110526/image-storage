@@ -1,0 +1,254 @@
+
+> imgstore@2.0.0 check
+> npm --prefix imgstore-api run typecheck && npm --prefix imgstore-api test && npm --prefix imgstore-web run tokens:check && npm --prefix imgstore-web run check
+
+
+> imgstore-api@1.0.0 typecheck
+> tsc --noEmit
+
+
+> imgstore-api@1.0.0 test
+> node --test tests/*.test.mjs
+
+✔ anonymous and legacy Google sessions cannot use shared storage (29.397167ms)
+✔ only admin issues keys; no user Google record or Drive token required (11.826375ms)
+✔ all client uploads use the system token and separate user folders, with isolated ownership (21.678167ms)
+✔ POST /folders with path get-or-creates the whole nested chain idempotently (12.333709ms)
+✔ revocation stops access but does not remove images; replacement can retain client ID (1.314125ms)
+✔ missing system credentials never falls back to client Drive or mock success (0.897375ms)
+✔ malformed uploads and arbitrary Drive IDs are rejected (1.077584ms)
+Delete failed: Error: Google Drive delete failed (503): {}
+    at deleteFromGoogleDrive (imgstore-tests.mjs:2653:11)
+    at async deleteImageHandler (imgstore-tests.mjs:3424:7)
+    at async dispatch (imgstore-tests.mjs:22:17)
+    at async dispatch (imgstore-tests.mjs:22:17)
+    at async cors2 (imgstore-tests.mjs:2175:5)
+    at async dispatch (imgstore-tests.mjs:22:17)
+    at async dispatch (imgstore-tests.mjs:22:17)
+    at async imgstore-tests.mjs:1461:25
+    at async TestContext.<anonymous> (file:///Users/macbook/workspace/test/imgstore-api/tests/api.test.mjs:227:17)
+    at async Test.run (node:internal/test_runner/test:1208:7)
+✔ failed Drive delete preserves records and pagination traverses all KV pages (2.32125ms)
+✔ upload from url validates input and fetches image (2.787ms)
+✔ C4 parity — valid dark + tint 70 (3.328042ms)
+✔ C4 parity — valid system, OS light (0.447834ms)
+✔ C4 parity — valid system, OS dark (0.415916ms)
+✔ C4 parity — corrupt JSON (0.432375ms)
+✔ C4 parity — corrupt JSON + legacy dark (0.406083ms)
+✔ C4 parity — null + legacy dark (0.560917ms)
+✔ C4 parity — empty storage (1.164916ms)
+✔ C4 parity — out-of-range tint (0.603542ms)
+✔ C4 parity — negative tint (0.636167ms)
+✔ C4 parity — garbage theme value (0.579875ms)
+✔ C4 parity — app reduce flags on (0.422625ms)
+✔ C4 parity — OS reduce flags on (0.377083ms)
+✔ C4 parity — storage throws (0.360542ms)
+✔ C4 — legacy migration persists identically on both sides (1.822583ms)
+✔ R1 — new endpoint accepts the credential: authenticated as the NEW profile (1.846417ms)
+✔ R1 — new endpoint REJECTS the credential (401): identity dropped everywhere, never carried across (1.045959ms)
+✔ R1 — 403 is treated like 401 (credential cleared) (0.422875ms)
+✔ R1 — network failure keeps the credential for retry but does NOT authenticate (0.286083ms)
+✔ R1 — no credential on the new connection lands anonymous without a fetch (0.259542ms)
+✔ client keeps resumable sessions separate per destination folder (17.469416ms)
+✔ client rebuilds intermediate chunk from confirmed offset after network failure (3.092625ms)
+✔ client retains session and avoids duplicate initialization on transient status error (17.30575ms)
+✔ client consumes acknowledged Range rather than assuming all chunk bytes arrived (0.514292ms)
+✔ offline status requests retry before sending another chunk at the recovered offset (4.649333ms)
+✔ continuous offline failure exhausts exactly five retries and retains the session (7.356875ms)
+✔ terminal authorization errors do not trigger network retries (0.523083ms)
+✔ finalization polling survives a temporary network failure without re-uploading (3.045334ms)
+✔ cancel during initialization waits for the session ID and confirmed abort (0.55225ms)
+✔ cancel before initialization starts creates no server session (0.187541ms)
+✔ failed cancellation keeps its session available for status recovery (0.650708ms)
+✔ immediate pause/resume waits for the old request and starts only one upload loop (0.508917ms)
+✔ cancel wins over a resume queued behind a paused request (0.377583ms)
+✔ batch queue reserves at most five slots and starts waiting files after release (0.214292ms)
+✔ paused or failed sessions keep their slot; removing a waiting file never starts it (0.096583ms)
+✔ eight queued uploaders finish automatically without exceeding five server sessions (1.145083ms)
+✔ FIX-03 — init/chunk/abort keep the enqueue-time credential after the global connection changes (3.334667ms)
+✔ FIX-03 — status recovery keeps the enqueue-time credential after the global connection changes (3.277916ms)
+✔ real quota: commit/refund idempotent; legacy delete does not refund unrelated files (3.367917ms)
+✔ real alarm retains reservation on failed session lookup (22.6445ms)
+✔ real session: invalid ranges rejected before forwarding (2.583167ms)
+Step 3 (KV Global Record) write error: Error: injected KV failure
+    at f.env.IMGSTORE_META.put (file:///Users/macbook/workspace/test/imgstore-api/tests/durable.test.mjs:102:65)
+    at UploadSessionDO.runTwoPhaseFinalization (durable-tests.mjs:4144:38)
+    at async durable-tests.mjs:4034:11
+    at async AsyncMutex.runExclusive (durable-tests.mjs:3794:14)
+    at async TestContext.<anonymous> (file:///Users/macbook/workspace/test/imgstore-api/tests/durable.test.mjs:109:13)
+    at async Test.run (node:internal/test_runner/test:1208:7)
+    at async Test.processPendingSubtests (node:internal/test_runner/test:831:7)
+Step 4 (KV User Record) write error: Error: injected KV failure
+    at f.env.IMGSTORE_META.put (file:///Users/macbook/workspace/test/imgstore-api/tests/durable.test.mjs:102:65)
+    at UploadSessionDO.runTwoPhaseFinalization (durable-tests.mjs:4163:38)
+    at async durable-tests.mjs:4034:11
+    at async AsyncMutex.runExclusive (durable-tests.mjs:3794:14)
+    at async TestContext.<anonymous> (file:///Users/macbook/workspace/test/imgstore-api/tests/durable.test.mjs:109:13)
+    at async Test.run (node:internal/test_runner/test:1208:7)
+    at async Test.processPendingSubtests (node:internal/test_runner/test:831:7)
+Step 3 (KV Global Record) write error: Error: injected KV failure
+    at f.env.IMGSTORE_META.put (file:///Users/macbook/workspace/test/imgstore-api/tests/durable.test.mjs:102:65)
+    at UploadSessionDO.runTwoPhaseFinalization (durable-tests.mjs:4144:38)
+    at async durable-tests.mjs:4071:15
+    at async AsyncMutex.runExclusive (durable-tests.mjs:3794:14)
+    at async TestContext.<anonymous> (file:///Users/macbook/workspace/test/imgstore-api/tests/durable.test.mjs:109:13)
+    at async Test.run (node:internal/test_runner/test:1208:7)
+    at async Test.processPendingSubtests (node:internal/test_runner/test:831:7)
+Step 4 (KV User Record) write error: Error: injected KV failure
+    at f.env.IMGSTORE_META.put (file:///Users/macbook/workspace/test/imgstore-api/tests/durable.test.mjs:102:65)
+    at UploadSessionDO.runTwoPhaseFinalization (durable-tests.mjs:4163:38)
+    at async durable-tests.mjs:4071:15
+    at async AsyncMutex.runExclusive (durable-tests.mjs:3794:14)
+    at async TestContext.<anonymous> (file:///Users/macbook/workspace/test/imgstore-api/tests/durable.test.mjs:109:13)
+    at async Test.run (node:internal/test_runner/test:1208:7)
+    at async Test.processPendingSubtests (node:internal/test_runner/test:831:7)
+Recovery query failed: Error: FINALIZATION_PENDING: retry upload status shortly.
+    at UploadSessionDO.runTwoPhaseFinalization (durable-tests.mjs:4191:13)
+    at async durable-tests.mjs:4071:15
+    at async AsyncMutex.runExclusive (durable-tests.mjs:3794:14)
+    at async TestContext.<anonymous> (file:///Users/macbook/workspace/test/imgstore-api/tests/durable.test.mjs:109:13)
+    at async Test.run (node:internal/test_runner/test:1208:7)
+    at async Test.processPendingSubtests (node:internal/test_runner/test:831:7)
+✔ real session: failed finalization never returns completed; retry persists public URLs (15.074875ms)
+✔ real status recovers intermediate offset and abort detects completed Drive file (1.363792ms)
+✔ real expiry fences session before releasing quota (0.994792ms)
+✔ web API transports folder_id in multipart, URL and resumable and parent_id for folder creation (43.488292ms)
+✔ folders: concurrent first requests create one root per user; replacement keys reuse it (53.404667ms)
+✔ folders: duplicate normalized names are idempotent and nested paths remain private (26.529583ms)
+✔ folders: lost Drive create response and DO restart reuse pre-generated ID, not another folder (3.233083ms)
+✔ folders: all upload paths persist and honor destination; omitted ID goes to the user root (17.70725ms)
+✔ folders: foreign, arbitrary and malformed destinations cannot trigger an upload or URL fetch (10.354292ms)
+✔ folders: moved/trashed ancestors and changed shared-root config fail closed (5.802542ms)
+✔ folders: absent shared root or DO bindings never fall back to a flat Drive upload (1.792583ms)
+Delete failed: Error: Quota refund failed
+    at deleteImageHandler (resumable-tests.mjs:3441:17)
+    at async dispatch (resumable-tests.mjs:22:17)
+    at async dispatch (resumable-tests.mjs:22:17)
+    at async cors2 (resumable-tests.mjs:2175:5)
+    at async dispatch (resumable-tests.mjs:22:17)
+    at async dispatch (resumable-tests.mjs:22:17)
+    at async resumable-tests.mjs:1461:25
+    at async TestContext.<anonymous> (file:///Users/macbook/workspace/test/imgstore-api/tests/resumable.test.mjs:292:17)
+    at async Test.run (node:internal/test_runner/test:1208:7)
+    at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3)
+Delete failed: Error: injected index failure
+    at f.kv.delete (file:///Users/macbook/workspace/test/imgstore-api/tests/resumable.test.mjs:296:60)
+    at deleteImageHandler (resumable-tests.mjs:3448:39)
+    at async dispatch (resumable-tests.mjs:22:17)
+    at async dispatch (resumable-tests.mjs:22:17)
+    at async cors2 (resumable-tests.mjs:2175:5)
+    at async dispatch (resumable-tests.mjs:22:17)
+    at async dispatch (resumable-tests.mjs:22:17)
+    at async resumable-tests.mjs:1461:25
+    at async TestContext.<anonymous> (file:///Users/macbook/workspace/test/imgstore-api/tests/resumable.test.mjs:297:17)
+    at async Test.run (node:internal/test_runner/test:1208:7)
+✔ delete keeps retry metadata when refund or user index cleanup fails (35.565083ms)
+✔ resumable upload init validates name, size, 5GB max limit, and infers MIME type (8.558667ms)
+✔ chunk streaming handles intermediate 308 Range and 201 completion (13.947166ms)
+✔ session ownership enforcement: unauthorized client cannot upload chunks or abort session (2.471791ms)
+✔ abort returns 409 Conflict if file already created, releases quota if in-flight (1.584833ms)
+✔ quota refund on file deletion is idempotent (1.128333ms)
+✔ Google drag selects the image rather than its surrounding viewer/page link (4.235209ms)
+✔ HTML parsing decodes entities, accepts unquoted attributes and resolves relative image URLs (0.820083ms)
+✔ drag supports data-image thumbnails and direct file links without guessed extensions (0.570417ms)
+✔ remote import blocks IP literals, local hosts, credentials, service ports and unsupported schemes (0.720333ms)
+✔ URL handler streams a file larger than 15 MB through valid resumable chunks (44.113375ms)
+✔ URL handler follows public redirects but blocks a redirect to a private target (0.968125ms)
+✔ HTML pages and disguised HTML are rejected before creating a Drive session (0.576667ms)
+✔ unknown size is bounded; advertised files over 50 MB are rejected before upload (1.800875ms)
+✔ short sources abort their own session and never publish the final chunk (2.191542ms)
+✔ protected sources fail clearly without creating a Drive session (0.37375ms)
+ℹ tests 76
+ℹ suites 0
+ℹ pass 76
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 366.943792
+
+> imgstore-web@0.0.0 tokens:check
+> node scripts/generate-design-tokens.mjs --check && node scripts/generate-appearance-bootstrap.mjs --check
+
+tokens: up to date
+appearance bootstrap: up to date
+
+> imgstore-web@0.0.0 check
+> npm run lint && npm test && npm run build
+
+
+> imgstore-web@0.0.0 lint
+> oxlint
+
+src/pages/LibraryPage.tsx:35:5: warning react(set-state-in-effect): Calling setState synchronously within an effect can trigger cascading renders help: Effects should synchronize React with external systems. Calling setState synchronously inside an effect starts another render and is usually unnecessary. Derive the value during render, initialize state directly, or update it from the event that caused the change. Use an effect only when synchronizing with an external system.
+src/design/optics/useGlassPane.ts:72:55: warning react(immutability): This value cannot be modified help: Modifying a value returned from 'useState()', which should not be modified directly. Use the setter function to update instead
+src/design/optics/GlassScene.tsx:114:17: warning react(only-export-components): Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components.
+src/design/optics/GlassScene.tsx:119:17: warning react(only-export-components): Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components.
+src/components/ApiKeyDialog.tsx:60:7: warning react(set-state-in-effect): Calling setState synchronously within an effect can trigger cascading renders help: Effects should synchronize React with external systems. Calling setState synchronously inside an effect starts another render and is usually unnecessary. Derive the value during render, initialize state directly, or update it from the event that caused the change. Use an effect only when synchronizing with an external system.
+src/components/ApiKeyManager.tsx:33:5: warning react(set-state-in-effect): Calling setState synchronously within an effect can trigger cascading renders help: Effects should synchronize React with external systems. Calling setState synchronously inside an effect starts another render and is usually unnecessary. Derive the value during render, initialize state directly, or update it from the event that caused the change. Use an effect only when synchronizing with an external system.
+src/App.tsx:88:11: warning react-hooks(exhaustive-deps): React Hook useEffect has a missing dependency: 'toggleColorMode' help: Either include it or remove the dependency array.
+src/App.tsx:113:7: warning react-hooks(exhaustive-deps): React hook useEffect depends on `navigate`, which changes every render help: Try memoizing this variable with `useRef` or `useCallback`.
+src/context/AuthContext.tsx:220:17: warning react(only-export-components): Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components.
+src/context/AuthContext.tsx:68:7: warning react(set-state-in-effect): Calling setState synchronously within an effect can trigger cascading renders help: Effects should synchronize React with external systems. Calling setState synchronously inside an effect starts another render and is usually unnecessary. Derive the value during render, initialize state directly, or update it from the event that caused the change. Use an effect only when synchronizing with an external system.
+src/context/AppearanceContext.tsx:23:3: warning react(only-export-components): Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components.
+src/context/AppearanceContext.tsx:24:3: warning react(only-export-components): Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components.
+src/context/AppearanceContext.tsx:25:3: warning react(only-export-components): Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components.
+src/context/AppearanceContext.tsx:26:3: warning react(only-export-components): Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components.
+src/context/AppearanceContext.tsx:150:17: warning react(only-export-components): Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components.
+src/components/SettingsModal.tsx:101:7: warning react(set-state-in-effect): Calling setState synchronously within an effect can trigger cascading renders help: Effects should synchronize React with external systems. Calling setState synchronously inside an effect starts another render and is usually unnecessary. Derive the value during render, initialize state directly, or update it from the event that caused the change. Use an effect only when synchronizing with an external system.
+src/components/ui/MediaGlassStage.tsx:37:9: warning react(immutability): This value cannot be modified help: Modifying a value returned from 'useState()', which should not be modified directly. Use the setter function to update instead
+src/components/ui/MediaGlassStage.tsx:37:9: warning react(immutability): Cannot modify local variables after render completes help: This argument is a function which may reassign or mutate `canvas` after render, which can cause inconsistent behavior on subsequent renders. Consider using state instead
+src/context/UploadQueueContext.tsx:70:17: warning react(only-export-components): Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components.
+src/context/UploadQueueContext.tsx:77:17: warning react(only-export-components): Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components.
+src/context/UploadQueueContext.tsx:539:17: warning react(only-export-components): Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components.
+src/context/UploadQueueContext.tsx:399:7: warning react(set-state-in-effect): Calling setState synchronously within an effect can trigger cascading renders help: Effects should synchronize React with external systems. Calling setState synchronously inside an effect starts another render and is usually unnecessary. Derive the value during render, initialize state directly, or update it from the event that caused the change. Use an effect only when synchronizing with an external system.
+src/lab/glassLab.tsx:28:10: warning react(only-export-components): Fast refresh only works when a file has exports. Move your component(s) to a separate file.
+src/lab/glassLab.tsx:152:10: warning react(only-export-components): Fast refresh only works when a file has exports. Move your component(s) to a separate file.
+src/lab/glassLab.tsx:180:10: warning react(only-export-components): Fast refresh only works when a file has exports. Move your component(s) to a separate file.
+src/lab/glassLab.tsx:329:10: warning react(only-export-components): Fast refresh only works when a file has exports. Move your component(s) to a separate file.
+
+> imgstore-web@0.0.0 test
+> vitest run
+
+
+ RUN  v5.0.3 /Users/macbook/workspace/test/imgstore-web
+
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+
+ Test Files  5 passed (5)
+      Tests  52 passed (52)
+   Start at  18:40:38
+   Duration  1.78s (environment 71%, tests 22%, transform 5%, import 1%, setup 1%)
+
+
+> imgstore-web@0.0.0 prebuild
+> npm run tokens
+
+
+> imgstore-web@0.0.0 tokens
+> node scripts/generate-design-tokens.mjs && node scripts/generate-appearance-bootstrap.mjs
+
+wrote /Users/macbook/workspace/test/imgstore-web/tokens.css
+wrote /Users/macbook/workspace/test/imgstore-web/src/design/tokens.generated.ts
+wrote appearance bootstrap in index.html
+
+> imgstore-web@0.0.0 build
+> tsc -b && vite build
+
+vite v8.3.0 building client environment for production...
+transforming...
+✓ 11803 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/.assetsignore               0.02 kB
+dist/wrangler.json               1.25 kB │ gzip:   0.62 kB
+dist/index.html                  5.58 kB │ gzip:   1.93 kB
+dist/assets/main-DJ0zPhYH.css   22.23 kB │ gzip:   4.54 kB
+dist/assets/main-B8ZjGxJz.js   891.85 kB │ gzip: 272.46 kB
+
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 1.02s

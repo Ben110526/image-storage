@@ -31,9 +31,15 @@ export interface PaneRegistration {
 
 /** A canvas the app owns and can read back (scene or media stage). */
 export interface SceneSource {
+  /** Semantic scope for instrumentation; portal shells use native material. */
+  kind?: 'app-scene' | 'media-stage' | 'lab';
   canvas: HTMLCanvasElement;
   /** CSS-px rect the canvas covers, in viewport coordinates at sample time. */
   rect: () => DOMRect;
+  /** Source pixels changed without replacing the canvas. */
+  revision?: () => number;
+  /** False means use the browser backdrop; never redraw wallpaper over DOM. */
+  canSample?: (host: HTMLElement, rect: DOMRect) => boolean;
 }
 
 export interface PaneRenderStats {
@@ -51,6 +57,8 @@ export interface FrameTrace {
   frame: number;
   /** Total ms spent rendering panes in this frame. */
   totalMs: number;
+  /** Wall time in the scheduler, including geometry/maps/readback/allocation. */
+  wallMs?: number;
   /** Panes actually rendered, with per-pane ms. */
   rendered: { id: string; ms: number }[];
   /** Panes deferred to the next frame because the frame budget ran out. */
@@ -65,4 +73,6 @@ export interface OpticsFrameStats {
   /** Bounded buffer accounting: canvas backing stores, bytes. */
   buffers: Record<string, { width: number; height: number; bytes: number }>;
   totalBufferBytes: number;
+  /** Explicit retained CPU buffers. Browser/GPU implementation overhead excluded. */
+  retainedBytes?: { outputs: number; maps: number; sourceReadbacks: number; sourceCanvases: number; total: number };
 }

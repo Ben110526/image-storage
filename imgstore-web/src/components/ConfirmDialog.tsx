@@ -8,12 +8,11 @@ import {
   Button,
 } from '@mui/material';
 import { haptics } from '../lib/haptics';
-import { getAppScene } from '../design/optics/GlassScene';
 import { useGlassPane } from '../design/optics/useGlassPane';
 
 /* ConfirmDialog — plan §11.2: destructive confirms default-focus CANCEL so
  * Enter/Space never deletes by accident; the destructive action requires a
- * deliberate move. V2-06: the TITLEBAR chrome is an optical pane (plan §8.6:
+ * deliberate move. The titlebar uses native contextual material (plan §8.6:
  * "dialog/sheet thử vỏ/chrome kính trước"); the body keeps its opaque readable
  * fill so confirm text and the destructive action stay semantic and legible.
  *
@@ -42,12 +41,11 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   onConfirm,
   onCancel,
 }) => {
-  /* V2-06 — titlebar chrome optical; the Dialog scale/fade on open animates
-   * the portal without scroll/resize events → trackMotion. */
+  /* Native title material belongs to the dialog shell. */
   const titleRef = useGlassPane<HTMLDivElement>(
     'confirm-dialog-titlebar',
     'pill',
-    getAppScene(),
+    null, // Dialog/sheet scope: native backdrop, never app wallpaper.
     { trackMotion: true },
   );
 

@@ -151,6 +151,66 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+describe('source contract and failure isolation', () => {
+  function raf() {
+    const queue: FrameRequestCallback[] = [];
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation(cb => { queue.push(cb); return queue.length; });
+    return () => { for (let i = 0; i < 6; i++) queue.splice(0).forEach(cb => cb(i * 16)); };
+  }
+
+  it('maps CSS coordinates with source scale independently of pane DPR', async () => {
+    const reg = await freshRegistry(); const flush = raf();
+    vi.spyOn(window, 'devicePixelRatio', 'get').mockReturnValue(1);
+    const scene = makeIdentifiableScene(800, 600);
+    scene.source.rect = () => new DOMRect(0, 0, 400, 300);
+    const pane = makeCapturingPaneCanvas();
+    reg.registerPane('independent-scale', 'pill', makeHost(240, 64), pane.canvas, scene.source);
+    flush();
+    const frame = pane.frame()!;
+    const index = (32 * frame.width + 120) * 4;
+    expect([...frame.data.slice(index, index + 4)]).toEqual(scene.expectedAt(240, 64));
+  });
+
+  it('uses native backdrop while occluded and restores optics when clear', async () => {
+    const reg = await freshRegistry(); const flush = raf();
+    const scene = makeScene(); const host = makeHost(); let clear = false;
+    const pane = makeCapturingPaneCanvas();
+    reg.registerPane('occlusion', 'panel', host, pane.canvas, { ...scene, canSample: () => clear });
+    flush();
+    expect(host.dataset.opticsStatus).toBe('native-backdrop');
+    expect(pane.frame()).toBeNull();
+    clear = true; reg.invalidatePane('occlusion'); flush();
+    expect(host.dataset.opticsStatus).toBe('ready');
+    expect(pane.frame()).not.toBeNull();
+  });
+
+  it('isolates an actual tainted-source readback failure from healthy panes', async () => {
+    const reg = await freshRegistry(); const flush = raf();
+    const broken = makeScene();
+    broken.canvas.getContext = (() => ({ getImageData: () => { throw new DOMException('Tainted canvas', 'SecurityError'); } })) as unknown as HTMLCanvasElement['getContext'];
+    const badHost = makeHost(); const goodHost = makeHost();
+    reg.registerPane('tainted', 'panel', badHost, makePaneCanvas(), broken);
+    reg.registerPane('healthy', 'panel', goodHost, makePaneCanvas(), makeScene());
+    expect(flush).not.toThrow();
+    expect(badHost.dataset.opticsStatus).toBe('readback-fallback');
+    expect(goodHost.dataset.opticsStatus).toBe('ready');
+    expect(reg.paneStats().healthy.renders).toBe(1);
+  });
+
+  it('shares source readback across panes and invalidates it after repaint', async () => {
+    const reg = await freshRegistry(); const flush = raf(); const scene = makeScene();
+    const ctx = scene.canvas.getContext('2d')!;
+    const read = vi.spyOn(ctx, 'getImageData');
+    reg.registerPane('one', 'pill', makeHost(), makePaneCanvas(), scene);
+    reg.registerPane('two', 'pill', makeHost(), makePaneCanvas(), scene);
+    flush(); reg.invalidatePanes(); flush();
+    expect(read).toHaveBeenCalledTimes(1);
+    reg.notifySceneRepaint(); flush();
+    expect(read).toHaveBeenCalledTimes(2);
+    expect(reg.frameStats().retainedBytes!.total).toBeGreaterThan(reg.frameStats().totalBufferBytes);
+  });
+});
+
 describe('registerPane lifecycle', () => {
   it('registers and unregisters a pane (paneStats reflects membership)', async () => {
     const reg = await freshRegistry();
@@ -360,7 +420,6 @@ describe('RV-01 render contract — renderer reads the map at pane-origin + padd
     const scene = makeIdentifiableScene(1600, 1200);
     const host = makeHost(width, height);
     host.style.borderRadius = '12px'; // panel corner radius for shapeFromHost
-    host.style.borderRadius = '12px'; // panel corner radius for shapeFromHost
     const pane = makeCapturingPaneCanvas();
     reg.registerPane('fixture-panel', 'panel', host, pane.canvas, scene.source);
     const q = rafQueue.splice(0);
@@ -369,10 +428,10 @@ describe('RV-01 render contract — renderer reads the map at pane-origin + padd
   }
 
   it.each([1, 1.5, 2])('panel DPR %s: rim alpha 255 and corner displacement direction correct', async (dpr) => {
-    const { pane } = await renderPanel(320, 200, dpr);
+    const { pane } = await renderPanel(240, 160, dpr);
     const frame = pane.frame()!;
-    expect(frame.width).toBe(Math.round(320 * dpr));
-    expect(frame.height).toBe(Math.round(200 * dpr));
+    expect(frame.width).toBe(Math.round(240 * dpr));
+    expect(frame.height).toBe(Math.round(160 * dpr));
 
     // panel profile: edgeBand 22, displacement 12 (CSS px) → device px × dpr.
     // Sample just inside the rounded corner on the top edge (x = 40 CSS,
@@ -399,7 +458,7 @@ describe('RV-01 render contract — renderer reads the map at pane-origin + padd
   });
 
   it('panel corner bends diagonally — both axes displaced away from the corner', async () => {
-    const { pane } = await renderPanel(320, 200, 2);
+    const { pane } = await renderPanel(240, 160, 2);
     const frame = pane.frame()!;
     // On the 45° diagonal of the top-left corner arc (radius 12 CSS): the
     // outward normal is (-1,-1)/√2, so the sample is pulled right AND down.
@@ -412,6 +471,14 @@ describe('RV-01 render contract — renderer reads the map at pane-origin + padd
     // sampled scene x > x AND scene y > y → corner pulls inward on both axes.
     expect(r).toBeGreaterThan(x);
     expect(g).toBeGreaterThan(y);
+  });
+
+  it('bounds the raster of a large pane while keeping its CSS geometry', async () => {
+    const { pane } = await renderPanel(1200, 300, 2);
+    const frame = pane.frame()!;
+    expect(frame.width * frame.height).toBeLessThanOrEqual(181_000);
+    expect(frame.width / frame.height).toBeCloseTo(4, 1);
+    expect(pixelAt(frame, Math.floor(frame.width / 2), Math.floor(frame.height / 2))[3]).toBe(255);
   });
 });
 

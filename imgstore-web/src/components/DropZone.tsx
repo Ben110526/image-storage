@@ -341,7 +341,7 @@ export const DropZone: React.FC = () => {
   /* V2-04 — the DropZone shell at rest is a glass control panel (plan §150):
    * the empty area shows real transmission of the app scene; the queue list
    * below stays a content surface (C0) so rows remain readable. */
-  const dropZoneRef = useGlassPane<HTMLDivElement>('drop-zone', 'panel', getAppScene());
+  const dropZoneRef = useGlassPane<HTMLDivElement>('drop-zone', 'panel', isDragActive ? null : getAppScene());
 
   return (
     <Box sx={{ width: '100%', mb: 4 }}>
@@ -374,11 +374,11 @@ export const DropZone: React.FC = () => {
           textAlign: 'center',
           cursor: canUpload ? 'pointer' : 'default',
           position: 'relative',
-          overflow: 'hidden',
-          borderRadius: 'var(--radius-md) !important',
-          borderStyle: 'dashed !important',
-          borderWidth: '2px !important',
-          borderColor: isDragActive ? 'var(--color-accent) !important' : 'var(--color-border) !important',
+          overflow: 'visible',
+          borderRadius: '28px !important',
+          borderStyle: isDragActive ? 'dashed !important' : 'solid !important',
+          borderWidth: '1px !important',
+          borderColor: isDragActive ? 'var(--color-accent) !important' : 'var(--glass-border) !important',
           /* Drag active keeps its deliberate accent fill (a state fill, not
            * glass); at rest the glass material + optical canvas show through. */
           backgroundColor: isDragActive ? 'var(--color-accent-soft) !important' : undefined,

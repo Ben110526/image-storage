@@ -49,8 +49,7 @@ export function GlassPane({ id, role, scene, className, style, children }: Glass
     const host = hostRef.current;
     const canvas = canvasRef.current;
     if (!enabled || !host || !canvas) return;
-    /* Optical mode: the registry owns the backdrop — drop the CSS blur so the
-     * displaced scene pixels are not double-processed (materials.css). */
+    /* Owned scene pixels are below DOM; native material remains the fallback. */
     host.classList.add('glass-optical');
     const unregister = registerPane(id, role, host, canvas, scene);
     return () => {
@@ -72,7 +71,7 @@ export function GlassPane({ id, role, scene, className, style, children }: Glass
           style={{ borderRadius: radius }}
         />
       )}
-      {children}
+      <div className="glass-foreground">{children}</div>
     </div>
   );
 }

@@ -7,7 +7,6 @@ import {
 import { ApiDocsSection } from '../components/ApiDocsSection';
 import { useAppearance } from '../context/AppearanceContext';
 import { haptics } from '../lib/haptics';
-import { getAppScene } from '../design/optics/GlassScene';
 import { useGlassPane } from '../design/optics/useGlassPane';
 
 /* Docs — plan §10.4, FIX-07: the TOC sidebar exists only from 900px up;
@@ -31,15 +30,11 @@ export const DocsPage: React.FC = () => {
   const [tocSheetOpen, setTocSheetOpen] = useState(false);
   const isDesktop = useMediaQuery('(min-width:900px)');
 
-  /* V2-06 — mobile TOC sheet as an optical pane, same treatment as the
-   * Library folder sheet (V2-05): the shell is glass, section links inside
-   * stay readable via the .glass-elevated tint; the sheet slides up via
-   * transform → trackMotion. The docs body itself stays C0 (plan §8.5:
-   * prose/code/tables never get glassed). */
+  /* The TOC portal uses native contextual glass; prose and code stay opaque. */
   const tocSheetRef = useGlassPane<HTMLDivElement>(
     'docs-toc-sheet',
     'panel',
-    getAppScene(),
+    null, // Dialog/sheet scope: native backdrop, never app wallpaper.
     { trackMotion: true },
   );
 
@@ -245,7 +240,7 @@ export const DocsPage: React.FC = () => {
               borderTopLeftRadius: 'var(--radius-lg)',
               borderTopRightRadius: 'var(--radius-lg)',
               maxHeight: '70dvh',
-              /* Opaque fill dropped — glass material + optical canvas provide
+              /* Native contextual glass provides
                * the surface (same as the Library folder sheet, V2-05). */
             },
           },

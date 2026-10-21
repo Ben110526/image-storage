@@ -35,7 +35,6 @@ import {
 import { haptics } from '../lib/haptics';
 import { useAppearance, type ThemePreference } from '../context/AppearanceContext';
 import { useAuth } from '../context/AuthContext';
-import { getAppScene } from '../design/optics/GlassScene';
 import { useGlassPane } from '../design/optics/useGlassPane';
 
 /* SettingsModal — plan §11. Appearance preferences (theme / glass tint /
@@ -89,13 +88,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) =
    * commits on release. null = not dragging. */
   const [tintPreview, setTintPreview] = useState<number | null>(null);
 
-  /* V2-06 — titlebar chrome optical (plan §8.6); the form body (sliders,
-   * inputs, alerts) keeps its opaque readable fill. Bottom-sheet slide on
-   * phones → trackMotion. */
+  /* Native title material belongs to the dialog, above its opaque form. */
   const titleRef = useGlassPane<HTMLDivElement>(
     'settings-dialog-titlebar',
     'pill',
-    getAppScene(),
+    null, // Dialog/sheet scope: native backdrop, never app wallpaper.
     { trackMotion: true },
   );
 

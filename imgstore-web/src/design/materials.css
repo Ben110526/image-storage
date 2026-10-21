@@ -36,6 +36,10 @@
   --glass-g1-rgb: 248, 250, 255;
   --glass-g1-alpha: calc(var(--glass-regular-alpha-base) + var(--glass-regular-alpha-range) * var(--glass-tint));
   --glass-g1-fill: color-mix(in srgb, rgb(var(--glass-g1-rgb)) calc(var(--glass-g1-alpha) * 100%), transparent);
+  /* The optical source already carries its environment. Keep transmission
+   * lighter than the readability fill used by native DOM fallback. */
+  --glass-optical-alpha: calc(0.06 + 0.10 * var(--glass-tint));
+  --glass-optical-fill: color-mix(in srgb, rgb(var(--glass-g1-rgb)) calc(var(--glass-optical-alpha) * 100%), transparent);
   --glass-g1-blur: var(--glass-regular-blur);
   --glass-g1-saturation: var(--glass-regular-saturation);
 
@@ -62,6 +66,7 @@
 [data-theme='dark'] {
   /* G1 — Regular navigation (dark) */
   --glass-g1-rgb: 24, 30, 42;
+  --glass-optical-alpha: calc(0.10 + 0.14 * var(--glass-tint));
 
   /* G2 — Regular elevated (dark) */
   --glass-g2-rgb: 24, 30, 42;
@@ -142,6 +147,10 @@
   -webkit-backdrop-filter: blur(var(--glass-clear-blur)) saturate(var(--glass-clear-saturation));
   backdrop-filter: blur(var(--glass-clear-blur)) saturate(var(--glass-clear-saturation));
 }
+.glass-clear.glass-clear:hover,
+.glass-clear.glass-clear.Mui-focusVisible {
+  background-color: var(--glass-clear-fill);
+}
 
 /* Localized dimming behind clear controls (plan §8.1, "scrim riêng bắt buộc"). */
 .glass-clear-scrim {
@@ -194,21 +203,57 @@ html[data-transparency='reduced'] .notistack-Snackbar .notistack-MuiContent {
   }
 }
 
-/* ---- Optical mode (V2-03) -------------------------------------------------
- * .glass-optical marks a glass surface whose backdrop is rendered by the
- * optics registry (canvas displacement, ADR-ENGINE Đường B) instead of the
- * CSS backdrop-filter blur. The fill, specular rim, border and shadow stay —
- * only the blur/saturation filter is dropped so the displaced scene pixels
- * are not blurred on top (double-processing) and the tint does not fight the
- * refraction. The registry's canvas sits behind the content (z-index below).
- *
- * The mode is applied by GlassPane only when the registry is active; reduced
- * transparency / forced-colors rules below still win (they come later in the
- * stylesheet and disable everything including the canvas via GlassPane's
- * own enable check). */
-.glass-optical {
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
+/* ---- Optical mode --------------------------------------------------------
+ * Owned scenes add a displacement layer below all foreground DOM. The native
+ * backdrop remains enabled: occluded or unreadable sources hide the canvas
+ * and immediately use the real browser backdrop with the normal CSS fill.
+ * Preference gates below disable decorative material altogether. */
+:is(.glass-optical, [data-glass-optics]) {
+  isolation: isolate;
+}
+
+/* An isolated negative material layer is above the host background and below
+ * ALL normal-flow foreground. It preserves MUI flex/grid and portal layout;
+ * DOM order alone does not provide this guarantee. Native backdrop remains
+ * the fallback whenever the scene is occluded or cannot be read. */
+:is(.glass-optical, [data-glass-optics])[data-optics-status='ready'] {
+  background-color: transparent;
+  background-image: none;
+  border-color: transparent !important;
+}
+:is(.glass-optical, [data-glass-optics])[data-optics-status='ready']::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  padding: 1px;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: -1;
+  background: linear-gradient(145deg, rgba(255,255,255,.95), rgba(255,255,255,.15) 34%, rgba(255,255,255,.55) 65%, rgba(34,54,80,.2));
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+:is(.glass-optical, [data-glass-optics])[data-optics-status='ready']::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: -1;
+  background: var(--glass-specular), var(--glass-optical-fill);
+  box-shadow:
+    inset 0 2px 2px rgba(255, 255, 255, 0.6),
+    inset 2px 0 5px rgba(255, 255, 255, 0.2),
+    inset 0 -3px 7px rgba(38, 68, 100, 0.15);
+}
+.glass-elevated:is(.glass-optical, [data-glass-optics])[data-optics-status='ready']::after {
+  background: var(--glass-specular), var(--glass-g2-fill);
+}
+.glass-clear:is(.glass-optical, [data-glass-optics])[data-optics-status='ready']::after {
+  background: linear-gradient(135deg, rgba(255,255,255,.12), rgba(255,255,255,.02) 45%, rgba(255,255,255,.08)), var(--glass-clear-fill);
+}
+:is(.glass-optical, [data-glass-optics]):not([data-optics-status='ready']) > .glass-optics-canvas {
+  visibility: hidden;
 }
 
 /* The material canvas painted by the optics registry. Absolute-filled into
@@ -220,7 +265,22 @@ html[data-transparency='reduced'] .notistack-Snackbar .notistack-MuiContent {
   width: 100%;
   height: 100%;
   pointer-events: none;
+  z-index: -2;
+  border-radius: inherit;
+  /* Scatter only transmitted pixels; the rim and DOM foreground stay sharp. */
+  filter: blur(3px);
+}
+.glass-optics-canvas[data-optics-role='panel'] { filter: blur(6px); }
+.glass-foreground {
+  position: relative;
   z-index: 0;
+}
+html[data-transparency='reduced'] :is(.glass-optical, [data-glass-optics])::before,
+html[data-transparency='reduced'] :is(.glass-optical, [data-glass-optics])::after {
+  display: none;
+}
+@media (forced-colors: active), (prefers-reduced-transparency: reduce) {
+  :is(.glass-optical, [data-glass-optics])::before, :is(.glass-optical, [data-glass-optics])::after { display: none; }
 }
 
 /* ---- Fallbacks ----------------------------------------------------------- */
@@ -258,6 +318,7 @@ html[data-transparency='reduced'] .glass-elevated {
   backdrop-filter: none;
 }
 html[data-transparency='reduced'] .glass-clear {
+  --glass-clear-fill: rgba(20, 26, 38, 0.85);
   background-color: rgba(20, 26, 38, 0.85);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
@@ -279,6 +340,7 @@ html[data-transparency='reduced'] .glass-clear {
     backdrop-filter: none;
   }
   .glass-clear {
+    --glass-clear-fill: rgba(20, 26, 38, 0.85);
     background-color: rgba(20, 26, 38, 0.85);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;

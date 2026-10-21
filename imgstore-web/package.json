@@ -8,6 +8,8 @@
     "tokens:check": "node scripts/generate-design-tokens.mjs --check && node scripts/generate-appearance-bootstrap.mjs --check",
     "predev": "npm run tokens",
     "dev": "vite",
+    "dev:qa": "vite --config vite.qa.config.ts",
+    "dev:qa:api": "node scripts/qa-fixture-server.mjs",
     "prebuild": "npm run tokens",
     "build": "tsc -b && vite build",
     "lint": "oxlint",

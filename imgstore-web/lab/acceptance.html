@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="vi">
+  <head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1" /><meta name="robots" content="noindex,nofollow" /><title>ImgStore — local acceptance fixture</title></head>
+  <body>
+    <script>
+      // This HTML is dev-only, never a production entry or public asset.
+      if (location.hostname !== '127.0.0.1' && location.hostname !== 'localhost') throw new Error('Local fixture only');
+      localStorage.setItem('imgstore_api_url', 'http://127.0.0.1:7194');
+      localStorage.setItem('imgstore_session_token', 'local-qa-fixture-not-a-credential');
+      const theme = new URLSearchParams(location.search).get('theme');
+      if (theme) localStorage.setItem('imgstore_appearance_v1', JSON.stringify({theme,glassTint:60,reduceMotion:false,reduceTransparency:false}));
+      localStorage.setItem('imgstore_haptics_enabled','false');
+    </script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script type="module" src="/src/lab/acceptance.ts"></script>
+  </body>
+</html>

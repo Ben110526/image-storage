@@ -90,6 +90,15 @@ export function buildDisplacementMap(
       const d = paneSDF(shape, x, y);
 
       const i = (py * width + px) * 4;
+      if (d <= -profile.edgeBand) {
+        // Most of a large panel is flat. Avoid four SDF/normal evaluations
+        // there; a neutral interior is also the optical contract.
+        data[i] = 128;
+        data[i + 1] = 128;
+        data[i + 2] = 255;
+        data[i + 3] = 255;
+        continue;
+      }
       if (d >= padding) {
         data[i + 3] = 0; // fully outside the padded region
         continue;

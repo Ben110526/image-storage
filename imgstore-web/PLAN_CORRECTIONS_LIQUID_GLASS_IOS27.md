@@ -1,6 +1,8 @@
 # Plan bổ sung: đưa implementation Liquid Glass về đúng baseline ban đầu
 
-> Bổ sung 06/10/2026: acceptance về alpha G1/G2 của FIX-01/02 dùng công thức mới trong [hiệu chỉnh kính mặc định](./QA_GLASS_DEFAULT.md), theo yêu cầu mới của người dùng. Phân lớp C0/G1/G2/G3 và các guard accessibility vẫn áp dụng.
+> **Cập nhật 07/10/2026:** [kế hoạch Liquid Glass Optical V2](./PLAN_LIQUID_GLASS_OPTICAL_V2.md) là nguồn ưu tiên về nền, vật liệu, renderer và nghiệm thu thị giác. Các quyết định CSS-only/không lens và alpha trong báo cáo này không còn là mục tiêu cho lần làm lại. Giữ các sửa auth, queue, data và accessibility đã có; không tự bật lại renderer cũ chưa qua QA.
+
+> Lịch sử 06/10/2026: acceptance alpha G1/G2 của FIX-01/02 từng dùng [hiệu chỉnh kính mặc định](./QA_GLASS_DEFAULT.md). Phân vai trò và guard accessibility được V2 kế thừa/điều chỉnh cụ thể.
 
 Ngày kiểm tra: **06/10/2026**. Phạm vi: checkout hiện tại của `imgstore-web`, đối chiếu [plan redesign ban đầu](./PLAN_REDESIGN_LIQUID_GLASS_IOS27.md).
 

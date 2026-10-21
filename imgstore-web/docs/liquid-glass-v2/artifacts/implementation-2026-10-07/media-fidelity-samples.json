@@ -1,0 +1,87 @@
+{
+  "method": "Native Chrome JPEG, embedded Display ICC converted to sRGB in memory for analysis; median 5x5 patches; SVG analytical expected colors. Page origin verified visually at physical (112,94), DPR=2 from exported JSON. Original screenshot bytes unchanged.",
+  "artifact": "05-preview-media-light.jpg",
+  "domImage": {
+    "natural": [
+      960,
+      640
+    ],
+    "rect": {
+      "x": 457,
+      "y": 194.46875,
+      "width": 750,
+      "height": 500
+    },
+    "filter": "none",
+    "opacity": "1"
+  },
+  "samples": [
+    {
+      "sample": "cream",
+      "sourceXY": [
+        780,
+        130
+      ],
+      "screenshotXY": [
+        2245,
+        686
+      ],
+      "expectedRGB": [
+        251,
+        241,
+        217
+      ],
+      "observedRGB": [
+        251,
+        241,
+        218
+      ],
+      "maxChannelDelta": 1
+    },
+    {
+      "sample": "blue",
+      "sourceXY": [
+        200,
+        100
+      ],
+      "screenshotXY": [
+        1338,
+        639
+      ],
+      "expectedRGB": [
+        42.58,
+        142.38,
+        215.04
+      ],
+      "observedRGB": [
+        41,
+        142,
+        216
+      ],
+      "maxChannelDelta": 1.58
+    },
+    {
+      "sample": "warm",
+      "sourceXY": [
+        420,
+        450
+      ],
+      "screenshotXY": [
+        1682,
+        1186
+      ],
+      "expectedRGB": [
+        232.92,
+        90.08,
+        65.85
+      ],
+      "observedRGB": [
+        233,
+        91,
+        66
+      ],
+      "maxChannelDelta": 0.92
+    }
+  ],
+  "status": "Three-patch SDR smoke check only. Original warm coordinate x=400 intersected a white fixture grid line; corrected to x=420. Do not equate these samples with full color-management/fidelity or contrast certification."
+}

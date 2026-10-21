@@ -1,0 +1,293 @@
+{
+  "capturedAt": "2026-10-07T11:20:29.323Z",
+  "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+  "viewport": {
+    "width": 1672,
+    "height": 1037,
+    "dpr": 2
+  },
+  "theme": "light",
+  "transparency": "full",
+  "forcedColors": false,
+  "route": "#/library",
+  "panes": {
+    "navbar": {
+      "renders": 3,
+      "lastMs": 25.899999998509884,
+      "maxMs": 35.600000001490116
+    },
+    "gallery-toolbar": {
+      "renders": 2,
+      "lastMs": 4.800000004470348,
+      "maxMs": 29.700000002980232
+    },
+    "mobile-navigation": {
+      "renders": 0,
+      "lastMs": 0,
+      "maxMs": 0
+    }
+  },
+  "frameStats": {
+    "frames": [
+      {
+        "frame": 1,
+        "totalMs": 35.600000001490116,
+        "rendered": [
+          {
+            "id": "navbar",
+            "ms": 35.600000001490116
+          }
+        ],
+        "deferred": [
+          "gallery-toolbar",
+          "mobile-navigation"
+        ],
+        "wallMs": 35.600000001490116
+      },
+      {
+        "frame": 2,
+        "totalMs": 29.700000002980232,
+        "rendered": [
+          {
+            "id": "gallery-toolbar",
+            "ms": 29.700000002980232
+          }
+        ],
+        "deferred": [
+          "mobile-navigation",
+          "navbar"
+        ],
+        "wallMs": 29.700000002980232
+      },
+      {
+        "frame": 3,
+        "totalMs": 4.5,
+        "rendered": [
+          {
+            "id": "navbar",
+            "ms": 4.5
+          }
+        ],
+        "deferred": [],
+        "wallMs": 7.200000002980232
+      },
+      {
+        "frame": 4,
+        "totalMs": 25.899999998509884,
+        "rendered": [
+          {
+            "id": "navbar",
+            "ms": 25.899999998509884
+          }
+        ],
+        "deferred": [],
+        "wallMs": 25.899999998509884
+      },
+      {
+        "frame": 5,
+        "totalMs": 5,
+        "rendered": [
+          {
+            "id": "navbar",
+            "ms": 0.19999999552965164
+          },
+          {
+            "id": "gallery-toolbar",
+            "ms": 4.800000004470348
+          }
+        ],
+        "deferred": [],
+        "wallMs": 5.100000001490116
+      }
+    ],
+    "hiddenPanes": [
+      "mobile-navigation"
+    ],
+    "buffers": {
+      "navbar": {
+        "width": 2121,
+        "height": 85,
+        "bytes": 721140
+      },
+      "gallery-toolbar": {
+        "width": 1815,
+        "height": 99,
+        "bytes": 718740
+      },
+      "mobile-navigation": {
+        "width": 300,
+        "height": 150,
+        "bytes": 180000
+      }
+    },
+    "totalBufferBytes": 1619880,
+    "retainedBytes": {
+      "outputs": 3059760,
+      "maps": 1621348,
+      "sourceReadbacks": 6002300,
+      "sourceCanvases": 6002300,
+      "total": 16685708
+    }
+  },
+  "modes": [
+    {
+      "status": "native-backdrop",
+      "className": "navbar-glass glass-regular MuiBox-root css-px8sli glass-optical",
+      "rect": {
+        "x": 32,
+        "y": 12,
+        "width": 1600,
+        "height": 64
+      }
+    },
+    {
+      "status": "ready",
+      "className": "glass-regular MuiBox-root css-177wrw3 glass-optical",
+      "rect": {
+        "x": 360,
+        "y": 209.7578125,
+        "width": 1208,
+        "height": 66
+      }
+    }
+  ],
+  "media": [],
+  "text": [
+    {
+      "text": "Thư viện",
+      "label": null,
+      "rect": {
+        "x": 96,
+        "y": 112,
+        "width": 231.390625,
+        "height": 37.7578125
+      },
+      "color": "rgb(21, 34, 56)",
+      "fontSize": "32px"
+    },
+    {
+      "text": "Quản lý và chia sẻ file đã tải lên.",
+      "label": null,
+      "rect": {
+        "x": 96,
+        "y": 153.7578125,
+        "width": 231.390625,
+        "height": 24
+      },
+      "color": "rgb(75, 92, 116)",
+      "fontSize": "16px"
+    },
+    {
+      "text": "Thư viện",
+      "label": null,
+      "rect": {
+        "x": 371,
+        "y": 228.4609375,
+        "width": 84.078125,
+        "height": 28.59375
+      },
+      "color": "rgb(21, 34, 56)",
+      "fontSize": "22px"
+    },
+    {
+      "text": "Optical reference 1.svg",
+      "label": null,
+      "rect": {
+        "x": 373,
+        "y": 526.7578125,
+        "width": 264,
+        "height": 21.9765625
+      },
+      "color": "rgb(21, 34, 56)",
+      "fontSize": "14px"
+    },
+    {
+      "text": "Lines and colors 2.svg",
+      "label": null,
+      "rect": {
+        "x": 679,
+        "y": 526.7578125,
+        "width": 264,
+        "height": 21.9765625
+      },
+      "color": "rgb(21, 34, 56)",
+      "fontSize": "14px"
+    },
+    {
+      "text": "Warm folds 3.svg",
+      "label": null,
+      "rect": {
+        "x": 985,
+        "y": 526.7578125,
+        "width": 264,
+        "height": 21.9765625
+      },
+      "color": "rgb(21, 34, 56)",
+      "fontSize": "14px"
+    },
+    {
+      "text": "Blue contours 4.svg",
+      "label": null,
+      "rect": {
+        "x": 1291,
+        "y": 526.7578125,
+        "width": 264,
+        "height": 21.9765625
+      },
+      "color": "rgb(21, 34, 56)",
+      "fontSize": "14px"
+    },
+    {
+      "text": "Optical reference 5.svg",
+      "label": null,
+      "rect": {
+        "x": 373,
+        "y": 875.734375,
+        "width": 264,
+        "height": 21.9765625
+      },
+      "color": "rgb(21, 34, 56)",
+      "fontSize": "14px"
+    },
+    {
+      "text": "Lines and colors 6.svg",
+      "label": null,
+      "rect": {
+        "x": 679,
+        "y": 875.734375,
+        "width": 264,
+        "height": 21.9765625
+      },
+      "color": "rgb(21, 34, 56)",
+      "fontSize": "14px"
+    },
+    {
+      "text": "Warm folds 7.svg",
+      "label": null,
+      "rect": {
+        "x": 985,
+        "y": 875.734375,
+        "width": 264,
+        "height": 21.9765625
+      },
+      "color": "rgb(21, 34, 56)",
+      "fontSize": "14px"
+    },
+    {
+      "text": "Blue contours 8.svg",
+      "label": null,
+      "rect": {
+        "x": 1291,
+        "y": 875.734375,
+        "width": 264,
+        "height": 21.9765625
+      },
+      "color": "rgb(21, 34, 56)",
+      "fontSize": "14px"
+    }
+  ],
+  "occlusion": {
+    "active": true,
+    "navbarMode": "native-backdrop"
+  }
+}

@@ -95,6 +95,11 @@ describe('RV-06 gate lifecycle through useGlassPane', () => {
     /* Mounted + enabled: pane registered, canvas in the host. */
     expect(registry.paneStats()['probe-pane']).toBeDefined();
     expect(container.querySelector('canvas.glass-optics-canvas')).not.toBeNull();
+    const host = container.firstElementChild as HTMLElement;
+    expect(host.hasAttribute('data-glass-optics')).toBe(true);
+    // MUI owns className during focus/ripple; the material selector survives.
+    host.className = 'MuiIconButton-root Mui-focusVisible';
+    expect(host.hasAttribute('data-glass-optics')).toBe(true);
 
     /* Gate closes mid-life (portal-open scenario collapses to the same code
      * path — the hook does not care where the host lives). */

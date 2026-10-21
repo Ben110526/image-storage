@@ -2,9 +2,8 @@
  *
  * Bump PROFILE_VERSION whenever a value changes so evidence docs and cached
  * displacement maps can be tied to the exact tuning they were produced with.
- * Values are the lab-tuned ones that passed Gate G1 (see
- * docs/liquid-glass-v2/ADR-ENGINE.md): edge bend max ≈ displacement, center
- * neutral.
+ * The edge bend is approximately displacement, with a neutral center.
+ * Runtime visual evidence is recorded separately; unit maps do not prove G1.
  */
 
 import type { GlassRole, LensProfile } from './types';

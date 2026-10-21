@@ -1,0 +1,509 @@
+{
+  "capturedAt": "2026-10-07T11:20:47.735Z",
+  "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+  "viewport": {
+    "width": 1672,
+    "height": 1037,
+    "dpr": 2
+  },
+  "theme": "light",
+  "transparency": "full",
+  "forcedColors": false,
+  "route": "#/library",
+  "panes": {
+    "navbar": {
+      "renders": 7,
+      "lastMs": 4.199999995529652,
+      "maxMs": 35.600000001490116
+    },
+    "gallery-toolbar": {
+      "renders": 3,
+      "lastMs": 6.600000001490116,
+      "maxMs": 29.700000002980232
+    },
+    "mobile-navigation": {
+      "renders": 0,
+      "lastMs": 0,
+      "maxMs": 0
+    },
+    "preview-open": {
+      "renders": 1,
+      "lastMs": 6.899999998509884,
+      "maxMs": 6.899999998509884
+    },
+    "preview-download": {
+      "renders": 1,
+      "lastMs": 2.5,
+      "maxMs": 2.5
+    },
+    "preview-close": {
+      "renders": 1,
+      "lastMs": 1.6999999955296516,
+      "maxMs": 1.6999999955296516
+    }
+  },
+  "frameStats": {
+    "frames": [
+      {
+        "frame": 1,
+        "totalMs": 35.600000001490116,
+        "rendered": [
+          {
+            "id": "navbar",
+            "ms": 35.600000001490116
+          }
+        ],
+        "deferred": [
+          "gallery-toolbar",
+          "mobile-navigation"
+        ],
+        "wallMs": 35.600000001490116
+      },
+      {
+        "frame": 2,
+        "totalMs": 29.700000002980232,
+        "rendered": [
+          {
+            "id": "gallery-toolbar",
+            "ms": 29.700000002980232
+          }
+        ],
+        "deferred": [
+          "mobile-navigation",
+          "navbar"
+        ],
+        "wallMs": 29.700000002980232
+      },
+      {
+        "frame": 3,
+        "totalMs": 4.5,
+        "rendered": [
+          {
+            "id": "navbar",
+            "ms": 4.5
+          }
+        ],
+        "deferred": [],
+        "wallMs": 7.200000002980232
+      },
+      {
+        "frame": 4,
+        "totalMs": 25.899999998509884,
+        "rendered": [
+          {
+            "id": "navbar",
+            "ms": 25.899999998509884
+          }
+        ],
+        "deferred": [],
+        "wallMs": 25.899999998509884
+      },
+      {
+        "frame": 5,
+        "totalMs": 5,
+        "rendered": [
+          {
+            "id": "navbar",
+            "ms": 0.19999999552965164
+          },
+          {
+            "id": "gallery-toolbar",
+            "ms": 4.800000004470348
+          }
+        ],
+        "deferred": [],
+        "wallMs": 5.100000001490116
+      },
+      {
+        "frame": 6,
+        "totalMs": 15.700000002980232,
+        "rendered": [
+          {
+            "id": "navbar",
+            "ms": 9.100000001490116
+          },
+          {
+            "id": "gallery-toolbar",
+            "ms": 6.600000001490116
+          }
+        ],
+        "deferred": [],
+        "wallMs": 15.899999998509884
+      },
+      {
+        "frame": 7,
+        "totalMs": 18.600000001490116,
+        "rendered": [
+          {
+            "id": "preview-open",
+            "ms": 0.10000000149011612
+          },
+          {
+            "id": "preview-download",
+            "ms": 0.10000000149011612
+          },
+          {
+            "id": "navbar",
+            "ms": 18.399999998509884
+          }
+        ],
+        "deferred": [
+          "gallery-toolbar"
+        ],
+        "wallMs": 18.799999997019768
+      },
+      {
+        "frame": 8,
+        "totalMs": 26.299999997019768,
+        "rendered": [
+          {
+            "id": "navbar",
+            "ms": 26.299999997019768
+          }
+        ],
+        "deferred": [
+          "preview-open",
+          "preview-download",
+          "preview-close",
+          "gallery-toolbar"
+        ],
+        "wallMs": 26.399999998509884
+      },
+      {
+        "frame": 9,
+        "totalMs": 15.49999999254942,
+        "rendered": [
+          {
+            "id": "preview-open",
+            "ms": 6.899999998509884
+          },
+          {
+            "id": "preview-download",
+            "ms": 2.5
+          },
+          {
+            "id": "preview-close",
+            "ms": 1.6999999955296516
+          },
+          {
+            "id": "gallery-toolbar",
+            "ms": 0.20000000298023224
+          },
+          {
+            "id": "navbar",
+            "ms": 4.199999995529652
+          }
+        ],
+        "deferred": [],
+        "wallMs": 15.699999995529652
+      }
+    ],
+    "hiddenPanes": [
+      "mobile-navigation"
+    ],
+    "buffers": {
+      "navbar": {
+        "width": 2116,
+        "height": 85,
+        "bytes": 719440
+      },
+      "gallery-toolbar": {
+        "width": 1815,
+        "height": 99,
+        "bytes": 718740
+      },
+      "mobile-navigation": {
+        "width": 300,
+        "height": 150,
+        "bytes": 180000
+      },
+      "preview-open": {
+        "width": 88,
+        "height": 88,
+        "bytes": 30976
+      },
+      "preview-download": {
+        "width": 88,
+        "height": 88,
+        "bytes": 30976
+      },
+      "preview-close": {
+        "width": 88,
+        "height": 88,
+        "bytes": 30976
+      }
+    },
+    "totalBufferBytes": 1711108,
+    "retainedBytes": {
+      "outputs": 3242216,
+      "maps": 1757748,
+      "sourceReadbacks": 9377300,
+      "sourceCanvases": 9377300,
+      "total": 23754564
+    }
+  },
+  "modes": [
+    {
+      "status": "ready",
+      "className": "navbar-glass glass-regular MuiBox-root css-px8sli glass-optical",
+      "rect": {
+        "x": 32,
+        "y": 12,
+        "width": 1592,
+        "height": 64
+      }
+    },
+    {
+      "status": "native-backdrop",
+      "className": "glass-regular MuiBox-root css-177wrw3 glass-optical",
+      "rect": {
+        "x": 356,
+        "y": 209.7578125,
+        "width": 1208,
+        "height": 66
+      }
+    },
+    {
+      "status": "ready",
+      "className": "MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeMedium glass-clear css-poacnf-MuiButtonBase-root-MuiIconButton-root glass-optical",
+      "rect": {
+        "x": 1047,
+        "y": 206.46875,
+        "width": 44,
+        "height": 44
+      }
+    },
+    {
+      "status": "ready",
+      "className": "MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeMedium glass-clear css-poacnf-MuiButtonBase-root-MuiIconButton-root glass-optical",
+      "rect": {
+        "x": 1099,
+        "y": 206.46875,
+        "width": 44,
+        "height": 44
+      }
+    },
+    {
+      "status": "ready",
+      "className": "MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeMedium glass-clear css-poacnf-MuiButtonBase-root-MuiIconButton-root glass-optical",
+      "rect": {
+        "x": 1151,
+        "y": 206.46875,
+        "width": 44,
+        "height": 44
+      }
+    }
+  ],
+  "media": [
+    {
+      "natural": [
+        960,
+        640
+      ],
+      "rect": {
+        "x": 457,
+        "y": 194.46875,
+        "width": 750,
+        "height": 500
+      },
+      "filter": "none",
+      "opacity": "1"
+    }
+  ],
+  "text": [
+    {
+      "text": "Thư viện",
+      "label": null,
+      "rect": {
+        "x": 92,
+        "y": 112,
+        "width": 231.390625,
+        "height": 37.7578125
+      },
+      "color": "rgb(21, 34, 56)",
+      "fontSize": "32px"
+    },
+    {
+      "text": "Quản lý và chia sẻ file đã tải lên.",
+      "label": null,
+      "rect": {
+        "x": 92,
+        "y": 153.7578125,
+        "width": 231.390625,
+        "height": 24
+      },
+      "color": "rgb(75, 92, 116)",
+      "fontSize": "16px"
+    },
+    {
+      "text": "Thư viện",
+      "label": null,
+      "rect": {
+        "x": 367,
+        "y": 228.4609375,
+        "width": 84.078125,
+        "height": 28.59375
+      },
+      "color": "rgb(21, 34, 56)",
+      "fontSize": "22px"
+    },
+    {
+      "text": "Optical reference 1.svg",
+      "label": null,
+      "rect": {
+        "x": 369,
+        "y": 526.7578125,
+        "width": 264,
+        "height": 21.9765625
+      },
+      "color": "rgb(21, 34, 56)",
+      "fontSize": "14px"
+    },
+    {
+      "text": "Lines and colors 2.svg",
+      "label": null,
+      "rect": {
+        "x": 675,
+        "y": 526.7578125,
+        "width": 264,
+        "height": 21.9765625
+      },
+      "color": "rgb(21, 34, 56)",
+      "fontSize": "14px"
+    },
+    {
+      "text": "Warm folds 3.svg",
+      "label": null,
+      "rect": {
+        "x": 981,
+        "y": 526.7578125,
+        "width": 264,
+        "height": 21.9765625
+      },
+      "color": "rgb(21, 34, 56)",
+      "fontSize": "14px"
+    },
+    {
+      "text": "Blue contours 4.svg",
+      "label": null,
+      "rect": {
+        "x": 1287,
+        "y": 526.7578125,
+        "width": 264,
+        "height": 21.9765625
+      },
+      "color": "rgb(21, 34, 56)",
+      "fontSize": "14px"
+    },
+    {
+      "text": "Optical reference 5.svg",
+      "label": null,
+      "rect": {
+        "x": 369,
+        "y": 875.734375,
+        "width": 264,
+        "height": 21.9765625
+      },
+      "color": "rgb(21, 34, 56)",
+      "fontSize": "14px"
+    },
+    {
+      "text": "Lines and colors 6.svg",
+      "label": null,
+      "rect": {
+        "x": 675,
+        "y": 875.734375,
+        "width": 264,
+        "height": 21.9765625
+      },
+      "color": "rgb(21, 34, 56)",
+      "fontSize": "14px"
+    },
+    {
+      "text": "Warm folds 7.svg",
+      "label": null,
+      "rect": {
+        "x": 981,
+        "y": 875.734375,
+        "width": 264,
+        "height": 21.9765625
+      },
+      "color": "rgb(21, 34, 56)",
+      "fontSize": "14px"
+    },
+    {
+      "text": "Blue contours 8.svg",
+      "label": null,
+      "rect": {
+        "x": 1287,
+        "y": 875.734375,
+        "width": 264,
+        "height": 21.9765625
+      },
+      "color": "rgb(21, 34, 56)",
+      "fontSize": "14px"
+    },
+    {
+      "text": "Optical reference 1.svg",
+      "label": null,
+      "rect": {
+        "x": 74,
+        "y": 144.671875,
+        "width": 171.8984375,
+        "height": 21.59375
+      },
+      "color": "rgb(21, 34, 56)",
+      "fontSize": "16px"
+    },
+    {
+      "text": "",
+      "label": "Mở ảnh gốc",
+      "rect": {
+        "x": 1047,
+        "y": 206.46875,
+        "width": 44,
+        "height": 44
+      },
+      "color": "rgb(255, 255, 255)",
+      "fontSize": "24px"
+    },
+    {
+      "text": "",
+      "label": "Tải ảnh",
+      "rect": {
+        "x": 1099,
+        "y": 206.46875,
+        "width": 44,
+        "height": 44
+      },
+      "color": "rgb(255, 255, 255)",
+      "fontSize": "24px"
+    },
+    {
+      "text": "",
+      "label": "Đóng ảnh xem trước",
+      "rect": {
+        "x": 1151,
+        "y": 206.46875,
+        "width": 44,
+        "height": 44
+      },
+      "color": "rgb(255, 255, 255)",
+      "fontSize": "24px"
+    }
+  ],
+  "occlusion": {
+    "active": false,
+    "navbarMode": "ready"
+  },
+  "focus": {
+    "tag": "DIV",
+    "label": null,
+    "selection": [
+      null,
+      null
+    ],
+    "outline": "rgb(21, 34, 56) none 0px",
+    "at": 45819.89999999851
+  }
+}

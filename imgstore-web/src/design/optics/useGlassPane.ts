@@ -3,8 +3,8 @@
  *
  * Use this for surfaces whose layout is owned by another component (MUI Box
  * navbar, MUI Paper menus): the hook appends a <canvas.glass-optics-canvas>
- * as the host's first child, switches the host to .glass-optical (CSS blur
- * off — the registry's displaced pixels are the backdrop), and registers the
+ * as the host's first child, switches the host to .glass-optical (isolated
+ * material layer, native backdrop retained for fallback), and registers the
  * pane. Cleanup removes the canvas and restores the CSS material.
  *
  * V2-06 — the returned ref is a CALLBACK ref backed by state, not a bare
@@ -44,6 +44,7 @@ export function useGlassPane<T extends HTMLElement>(
    * and forced-colors (live media query). A flip re-runs the effect below,
    * which unregisters the pane and removes its canvas (cleanup path). */
   useEffect(() => {
+    if (!scene) return;
     const root = document.documentElement;
     const recheck = () => setEnabled(opticsEnabled());
     const observer = new MutationObserver(recheck);
@@ -53,7 +54,7 @@ export function useGlassPane<T extends HTMLElement>(
       observer.disconnect();
       offForcedColors();
     };
-  }, []);
+  }, [scene]);
 
   useEffect(() => {
     if (!enabled || !host || !scene) return;
@@ -68,11 +69,9 @@ export function useGlassPane<T extends HTMLElement>(
      * positioning context. .glass-regular/.glass-elevated already are
      * position:relative; enforce it for hosts that are not. */
     const prevPosition = host.style.position;
-    const prevOverflow = host.style.overflow;
     if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
-    /* Clip the material canvas to the host's rounded silhouette — the canvas
-     * itself is rect, only its displaced pixels carry the shape's alpha. */
-    host.style.overflow = 'clip';
+    /* The canvas clips itself with border-radius. Never clip host foreground
+     * here: focus rings, selection and nested popovers must stay intact. */
 
     const unregister = registerPane(id, role, host, canvas, scene);
     /* Portal transitions (slide/fade) change the rect with no scroll/resize
@@ -83,7 +82,7 @@ export function useGlassPane<T extends HTMLElement>(
       unregister();
       host.classList.remove('glass-optical');
       host.style.position = prevPosition;
-      host.style.overflow = prevOverflow;
+      delete host.dataset.opticsStatus;
       canvas.remove();
     };
   }, [enabled, host, id, role, scene, trackMotion]);

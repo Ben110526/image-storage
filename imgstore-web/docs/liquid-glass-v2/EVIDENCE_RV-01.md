@@ -43,6 +43,8 @@ chỉ sample cửa sổ interior `[pad, pad + shape·dpr)`; alpha = 0 → bỏ q
 
 Phần còn lại của RV-05 (cache key profile version khi profile thay đổi runtime — hiện profile là hằng số compile-time nên không có đường đổi runtime; ghi nhận là **code present**, không cần test).
 
+**Hiệu chỉnh khi rà `dd0d7ee`: RV-05 chưa đóng toàn bộ.** Radius/DPR invalidation đã sửa, nhưng transform CSS→source vẫn dùng pane DPR, chưa lấy scale độc lập từ backing store/rect của nguồn. Cần fixture source canvas scale khác pane (đặc biệt media stage), xem plan §17.2/17.4.
+
 ## 5. Nợ (không tuyên bố đạt)
 
 - **Grid-line canvas fixture thật** (§16.4: "render grid có line ID bằng canvas thật"): mới có identifiable scene trong jsdom; chưa có fixture canvas 2D thật render lưới có đánh số để so pixel ngoài browser.

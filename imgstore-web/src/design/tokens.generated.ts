@@ -41,7 +41,7 @@ export const MUI_PALETTE_LIGHT = {
   },
   "text": {
     "primary": "#152238",
-    "secondary": "#4B5C74",
+    "secondary": "#35475F",
     "disabled": "#626F82"
   },
   "divider": "#D8DFEA"

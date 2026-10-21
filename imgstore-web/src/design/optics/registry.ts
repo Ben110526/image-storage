@@ -31,6 +31,7 @@ interface PaneEntry extends PaneRegistration {
   moving: boolean;
   /** Set when geometry changed (map rebuilt) — needs render even off-viewport. */
   geometryDirty: boolean;
+  output: ImageData | null;
 }
 
 const panes = new Map<string, PaneEntry>();
@@ -42,15 +43,14 @@ const panes = new Map<string, PaneEntry>();
  *  - dirtySet holds pane ids; invalidatePane(id) is the narrow path
  *    (motion ticks, geometry changes), invalidatePanes() is the broadcast
  *    (scroll/resize — pane↔scene geometry changed for everyone).
- *  - notifySceneRepaint() bumps sceneRevision; a scene-broadcast invalidation
- *    only re-renders a pane if its lastSceneRevision differs, so a repaint
- *    notification that arrives twice (draw + resize echo) does not double-
- *    render panes that already rendered the current scene.
- *  - Hidden/zero-area panes (mobile-navigation is 0×0 on desktop) are skipped
- *    and stay dirty — they render when they next become visible AND dirty.
+ *  - notifySceneRepaint() bumps the source revision; invalidations in the
+ *    same browser frame coalesce into one render per dirty pane.
+ *  - Hidden/zero-area panes (mobile-navigation is 0×0 on desktop) are skipped;
+ *    geometry or visibility invalidation renders them when they show again.
  *  - Frame budget: renders run in priority order (moving > geometry-dirty >
  *    plain); once FRAME_BUDGET_MS is spent the rest stay dirty and one more
- *    RAF is scheduled, so a many-pane frame never blocks input past budget.
+ *    RAF is scheduled. This is a soft budget: a single pane can exceed it;
+ *    wallMs records that cost rather than claiming a hard frame deadline.
  */
 const dirtySet = new Set<string>();
 let dirtyScheduled = false;
@@ -66,6 +66,12 @@ const TRACE_RING = 30;
 const frameTraces: FrameTrace[] = [];
 let frameCounter = 0;
 const hiddenPanes = new Set<string>();
+const sourceReadbacks = new Map<HTMLCanvasElement, { revision: number; pixels: ImageData }>();
+const MAX_PANE_PIXELS = 180_000;
+
+function renderDpr(shape: PaneShape): number {
+  return Math.min(cappedDpr(), Math.sqrt(MAX_PANE_PIXELS / Math.max(1, shapeWidth(shape) * shapeHeight(shape))));
+}
 
 function pushTrace(trace: FrameTrace): void {
   frameTraces.push(trace);
@@ -80,9 +86,6 @@ function shapeFromHost(host: HTMLElement, role: PaneEntry['role']): { shape: Pan
   if (role === 'button' && Math.abs(w - h) <= 2) {
     return { shape: { kind: 'circle', size: w }, radius: w / 2 };
   }
-  if (role === 'pill') {
-    return { shape: { kind: 'pill', width: w, height: h }, radius: h / 2 };
-  }
   const radius = Math.min(
     h / 2,
     Math.max(0, parseFloat(getComputedStyle(host).borderTopLeftRadius) || 0),
@@ -91,27 +94,34 @@ function shapeFromHost(host: HTMLElement, role: PaneEntry['role']): { shape: Pan
 }
 
 function buildMap(entry: PaneEntry): void {
-  entry.dpr = cappedDpr();
+  entry.dpr = renderDpr(entry.shape);
   entry.map = buildDisplacementMap(entry.shape, GLASS_PROFILES[entry.role], entry.dpr, MAP_PADDING);
 }
 
-/* Per-pixel displacement render — the Gate-G1-proven loop from the lab.
+/* Per-pixel displacement render.
  * output[x,y] = scene[x+dx, y+dy] with the map decoded per pixel; tint is
  * composited after putImageData because putImageData writes opaque pixels. */
 function renderPane(entry: PaneEntry): number {
-  if (!entry.map) return 0;
   const t0 = performance.now();
-
-  const { canvas, host, scene, map, dpr } = entry;
+  const { canvas, host, scene } = entry;
   const rect = host.getBoundingClientRect();
+  canvas.dataset.opticsRole = entry.role;
+  canvas.style.clipPath = `inset(0 round ${getComputedStyle(host).borderRadius || '0px'})`;
 
-  /* RV-04 — hidden/zero-area panes are skipped entirely (mobile-navigation is
-   * 0×0 on desktop). They stay dirty; rendering resumes when they show. */
+  /* Hidden/zero-area panes skip work; resize/visibility wakes them later. */
   if (rect.width < 1 || rect.height < 1) {
     hiddenPanes.add(entry.id);
     return 0;
   }
   hiddenPanes.delete(entry.id);
+
+  if (scene.canSample && !scene.canSample(host, rect)) {
+    host.dataset.opticsStatus = 'native-backdrop';
+    return performance.now() - t0;
+  }
+  if (!entry.map || entry.geometryDirty) buildMap(entry);
+  const { map, dpr } = entry;
+  if (!map) return 0;
 
   const cw = Math.max(1, Math.round(rect.width * dpr));
   const ch = Math.max(1, Math.round(rect.height * dpr));
@@ -119,32 +129,47 @@ function renderPane(entry: PaneEntry): number {
   if (canvas.height !== ch) canvas.height = ch;
 
   const ctx = canvas.getContext('2d');
-  const sctx = scene.canvas.getContext('2d');
+  const sourceCanvas = scene.canvas;
+  const sctx = sourceCanvas.getContext('2d', { willReadFrequently: true });
   if (!ctx || !sctx) return 0;
 
   const sceneRect = scene.rect();
-  const px = Math.round((rect.left - sceneRect.left) * dpr);
-  const py = Math.round((rect.top - sceneRect.top) * dpr);
+  const sourceScaleX = sourceCanvas.width / Math.max(1, sceneRect.width);
+  const sourceScaleY = sourceCanvas.height / Math.max(1, sceneRect.height);
+  const px = (rect.left - sceneRect.left) * sourceScaleX;
+  const py = (rect.top - sceneRect.top) * sourceScaleY;
 
   /* Fully off-scene (e.g. pane scrolled past the scene canvas): clear. */
-  const sw = scene.canvas.width;
-  const sh = scene.canvas.height;
-  if (px >= sw || py >= sh || px + cw <= 0 || py + ch <= 0) {
+  const sw = sourceCanvas.width;
+  const sh = sourceCanvas.height;
+  if (px >= sw || py >= sh || px + rect.width * sourceScaleX <= 0 || py + rect.height * sourceScaleY <= 0) {
     ctx.clearRect(0, 0, cw, ch);
     return 0;
   }
 
   /* Clamp the sampled window to the scene bounds; the pane may hang off the
    * scene edge (§7.2.3 — outside the pane's map alpha the region is clear). */
-  const sx0 = Math.max(0, px);
-  const sy0 = Math.max(0, py);
-  const sx1 = Math.min(sw, px + cw);
-  const sy1 = Math.min(sh, py + ch);
-  const winW = sx1 - sx0;
-  const winH = sy1 - sy0;
-
-  const sceneData = sctx.getImageData(sx0, sy0, winW, winH);
-  const output = ctx.createImageData(cw, ch);
+  // Cache a readback per source revision, shared by all its panes. The source
+  // owns its scale and crop; neither depends on the output pane's density.
+  const revision = scene.revision?.() ?? sceneRevision;
+  let cached = sourceReadbacks.get(sourceCanvas);
+  try {
+    if (!cached || cached.revision !== revision || cached.pixels.width !== sw || cached.pixels.height !== sh) {
+      cached = { revision, pixels: sctx.getImageData(0, 0, sw, sh) };
+      sourceReadbacks.set(sourceCanvas, cached);
+    }
+  } catch {
+    sourceReadbacks.delete(sourceCanvas);
+    ctx.clearRect(0, 0, cw, ch);
+    host.dataset.opticsStatus = 'readback-fallback';
+    return performance.now() - t0;
+  }
+  const sceneData = cached.pixels;
+  if (!entry.output || entry.output.width !== cw || entry.output.height !== ch) entry.output = ctx.createImageData(cw, ch);
+  const output = entry.output;
+  output.data.fill(0);
+  const output32 = new Uint32Array(output.data.buffer, output.data.byteOffset, output.data.byteLength / 4);
+  const source32 = new Uint32Array(sceneData.data.buffer, sceneData.data.byteOffset, sceneData.data.byteLength / 4);
 
   const mapArr = map.data;
   const scale = map.scale;
@@ -168,8 +193,8 @@ function renderPane(entry: PaneEntry): number {
       const i = (y * cw + x) * 4;
 
       /* Pixel's offset within the clamped scene window. */
-      const wx = x - (sx0 - px);
-      const wy = y - (sy0 - py);
+      const wx = x / dpr;
+      const wy = y / dpr;
 
       /* Map pixel for this canvas pixel, interior window only. The canvas can
        * be ±1 device px larger than shapeW*dpr from rounding — clamp. */
@@ -181,24 +206,40 @@ function renderPane(entry: PaneEntry): number {
        * — leave the output transparent so the CSS fill shows. */
       if (mapArr[mi + 3] === 0) continue;
 
-      const dx = ((mapArr[mi] / 255) - 0.5) * scale * dpr;
-      const dy = ((mapArr[mi + 1] / 255) - 0.5) * scale * dpr;
+      // The center is neutral: copy one RGBA word without four-channel
+      // interpolation. Scattering smooths this transmitted raster; reserve
+      // bilinear work for the curved edge where fractional sampling matters.
+      if (mapArr[mi] === 128 && mapArr[mi + 1] === 128) {
+        const sx = Math.round(px + wx * sourceScaleX);
+        const sy = Math.round(py + wy * sourceScaleY);
+        if (sx >= 0 && sy >= 0 && sx < sw && sy < sh) output32[y * cw + x] = source32[sy * sw + sx];
+        continue;
+      }
 
-      const sx = Math.round(wx + dx);
-      const sy = Math.round(wy + dy);
+      const dx = ((mapArr[mi] / 255) - 0.5) * scale;
+      const dy = ((mapArr[mi + 1] / 255) - 0.5) * scale;
 
-      if (wx >= 0 && wy >= 0 && wx < winW && wy < winH && sx >= 0 && sx < winW && sy >= 0 && sy < winH) {
-        const si = (sy * winW + sx) * 4;
-        output.data[i] = sceneData.data[si];
-        output.data[i + 1] = sceneData.data[si + 1];
-        output.data[i + 2] = sceneData.data[si + 2];
-        output.data[i + 3] = sceneData.data[si + 3];
+      const sx = Math.max(0, Math.min(sw - 1, px + (wx + dx) * sourceScaleX));
+      const sy = Math.max(0, Math.min(sh - 1, py + (wy + dy) * sourceScaleY));
+
+      if (px + wx * sourceScaleX >= 0 && py + wy * sourceScaleY >= 0 && px + wx * sourceScaleX < sw && py + wy * sourceScaleY < sh) {
+        const x0 = Math.floor(sx), y0 = Math.floor(sy);
+        const x1 = Math.min(sw - 1, x0 + 1), y1 = Math.min(sh - 1, y0 + 1);
+        const fx = sx - x0, fy = sy - y0;
+        const a = (y0 * sw + x0) * 4, b = (y0 * sw + x1) * 4;
+        const c = (y1 * sw + x0) * 4, d = (y1 * sw + x1) * 4;
+        for (let channel = 0; channel < 4; channel++) {
+          output.data[i + channel] =
+            (sceneData.data[a + channel] * (1 - fx) + sceneData.data[b + channel] * fx) * (1 - fy) +
+            (sceneData.data[c + channel] * (1 - fx) + sceneData.data[d + channel] * fx) * fy;
+        }
       }
       /* else: leave transparent — the pane's CSS tint/rim layers still show. */
     }
   }
 
   ctx.putImageData(output, 0, 0);
+  host.dataset.opticsStatus = 'ready';
 
   const ms = performance.now() - t0;
   entry.stats.renders += 1;
@@ -212,6 +253,7 @@ function renderPane(entry: PaneEntry): number {
 function renderDirty(): void {
   dirtyScheduled = false;
   if (paused) return;
+  const frameStart = performance.now();
 
   /* RV-04 — priority: animating panes first (visual continuity while a portal
    * moves), then geometry-dirty (map was rebuilt — stale output on screen),
@@ -235,7 +277,7 @@ function renderDirty(): void {
       continue;
     }
     /* Frame budget: once spent, keep the rest dirty for the next frame. */
-    if (trace.totalMs >= FRAME_BUDGET_MS) {
+    if (trace.rendered.length > 0 && performance.now() - frameStart >= FRAME_BUDGET_MS) {
       trace.deferred.push(id);
       continue;
     }
@@ -245,6 +287,7 @@ function renderDirty(): void {
     if (ms > 0) trace.rendered.push({ id, ms });
   }
 
+  trace.wallMs = performance.now() - frameStart;
   pushTrace(trace);
 
   /* Deferred panes still need their frame — schedule one more RAF. */
@@ -312,8 +355,8 @@ export function registerPane(
     lastSceneRevision: sceneRevision,
     moving: false,
     geometryDirty: true,
+    output: null,
   };
-  buildMap(entry);
 
   /* RV-05 (plan §16.4) — the displacement map cache key is the full geometry:
    * width, height, RADIUS, and DPR (buildDisplacementMap bakes PROFILE_VERSION
@@ -328,11 +371,10 @@ export function registerPane(
       shapeWidth(next.shape) !== shapeWidth(entry.shape) ||
       shapeHeight(next.shape) !== shapeHeight(entry.shape) ||
       next.radius !== entry.radius ||
-      cappedDpr() !== entry.dpr;
+      renderDpr(next.shape) !== entry.dpr;
     entry.shape = next.shape;
     entry.radius = next.radius;
     if (geometryChanged) {
-      buildMap(entry);
       entry.geometryDirty = true;
     }
     invalidatePane(id);
@@ -340,28 +382,38 @@ export function registerPane(
 
   const ro = new ResizeObserver(onGeometry);
   ro.observe(host);
+  const geometryObserver = new MutationObserver(onGeometry);
+  geometryObserver.observe(host, { attributes: true, attributeFilter: ['class', 'style'] });
   window.addEventListener('resize', onGeometry);
   window.addEventListener('scroll', invalidatePanes, { capture: true, passive: true });
 
   entry.cleanup = () => {
     ro.disconnect();
+    geometryObserver.disconnect();
     window.removeEventListener('resize', onGeometry);
     window.removeEventListener('scroll', invalidatePanes, { capture: true });
     panes.delete(id);
     dirtySet.delete(id);
     hiddenPanes.delete(id);
+    delete host.dataset.opticsStatus;
+    delete host.dataset.glassOptics;
+    entry.output = null;
+    entry.map = null;
+    if (![...panes.values()].some(p => p.scene.canvas === scene.canvas)) sourceReadbacks.delete(scene.canvas);
   };
 
   panes.set(id, entry);
+  // MUI recomputes className on focus/ripple. A separate data attribute keeps
+  // the layer contract stable across those React-owned class replacements.
+  host.dataset.glassOptics = '';
   invalidatePanes();
   return entry.cleanup;
 }
 
 /** Re-render all panes after the scene repainted (GlassScene draw, media load). */
 export function notifySceneRepaint(): void {
-  /* RV-04 — scene revision: a pane whose lastSceneRevision already equals the
-   * new revision has nothing new to sample, so a doubled repaint notification
-   * (draw + resize echo) does not re-render it. */
+  /* Revision invalidates the shared readback; the dirty set coalesces callers
+   * before the next scheduled browser frame. */
   sceneRevision += 1;
   for (const [id, entry] of panes) {
     if (entry.lastSceneRevision !== sceneRevision) dirtySet.add(id);
@@ -432,16 +484,29 @@ export function paneStats(): Record<string, PaneRenderStats> {
 export function frameStats(): OpticsFrameStats {
   const buffers: OpticsFrameStats['buffers'] = {};
   let totalBufferBytes = 0;
+  let maps = 0;
+  let outputs = 0;
+  let sourceBytes = 0;
+  let sourceCanvasBytes = 0;
+  const sources = new Set<HTMLCanvasElement>();
   for (const [id, e] of panes) {
+    sources.add(e.scene.canvas);
     const bytes = e.canvas.width * e.canvas.height * 4;
     buffers[id] = { width: e.canvas.width, height: e.canvas.height, bytes };
     totalBufferBytes += bytes;
+    maps += e.map?.data.byteLength ?? 0;
+    outputs += e.output?.data.byteLength ?? 0;
   }
+  for (const value of sourceReadbacks.values()) {
+    sourceBytes += value.pixels.data.byteLength;
+  }
+  for (const canvas of sources) sourceCanvasBytes += canvas.width * canvas.height * 4;
   return {
     frames: frameTraces.map((f) => ({ ...f, rendered: [...f.rendered], deferred: [...f.deferred] })),
     hiddenPanes: [...hiddenPanes],
     buffers,
     totalBufferBytes,
+    retainedBytes: { outputs: totalBufferBytes + outputs, maps, sourceReadbacks: sourceBytes, sourceCanvases: sourceCanvasBytes, total: totalBufferBytes + outputs + maps + sourceBytes + sourceCanvasBytes },
   };
 }
 
