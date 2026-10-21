@@ -25,3 +25,9 @@ bindings = [
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["UploadSessionDO", "ClientQuotaDO"]
+
+# Cloudflare Images binding: edge image conversion (env.IMAGES).
+# Requires the Images product on the account; without it the capability
+# endpoint reports images.available = false and the UI hides the action.
+[images]
+binding = "IMAGES"

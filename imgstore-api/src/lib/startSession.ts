@@ -1,8 +1,25 @@
-import type { Env } from '../types';
+import type { ConversionInfo, Env } from '../types';
 import { initResumableUpload, abortResumableUpload } from './gdrive';
 import { FolderError, resolveUploadFolder } from './folders';
 
-export async function startSession(env: Env, owner: string, name: string, size: number, mime: string, origin: string, folderId?: string) {
+export interface SessionOptions {
+  /** ID of the library file this upload was produced from (conversion). */
+  derivedFrom?: string;
+  conversion?: ConversionInfo;
+  width?: number;
+  height?: number;
+}
+
+export async function startSession(
+  env: Env,
+  owner: string,
+  name: string,
+  size: number,
+  mime: string,
+  origin: string,
+  folderId?: string,
+  options?: SessionOptions,
+) {
   if (!env.CLIENT_QUOTA_DO || !env.UPLOAD_SESSION_DO) throw new FolderError('STORAGE_UNAVAILABLE', 'Upload storage bindings are unavailable.', 503);
   if (!env.GOOGLE_CREDENTIALS?.trim() && !(env.GOOGLE_REFRESH_TOKEN && (env.GOOGLE_SYSTEM_CLIENT_ID || env.GOOGLE_CLIENT_ID) && (env.GOOGLE_SYSTEM_CLIENT_SECRET || env.GOOGLE_CLIENT_SECRET))) {
     throw new FolderError('STORAGE_UNAVAILABLE', 'Shared Drive credentials are unavailable.', 503);
@@ -27,6 +44,13 @@ export async function startSession(env: Env, owner: string, name: string, size: 
       method: 'POST', body: JSON.stringify({
         uploadId, clientId: owner, ownerId: owner, fileName: name, mimeType: mime,
         totalSize: size, gdriveSessionUri: sessionUri, folder,
+        // Omitted for ordinary uploads so existing sessions keep their shape.
+        conversionMeta: options ? {
+          derivedFrom: options.derivedFrom,
+          conversion: options.conversion,
+          width: options.width,
+          height: options.height,
+        } : undefined,
       }),
     }));
     if (!response.ok) throw new Error('Could not persist upload session');

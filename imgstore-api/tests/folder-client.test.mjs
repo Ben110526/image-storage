@@ -29,3 +29,28 @@ test('web API transports folder_id in multipart, URL and resumable and parent_id
   assert.deepEqual(calls[3].body, { name: 'photos', parent_id: 'folder_a' });
   assert.equal(calls[4].body.has('folder_id'), false);
 });
+
+test('web API client reaches the conversion endpoints with the expected payloads', async () => {
+  const calls = [];
+  globalThis.testAxios = {
+    interceptors: { response: { use() {} } },
+    async get(path) { calls.push({ method: 'GET', path }); return { data: { data: { sources: [] } } }; },
+    async post(path, body, config) {
+      calls.push({ method: 'POST', path, body, config });
+      return { data: { data: { id: 'new1' } } };
+    },
+  };
+
+  await api.fetchConversionCapabilities();
+  const converted = await api.convertImageById('img1', { format: 'pdf', folder_id: 'folder_a' });
+
+  assert.equal(calls[0].method, 'GET');
+  assert.equal(calls[0].path, '/convert/capabilities');
+
+  assert.equal(calls[1].method, 'POST');
+  assert.equal(calls[1].path, '/image/img1/convert');
+  assert.deepEqual(calls[1].body, { format: 'pdf', folder_id: 'folder_a' });
+  // Conversion can outlast the 60 s instance default (Drive import + export).
+  assert.equal(calls[1].config.timeout, 120000);
+  assert.equal(converted.id, 'new1');
+});

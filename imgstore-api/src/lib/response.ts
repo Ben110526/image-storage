@@ -13,7 +13,7 @@ export function jsonError(
   c: Context,
   code: string,
   message: string,
-  status: 400 | 401 | 403 | 404 | 409 | 413 | 429 | 500 | 502 | 503 = 400
+  status: 400 | 401 | 403 | 404 | 409 | 413 | 415 | 422 | 429 | 500 | 502 | 503 = 400
 ) {
   const body: ApiErrorResponse = {
     success: false,

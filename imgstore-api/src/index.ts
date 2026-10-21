@@ -18,6 +18,7 @@ import { jsonError } from './lib/response';
 import { apiKeysHandler } from './handlers/apiKeys';
 import { bodyLimit } from 'hono/body-limit';
 import { foldersHandler } from './handlers/folders';
+import { convertCapabilitiesHandler, convertImageHandler } from './handlers/convert';
 import {
   initResumableUploadHandler,
   chunkResumableUploadHandler,
@@ -86,6 +87,10 @@ app.get('/', (c) => {
         resumable_status: 'GET /upload/resumable/:upload_id (Check upload status)',
         resumable_abort: 'DELETE /upload/resumable/:upload_id (Abort session and release quota)',
       },
+      convert: {
+        capabilities: 'GET /convert/capabilities (Requires API Key; which source formats can be converted, and to what)',
+        convert: 'POST /image/:id/convert {format, name?, folder_id?, quality?} — stores the result as a NEW library file',
+      },
       list: 'GET /images (Requires API Key)',
       folders: 'GET /folders; POST /folders {name, parent_id?}. All uploads accept optional folder_id; default is the authenticated user root.',
       get: 'GET /image/:id (Requires API Key)',
@@ -118,7 +123,9 @@ app.delete('/auth/api-keys/:id', authMiddleware, apiKeysHandler);
 app.get('/images', authMiddleware, listImagesHandler);
 app.get('/folders', authMiddleware, foldersHandler);
 app.post('/folders', authMiddleware, bodyLimit({ maxSize: 2048, onError: c => jsonError(c, 'BODY_TOO_LARGE', 'Folder JSON must be under 2 KB.', 413) }), foldersHandler);
+app.get('/convert/capabilities', authMiddleware, convertCapabilitiesHandler);
 app.get('/image/:id', authMiddleware, getImageHandler);
+app.post('/image/:id/convert', authMiddleware, bodyLimit({ maxSize: 4096, onError: c => jsonError(c, 'BODY_TOO_LARGE', 'Conversion JSON must be under 4 KB.', 413) }), convertImageHandler);
 app.delete('/image/:id', authMiddleware, deleteImageHandler);
 
 export default app;

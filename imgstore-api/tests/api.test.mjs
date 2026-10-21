@@ -1,79 +1,10 @@
 import { test, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { build } from 'esbuild';
-import { sqliteState, folderDrive } from './helpers/folders.mjs';
+import { folderDrive } from './helpers/folders.mjs';
+import { originalFetch } from './helpers/apiApp.mjs';
+import { fixture, headers, imageForm } from './helpers/fixture.mjs';
 
-if (typeof globalThis.FixedLengthStream === 'undefined') {
-  globalThis.FixedLengthStream = class FixedLengthStream extends TransformStream { constructor() { super(); } };
-}
-
-const cfMockPlugin = {
-  name: 'cloudflare-workers-mock',
-  setup(b) {
-    b.onResolve({ filter: /^cloudflare:workers$/ }, args => ({
-      path: args.path,
-      namespace: 'cf-mock'
-    }));
-    b.onLoad({ filter: /.*/, namespace: 'cf-mock' }, () => ({
-      contents: `
-        export class DurableObject {
-          constructor(ctx, env) {
-            this.ctx = ctx;
-            this.env = env;
-          }
-        }
-      `,
-      loader: 'js'
-    }));
-  }
-};
-
-const bundle = await build({
-  entryPoints: ['src/index.ts'],
-  bundle: true,
-  write: false,
-  format: 'esm',
-  platform: 'node',
-  plugins: [cfMockPlugin]
-});
-const { default: app, ClientQuotaDO, UploadSessionDO } = await import('data:text/javascript;base64,' + Buffer.from(bundle.outputFiles[0].text + '\n//# sourceURL=imgstore-tests.mjs').toString('base64'));
-const originalFetch = globalThis.fetch;
 afterEach(() => { globalThis.fetch = originalFetch; });
-
-function fixture() {
-  const rows = new Map();
-  const kv = {
-    async get(k) { return rows.get(k)?.value ?? null; },
-    async put(k, value, options = {}) { rows.set(k, { value, metadata: options.metadata }); },
-    async delete(k) { rows.delete(k); },
-    async list({ prefix = '', cursor }) {
-      const all = [...rows].filter(([k]) => k.startsWith(prefix)).map(([name, r]) => ({ name, metadata: r.metadata }));
-      const start = Number(cursor || 0), end = start + 2;
-      return { keys: all.slice(start, end), list_complete: end >= all.length, cursor: String(end) };
-    }
-  };
-  const env = { IMGSTORE_META: kv, API_SECRET_KEY: 'admin-test', GOOGLE_SYSTEM_CLIENT_ID: 'system-client', GOOGLE_SYSTEM_CLIENT_SECRET: 'system-secret', GOOGLE_REFRESH_TOKEN: 'system-refresh', GDRIVE_FOLDER_ID: 'shared-drive-folder' };
-  function namespace(Class) {
-    const instances = new Map();
-    return { idFromName: x => x, get(id) {
-      if (!instances.has(id)) instances.set(id, new Class(sqliteState(), env));
-      return instances.get(id);
-    } };
-  }
-  env.CLIENT_QUOTA_DO = namespace(ClientQuotaDO);
-  env.UPLOAD_SESSION_DO = namespace(UploadSessionDO);
-  const pending = [];
-  const request = (path, options = {}) => app.request('https://api.example' + path, options, env, { waitUntil(p) { pending.push(p); }, passThroughOnException() {} });
-  const admin = { 'X-API-Key': 'admin-test' };
-  async function issue(name, user_id) {
-    const response = await request('/auth/api-keys', { method: 'POST', headers: { ...admin, 'Content-Type': 'application/json' }, body: JSON.stringify({ name, user_id }) });
-    assert.equal(response.status, 201);
-    return (await response.json()).data;
-  }
-  return { rows, kv, env, request, admin, issue, pending };
-}
-const headers = key => ({ 'X-API-Key': key.key });
-const imageForm = () => { const body = new FormData(); body.set('file', new File([new Uint8Array([137,80,78,71,13,10,26,10])], 'pixel.png', { type: 'image/png' })); return body; };
 
 test('anonymous and legacy Google sessions cannot use shared storage', async () => {
   const f = fixture();

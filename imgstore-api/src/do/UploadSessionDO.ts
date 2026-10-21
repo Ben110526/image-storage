@@ -1,11 +1,19 @@
 import { DurableObject } from 'cloudflare:workers';
-import type { Env, ImageMetadata, FolderMetadata } from '../types';
+import type { Env, ImageMetadata, FolderMetadata, ConversionInfo } from '../types';
 import { AsyncMutex } from './AsyncMutex';
 import {
   makeGoogleDriveFilePublic,
   queryResumableUploadStatus,
   abortResumableUpload,
 } from '../lib/gdrive';
+
+/** Kept in DO storage (not SQLite) so existing DO instances need no migration. */
+interface SessionConversionMeta {
+  derivedFrom?: string;
+  conversion?: ConversionInfo;
+  width?: number;
+  height?: number;
+}
 
 interface SessionRow extends Record<string, SqlStorageValue> {
   upload_id: string;
@@ -106,6 +114,8 @@ export class UploadSessionDO extends DurableObject<Env> {
     totalSize: number;
     gdriveSessionUri: string;
     folder?: FolderMetadata;
+    /** Provenance for conversion outputs (see lib/convertPublish). */
+    conversionMeta?: SessionConversionMeta | null;
   }) {
     return this.mutex.runExclusive(async () => {
       const existing = this.getSession();
@@ -116,6 +126,9 @@ export class UploadSessionDO extends DurableObject<Env> {
       const now = Math.floor(Date.now() / 1000);
       // Stored only at first initialization; legacy sessions remain unchanged.
       if (data.folder) await this.ctx.storage.put('uploadFolder', data.folder);
+      // Same storage-object pattern as uploadFolder: no SQLite migration needed,
+      // and sessions created before this feature simply read undefined.
+      if (data.conversionMeta) await this.ctx.storage.put('conversionMeta', data.conversionMeta);
       this.ctx.storage.sql.exec(
         `INSERT INTO upload_session (
           upload_id, client_id, owner_id, file_name, mime_type, total_size,
@@ -492,6 +505,7 @@ export class UploadSessionDO extends DurableObject<Env> {
   private async buildFileMetadata(session: SessionRow, origin: string): Promise<ImageMetadata> {
     origin = (await this.ctx.storage.get<string>('publicOrigin')) || origin;
     const folder = await this.ctx.storage.get<FolderMetadata>('uploadFolder');
+    const conversionMeta = await this.ctx.storage.get<SessionConversionMeta>('conversionMeta');
     const fileId = session.file_id || session.upload_id;
     return {
       storage_backend: 'shared',
@@ -502,6 +516,10 @@ export class UploadSessionDO extends DurableObject<Env> {
       name: session.file_name,
       size: session.total_size,
       mime_type: session.mime_type,
+      ...(conversionMeta?.derivedFrom ? { derived_from: conversionMeta.derivedFrom } : {}),
+      ...(conversionMeta?.conversion ? { conversion: conversionMeta.conversion } : {}),
+      ...(conversionMeta?.width ? { width: conversionMeta.width } : {}),
+      ...(conversionMeta?.height ? { height: conversionMeta.height } : {}),
       // Serve everything through the edge proxy so clients never depend on the
       // backing store's URLs (which can 404 right after upload, e.g. thumbnails).
       url: `${origin}/serve/${fileId}`,

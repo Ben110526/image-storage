@@ -221,7 +221,8 @@ export async function makeGoogleDriveFilePublic(
 export async function fetchFileFromGoogleDrive(
   credentials: AuthTokenSource,
   fileId: string,
-  rangeHeader?: string | null
+  rangeHeader?: string | null,
+  signal?: AbortSignal,
 ): Promise<Response> {
   const token = await resolveAccessToken(credentials);
 
@@ -237,6 +238,7 @@ export async function fetchFileFromGoogleDrive(
     {
       method: 'GET',
       headers,
+      signal,
     }
   );
 
@@ -293,6 +295,133 @@ export async function initResumableUpload(
   }
 
   return { sessionUri };
+}
+
+export type GoogleNativeMime =
+  | 'application/vnd.google-apps.document'
+  | 'application/vnd.google-apps.spreadsheet'
+  | 'application/vnd.google-apps.presentation';
+
+/**
+ * Import a source document into Drive as a Google-native file.
+ *
+ * Google performs the format conversion during import, which is why we must
+ * declare the *source* MIME in X-Upload-Content-Type while the metadata
+ * mimeType names the Google-native target. Import is asynchronous on Google's
+ * side: the returned ID may not be exportable for a few hundred milliseconds,
+ * so callers pair this with waitForGoogleExport.
+ *
+ * The file is deliberately named with a recognisable prefix and no parent, so
+ * an orphan from a crashed request is easy to spot and clean up.
+ */
+export async function importForConversion(
+  credentials: AuthTokenSource,
+  googleMime: GoogleNativeMime,
+  source: { name: string; mimeType: string; size: number; body: ReadableStream<Uint8Array> },
+  opts: { parents?: string[]; signal?: AbortSignal } = {},
+): Promise<{ id: string; name: string }> {
+  const token = await resolveAccessToken(credentials);
+  const name = opts.parents ? source.name : `.imgstore-convert-${crypto.randomUUID()}`;
+
+  const init = await fetch(
+    'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&supportsAllDrives=true&fields=id,name',
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json; charset=UTF-8',
+        'X-Upload-Content-Type': source.mimeType,
+        'X-Upload-Content-Length': String(source.size),
+      },
+      body: JSON.stringify({ name, mimeType: googleMime, ...(opts.parents ? { parents: opts.parents } : {}) }),
+      signal: opts.signal,
+    },
+  );
+  if (!init.ok) {
+    throw new Error(`Google Drive convert-import init failed (${init.status}): ${await init.text()}`);
+  }
+  const sessionUri = init.headers.get('Location');
+  if (!sessionUri) throw new Error('Google Drive convert-import did not return a Location header');
+
+  const uploaded = await fetch(sessionUri, {
+    method: 'PUT',
+    headers: { 'Content-Type': source.mimeType, 'Content-Length': String(source.size) },
+    body: source.body,
+    // @ts-ignore -- Workers requires duplex for streamed request bodies.
+    duplex: 'half',
+    signal: opts.signal,
+  });
+  if (!uploaded.ok) {
+    throw new Error(`Google Drive convert-import failed (${uploaded.status}): ${await uploaded.text()}`);
+  }
+  const result = await uploaded.json() as { id?: string; name?: string };
+  if (!result.id) throw new Error('Google Drive convert-import returned no file ID');
+  return { id: result.id, name: result.name || name };
+}
+
+export type GoogleExportOutcome =
+  | { status: 'ready'; response: Response }
+  | { status: 'too_large' }
+  | { status: 'failed'; reason: string };
+
+/** Google refuses to export more than this, whatever the plan. */
+export const GOOGLE_EXPORT_MAX_BYTES = 10 * 1024 * 1024;
+
+/**
+ * Export a Google-native file, retrying while Google finishes importing.
+ *
+ * Import conversion is asynchronous: an immediate export commonly answers
+ * 400 "file not ready" / 500, and a large document can take seconds. Without
+ * this backoff the feature would fail intermittently rather than never.
+ */
+export async function waitForGoogleExport(
+  credentials: AuthTokenSource,
+  fileId: string,
+  exportMime: string,
+  opts: { attempts?: number; baseDelayMs?: number; maxTotalMs?: number; signal?: AbortSignal } = {},
+): Promise<GoogleExportOutcome> {
+  const attempts = opts.attempts ?? 6;
+  const baseDelayMs = opts.baseDelayMs ?? 400;
+  const maxTotalMs = opts.maxTotalMs ?? 12_000;
+  const startedAt = Date.now();
+  const token = await resolveAccessToken(credentials);
+  let lastReason = 'Google export did not become available.';
+
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    if (attempt > 0) {
+      const delay = baseDelayMs * 2 ** (attempt - 1);
+      if (Date.now() - startedAt + delay > maxTotalMs) break;
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+    if (opts.signal?.aborted) throw new Error('ABORTED');
+
+    const response = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${fileId}/export?mimeType=${encodeURIComponent(exportMime)}&supportsAllDrives=true`,
+      { method: 'GET', headers: { Authorization: `Bearer ${token}` }, signal: opts.signal },
+    );
+
+    if (response.ok) {
+      // The 10 MB ceiling is enforced by Content-Length when present, so an
+      // oversized export is rejected before any bytes are buffered.
+      const length = Number(response.headers.get('Content-Length') || 0);
+      if (length > GOOGLE_EXPORT_MAX_BYTES) {
+        await response.body?.cancel().catch(() => {});
+        return { status: 'too_large' };
+      }
+      return { status: 'ready', response };
+    }
+
+    const text = await response.text().catch(() => '');
+    lastReason = `Google export failed (${response.status}): ${text.slice(0, 300)}`;
+    // Google reports the 10 MB ceiling as a 403 with this reason. Checked
+    // before the retry filter, because 403 is otherwise not retryable — the
+    // limit will never clear no matter how long we wait.
+    if (/exportSizeLimitExceeded/.test(text)) return { status: 'too_large' };
+    // Only the transient families are worth retrying; anything else is final.
+    if (![400, 404, 429, 500, 502, 503].includes(response.status)) break;
+  }
+
+  return { status: 'failed', reason: lastReason };
 }
 
 export type ResumableStatusCheck =

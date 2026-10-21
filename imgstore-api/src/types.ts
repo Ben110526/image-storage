@@ -14,6 +14,8 @@ export interface Env {
   ENVIRONMENT?: string;
   ALLOWED_ORIGINS?: string;
   APP_URL?: string;
+  /** Cloudflare Images binding; absent when the deployment has no [images] block. */
+  IMAGES?: ImagesBinding;
 }
 
 export interface ServiceAccountCredentials {
@@ -56,6 +58,18 @@ export interface AuthResponse {
   user: UserProfile;
 }
 
+/** Provenance of a file produced by /image/:id/convert. */
+export interface ConversionInfo {
+  source_id: string;
+  source_name: string;
+  source_mime: string;
+  engine: 'documents' | 'images' | 'media';
+  target_format: string;
+  target_mime: string;
+  quality?: number;
+  converted_at: string;
+}
+
 export interface ImageMetadata {
   folder_id?: string;
   folder_path?: string;
@@ -73,6 +87,9 @@ export interface ImageMetadata {
   created_at: string;
   owner_id?: string;
   owner_email?: string;
+  /** Present when this file was produced by converting another library file. */
+  derived_from?: string;
+  conversion?: ConversionInfo;
 }
 
 export interface PaginationMeta {
