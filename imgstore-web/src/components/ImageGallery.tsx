@@ -19,13 +19,21 @@ import {
   CloudUpload as UploadIcon,
 } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
-import { useImages, useDeleteImage } from '../hooks/useImages';
+import {
+  useImages,
+  useDeleteImage,
+  useConversionCapabilities,
+  useConvertImage,
+} from '../hooks/useImages';
 import { useAuth } from '../context/AuthContext';
 import { ImageCard } from './ImageCard';
 import { ConfirmDialog } from './ConfirmDialog';
+import { ConvertDialog } from './ConvertDialog';
 import { ImagePreviewModal } from './ImagePreviewModal';
 import { DataState } from './ui/DataState';
 import type { ImageMetadata } from '../types';
+import type { ConvertImageRequest } from '../api/client';
+import { isConvertible } from '../lib/conversion';
 import { haptics } from '../lib/haptics';
 import { getAppScene } from '../design/optics/GlassScene';
 import { useGlassPane } from '../design/optics/useGlassPane';
@@ -53,6 +61,7 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({ folderId, folderLabe
 
   const [previewImage, setPreviewImage] = useState<ImageMetadata | null>(null);
   const [imageToDelete, setImageToDelete] = useState<ImageMetadata | null>(null);
+  const [imageToConvert, setImageToConvert] = useState<ImageMetadata | null>(null);
 
   const limit = 12;
   const { data, isLoading, isFetching, isError, error, refetch } = useImages(
@@ -62,6 +71,8 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({ folderId, folderLabe
     folderId
   );
   const deleteMutation = useDeleteImage();
+  const convertMutation = useConvertImage();
+  const { data: capabilities } = useConversionCapabilities();
 
   /* FIX-06 — '/' quick-focus skips every editable element (input, textarea,
    * select, contenteditable), any modifier chord, and any open dialog/sheet
@@ -112,6 +123,24 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({ folderId, folderLabe
       const msg = err instanceof Error ? err.message : 'Delete failed';
       enqueueSnackbar(`Error deleting image: ${msg}`, { variant: 'error' });
     }
+  };
+
+  /* Conversion produces a NEW library file; the source stays untouched. On
+   * success the dialog closes and the result is opened straight away — the
+   * preview is the clearest possible proof that the bytes are real. */
+  const handleConvert = (request: ConvertImageRequest) => {
+    if (!imageToConvert) return;
+    convertMutation.mutate(
+      { id: imageToConvert.id, ...request },
+      {
+        onSuccess: (file) => {
+          haptics.playSuccess();
+          enqueueSnackbar(`Đã tạo "${file.name}"`, { variant: 'success', autoHideDuration: 3000 });
+          setImageToConvert(null);
+          setPreviewImage(file);
+        },
+      },
+    );
   };
 
   const images = data?.images || [];
@@ -180,6 +209,8 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({ folderId, folderLabe
                   image={img}
                   onPreview={(selected) => setPreviewImage(selected)}
                   onDelete={(selected) => setImageToDelete(selected)}
+                  onConvert={(selected) => setImageToConvert(selected)}
+                  convertible={isConvertible(img, capabilities)}
                 />
               </Grid>
             ))}
@@ -210,6 +241,8 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({ folderId, folderLabe
                 image={img}
                 onPreview={(selected) => setPreviewImage(selected)}
                 onDelete={(selected) => setImageToDelete(selected)}
+                onConvert={(selected) => setImageToConvert(selected)}
+                convertible={isConvertible(img, capabilities)}
               />
             </Grid>
           ))}
@@ -388,6 +421,28 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({ folderId, folderLabe
         image={previewImage}
         open={Boolean(previewImage)}
         onClose={() => setPreviewImage(null)}
+        onConvert={
+          previewImage && isConvertible(previewImage, capabilities)
+            ? (selected) => {
+                setPreviewImage(null);
+                setImageToConvert(selected);
+              }
+            : undefined
+        }
+      />
+
+      {/* Convert Dialog — one file at a time (plan §4). */}
+      <ConvertDialog
+        image={imageToConvert}
+        open={Boolean(imageToConvert)}
+        pending={convertMutation.isPending}
+        error={convertMutation.isError ? convertMutation.error : null}
+        onClose={() => {
+          if (convertMutation.isPending) return;
+          convertMutation.reset();
+          setImageToConvert(null);
+        }}
+        onConvert={handleConvert}
       />
 
       {/* Delete Confirmation Dialog */}

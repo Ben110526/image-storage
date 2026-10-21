@@ -15,6 +15,7 @@ import {
   FolderZip as ArchiveIcon,
   InsertDriveFile as FileIcon,
   BrokenImageOutlined as BrokenIcon,
+  SyncAlt as ConvertIcon,
 } from '@mui/icons-material';
 import type { ImageMetadata } from '../types';
 import { haptics } from '../lib/haptics';
@@ -31,6 +32,10 @@ interface ImageCardProps {
   image: ImageMetadata;
   onPreview: (image: ImageMetadata) => void;
   onDelete: (image: ImageMetadata) => void;
+  /** Opens the convert dialog. Only rendered when `convertible` is true. */
+  onConvert?: (image: ImageMetadata) => void;
+  /** Whether the server advertises a conversion for this MIME type. */
+  convertible?: boolean;
 }
 
 function formatSize(bytes: number): string {
@@ -59,7 +64,13 @@ const TYPE_META: Record<string, { icon: React.ReactNode; label: string; color: s
   file: { icon: <FileIcon />, label: 'File', color: 'var(--color-type-file)' },
 };
 
-export const ImageCard: React.FC<ImageCardProps> = ({ image, onPreview, onDelete }) => {
+export const ImageCard: React.FC<ImageCardProps> = ({
+  image,
+  onPreview,
+  onDelete,
+  onConvert,
+  convertible = false,
+}) => {
   const [thumbFailed, setThumbFailed] = useState(false);
 
   const mime = image.mime_type || '';
@@ -229,6 +240,22 @@ export const ImageCard: React.FC<ImageCardProps> = ({ image, onPreview, onDelete
               <ViewIcon sx={{ fontSize: 18 }} />
             </IconButton>
           </Tooltip>
+          {/* Only files the server can actually convert get the button: a
+           * disabled icon would advertise a capability this deployment lacks. */}
+          {convertible && onConvert && (
+            <Tooltip title="Chuyển đổi định dạng">
+              <IconButton
+                size="small"
+                aria-label={`Chuyển đổi ${image.name}`}
+                onClick={() => {
+                  haptics.playClick();
+                  onConvert(image);
+                }}
+              >
+                <ConvertIcon sx={{ fontSize: 18 }} />
+              </IconButton>
+            </Tooltip>
+          )}
           <CopyButton
             value={image.proxy_url}
             label={`Copy link CDN của ${image.name}`}
