@@ -54,3 +54,46 @@ test('web API client reaches the conversion endpoints with the expected payloads
   assert.equal(calls[1].config.timeout, 120000);
   assert.equal(converted.id, 'new1');
 });
+
+test('convertFileQuick posts multipart to /convert and reads the filename back', async () => {
+  const calls = [];
+  globalThis.testAxios = {
+    interceptors: { response: { use() {} } },
+    async post(path, body, config) {
+      calls.push({ path, body, config });
+      return {
+        data: new Blob(['%PDF-1.4'], { type: 'application/pdf' }),
+        headers: { 'content-disposition': "attachment; filename*=UTF-8''B%C3%A1o%20c%C3%A1o.pdf" },
+      };
+    },
+  };
+
+  const file = new File(['DOCX'], 'report.docx', {
+    type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  });
+  const result = await api.convertFileQuick({ file, format: 'pdf', name: 'Báo cáo.pdf', quality: 60 });
+
+  assert.equal(calls[0].path, '/convert');
+  // Multipart, not JSON: the file itself is the body.
+  assert.equal(calls[0].body.get('file').name, 'report.docx');
+  assert.equal(calls[0].body.get('format'), 'pdf');
+  assert.equal(calls[0].body.get('name'), 'Báo cáo.pdf');
+  assert.equal(calls[0].body.get('quality'), '60');
+  assert.equal(calls[0].config.responseType, 'blob');
+  assert.equal(calls[0].config.timeout, 120000);
+
+  // The percent-encoded RFC 5987 name is decoded, and the blob comes back intact.
+  assert.equal(result.filename, 'Báo cáo.pdf');
+  assert.equal(await result.blob.text(), '%PDF-1.4');
+
+  // Optional fields are omitted rather than sent empty.
+  await api.convertFileQuick({ file, format: 'txt' });
+  assert.equal(calls[1].body.has('name'), false);
+  assert.equal(calls[1].body.has('quality'), false);
+  // No Content-Disposition (a proxy stripped it): fall back to the local name.
+  globalThis.testAxios = {
+    interceptors: { response: { use() {} } },
+    async post() { return { data: new Blob(['x']), headers: {} }; },
+  };
+  assert.equal((await api.convertFileQuick({ file, format: 'txt' })).filename, 'report.docx');
+});

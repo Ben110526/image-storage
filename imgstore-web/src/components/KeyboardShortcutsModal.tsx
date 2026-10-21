@@ -122,7 +122,9 @@ export const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
           <Divider sx={{ my: 0.5, borderColor: 'var(--color-border)' }} />
           <ShortcutRow keys={['2']} description="Đi tới Thư viện" />
           <Divider sx={{ my: 0.5, borderColor: 'var(--color-border)' }} />
-          <ShortcutRow keys={['3']} description="Đi tới API Docs" />
+          <ShortcutRow keys={['3']} description="Đi tới Convert" />
+          <Divider sx={{ my: 0.5, borderColor: 'var(--color-border)' }} />
+          <ShortcutRow keys={['4']} description="Đi tới API Docs" />
           <Divider sx={{ my: 0.5, borderColor: 'var(--color-border)' }} />
           <ShortcutRow keys={['/']} description="Focus ô tìm kiếm (Thư viện)" />
           <Divider sx={{ my: 0.5, borderColor: 'var(--color-border)' }} />

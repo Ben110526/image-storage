@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 
-export type Route = 'upload' | 'library' | 'docs';
+export type Route = 'upload' | 'library' | 'convert' | 'docs';
 
-const VALID: Route[] = ['upload', 'library', 'docs'];
+const VALID: Route[] = ['upload', 'library', 'convert', 'docs'];
 
 function parseHash(): Route {
   const raw = window.location.hash.replace(/^#\/?/, '').split('/')[0].toLowerCase();
@@ -10,7 +10,7 @@ function parseHash(): Route {
 }
 
 /** Minimal hash router — no dependency, works on a plain static SPA with no
- * server-side route config. Routes: #/upload · #/library · #/docs */
+ * server-side route config. Routes: #/upload · #/library · #/convert · #/docs */
 export function useHashRoute(): [Route, (r: Route) => void] {
   const [route, setRoute] = useState<Route>(parseHash);
 

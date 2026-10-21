@@ -36,7 +36,7 @@ import { haptics } from '../lib/haptics';
 import type { Route } from '../lib/router';
 
 /* Navbar — plan §5.1: floating sticky glass pill, 64px desktop. Logo left,
- * three destinations center, account + "Tùy chọn" overflow right. Theme,
+ * four destinations center, account + "Tùy chọn" overflow right. Theme,
  * sound and shortcuts live inside the overflow menu; account/connect always
  * has a visible entry point. Health is a small dot + label, never confused
  * with auth state. Mobile keeps header lean — destinations live in the
@@ -53,7 +53,8 @@ interface NavbarProps {
 const NAV_ITEMS: { route: Route; label: string; hint: string }[] = [
   { route: 'upload', label: 'Upload', hint: 'Tải file lên [1]' },
   { route: 'library', label: 'Library', hint: 'Thư viện media [2]' },
-  { route: 'docs', label: 'API Docs', hint: 'Tài liệu REST API [3]' },
+  { route: 'convert', label: 'Convert', hint: 'Chuyển đổi file nhanh [3]' },
+  { route: 'docs', label: 'API Docs', hint: 'Tài liệu REST API [4]' },
 ];
 
 const THEME_OPTIONS: { value: ThemePreference; label: string; icon: React.ReactNode }[] = [

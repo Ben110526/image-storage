@@ -3,6 +3,7 @@ import { Box, Typography } from '@mui/material';
 import {
   CloudUploadOutlined as UploadIcon,
   PhotoLibraryOutlined as LibraryIcon,
+  SyncAltOutlined as ConvertIcon,
   MenuBookOutlined as DocsIcon,
 } from '@mui/icons-material';
 import { getAppScene } from '../../design/optics/GlassScene';
@@ -17,7 +18,8 @@ import type { Route } from '../../lib/router';
 const ITEMS: { route: Route; label: string; icon: React.ReactNode }[] = [
   { route: 'upload', label: 'Upload', icon: <UploadIcon /> },
   { route: 'library', label: 'Library', icon: <LibraryIcon /> },
-  { route: 'docs', label: 'API Docs', icon: <DocsIcon /> },
+  { route: 'convert', label: 'Convert', icon: <ConvertIcon /> },
+  { route: 'docs', label: 'Docs', icon: <DocsIcon /> },
 ];
 
 export interface MobileNavigationProps {

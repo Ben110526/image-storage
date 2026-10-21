@@ -16,6 +16,7 @@ import { Navbar } from './components/Navbar';
 import { MobileNavigation } from './components/ui/MobileNavigation';
 import { UploadPage } from './pages/UploadPage';
 import { LibraryPage } from './pages/LibraryPage';
+import { ConvertPage } from './pages/ConvertPage';
 import { DocsPage } from './pages/DocsPage';
 import { SettingsModal } from './components/SettingsModal';
 import { ApiKeyDialog } from './components/ApiKeyDialog';
@@ -26,7 +27,7 @@ import { useHashRoute, type Route } from './lib/router';
 import { useAuth } from './context/AuthContext';
 
 /* Hallmark · macrostructure: Workbench (sidebar tree + canvas) · theme: Liquid Glass
- * routes: #/upload · #/library · #/docs · hash router, no dependency
+ * routes: #/upload · #/library · #/convert · #/docs · hash router, no dependency
  */
 
 const queryClient = new QueryClient({
@@ -38,7 +39,7 @@ const queryClient = new QueryClient({
   },
 });
 
-const ROUTE_ORDER: Route[] = ['upload', 'library', 'docs'];
+const ROUTE_ORDER: Route[] = ['upload', 'library', 'convert', 'docs'];
 
 export const AppContent: React.FC = () => {
   const { resolvedTheme, setTheme, reduceMotion } = useAppearance();
@@ -75,7 +76,7 @@ export const AppContent: React.FC = () => {
     window.location.hash = `/${r}`;
   };
 
-  // Global keybindings: 1/2/3 (pages), T (theme), M (sound), ? (shortcuts), Esc (close modals)
+  // Global keybindings: 1–4 (pages), T (theme), M (sound), ? (shortcuts), Esc (close modals)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const activeTag = (document.activeElement?.tagName || '').toLowerCase();
@@ -99,7 +100,7 @@ export const AppContent: React.FC = () => {
       } else if (e.key === 'Escape') {
         setSettingsOpen(false);
         setShortcutsOpen(false);
-      } else if (e.key === '1' || e.key === '2' || e.key === '3') {
+      } else if (/^[1-9]$/.test(e.key) && ROUTE_ORDER[Number(e.key) - 1]) {
         if (!e.ctrlKey && !e.metaKey && !e.altKey) {
           e.preventDefault();
           haptics.playTick();
@@ -163,6 +164,7 @@ export const AppContent: React.FC = () => {
           >
             {route === 'upload' && <UploadPage />}
             {route === 'library' && <LibraryPage />}
+            {route === 'convert' && <ConvertPage />}
             {route === 'docs' && <DocsPage />}
           </Container>
 

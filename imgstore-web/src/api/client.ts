@@ -284,6 +284,78 @@ export async function convertImageById(
   return res.data.data;
 }
 
+export interface QuickConvertRequest {
+  file: File;
+  format: string;
+  name?: string;
+  quality?: number;
+}
+
+/** Failures on this endpoint arrive as a Blob too, because the request asked
+ * for one; turn that back into the JSON error shape the rest of the client
+ * already understands, so `errorCodeOf` keeps working unchanged. */
+async function rethrowBlobError(error: unknown): Promise<never> {
+  const response = (error as { response?: { data?: unknown } })?.response;
+  const data = response?.data;
+  if (data instanceof Blob) {
+    try {
+      (response as { data: unknown }).data = JSON.parse(await data.text());
+    } catch {
+      // Not JSON (a proxy error page, say) — keep the transport message.
+    }
+  }
+  throw error;
+}
+
+/** Read the RFC 5987 filename from Content-Disposition, falling back to the
+ * plain `filename=` form some proxies rewrite to. */
+function filenameFromDisposition(header: unknown): string | undefined {
+  if (typeof header !== 'string') return undefined;
+  const encoded = /filename\*=UTF-8''([^;]+)/i.exec(header)?.[1];
+  if (encoded) {
+    try {
+      return decodeURIComponent(encoded);
+    } catch {
+      return encoded;
+    }
+  }
+  return /filename="?([^";]+)"?/i.exec(header)?.[1];
+}
+
+/**
+ * POST /convert — quick convert. The file itself travels in the request body
+ * and the converted bytes come straight back; nothing is written to the
+ * library, so there is no id to fetch afterwards and no quota to invalidate.
+ */
+export async function convertFileQuick(
+  request: QuickConvertRequest,
+  credential?: TransportCredential,
+  signal?: AbortSignal,
+): Promise<{ blob: Blob; filename: string }> {
+  const client = createAxiosInstance(credential);
+  const form = new FormData();
+  form.set('file', request.file);
+  form.set('format', request.format);
+  if (request.name?.trim()) form.set('name', request.name.trim());
+  if (typeof request.quality === 'number') form.set('quality', String(request.quality));
+
+  try {
+    // Documents round-trip through Drive twice, so the same 120 s budget as the
+    // library conversion applies here.
+    const res = await client.post<Blob>('/convert', form, {
+      responseType: 'blob',
+      timeout: 120_000,
+      signal,
+    });
+    return {
+      blob: res.data,
+      filename: filenameFromDisposition(res.headers['content-disposition']) ?? request.name ?? request.file.name,
+    };
+  } catch (error) {
+    return rethrowBlobError(error);
+  }
+}
+
 export interface PersonalApiKey {
   userId: string;
   id: string;
