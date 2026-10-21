@@ -46,6 +46,23 @@ export const MAX_DOCUMENT_SOURCE_BYTES = 25 * 1024 * 1024;
 export const MAX_IMAGE_INPUT_BYTES = 20 * 1024 * 1024;
 export const MAX_IMAGE_OUTPUT_BYTES = 32 * 1024 * 1024;
 
+/** Where an engine reads its input from.
+ *
+ * `drive` is the library path: the bytes already live in Google Drive under a
+ * file id. `stream` is the quick-convert path: the bytes arrive in the request
+ * body and never become a library file, so there is no id to fetch. */
+export type ConversionSource =
+  | { kind: 'drive'; id: string; name: string; size: number; mime_type: string }
+  | { kind: 'stream'; name: string; size: number; mime_type: string; body: ReadableStream<Uint8Array> };
+
+/** What a non-publishing conversion hands back to the caller. */
+export interface ConvertedBytes {
+  bytes: Uint8Array;
+  mimeType: string;
+  width?: number;
+  height?: number;
+}
+
 export class ConversionError extends Error {
   readonly code: string;
   readonly status: 400 | 403 | 404 | 409 | 413 | 415 | 429 | 502 | 503;

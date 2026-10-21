@@ -18,7 +18,7 @@ import { convertImage } from '../lib/convertImages';
 
 /** Whole-request budget. Kept below the Workers request ceiling so the client
  * always receives a structured 503 instead of a dropped connection. */
-const CONVERT_DEADLINE_MS = 25_000;
+export const CONVERT_DEADLINE_MS = 25_000;
 
 export async function convertCapabilitiesHandler(c: Context<AppContext>) {
   return jsonSuccess(c, {
@@ -105,6 +105,7 @@ export async function convertImageHandler(c: Context<AppContext>) {
     owner,
     // Re-validate size against the capability rather than trusting the record.
     source: {
+      kind: 'drive' as const,
       id: source.id,
       name: source.name,
       size: source.size,
