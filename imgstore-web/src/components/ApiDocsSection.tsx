@@ -209,7 +209,17 @@ curl -X POST "${baseUrl}/image/<IMAGE_ID>/convert" \\
 # 3) Images take a quality knob (40–100, default 82; jpeg/webp/avif only).
 curl -X POST "${baseUrl}/image/<IMAGE_ID>/convert" \\
   -H "${authHeader}" -H "Content-Type: application/json" \\
-  -d '{"format":"webp","quality":72}'`;
+  -d '{"format":"webp","quality":72}'
+
+# 4) QUICK CONVERT — the file travels in the request body and the converted
+#    bytes come straight back. NOTHING is stored: no library file, no KV
+#    record, no quota charge. Ceiling is the multipart body (26 MB).
+curl -X POST "${baseUrl}/convert" \\
+  -H "${authHeader}" \\
+  -F "file=@report.docx" -F "format=pdf" -o report.pdf
+# → 200, Content-Type: application/pdf
+#   Content-Disposition: attachment; filename*=UTF-8''report.pdf
+# Errors are JSON, so tell the two apart by the response content type.`;
 
   const resumableSnippet = `# 1) Start a session (any file up to 5 GB)
 curl -X POST "${baseUrl}/upload/resumable/init" \\
@@ -296,7 +306,7 @@ print(requests.get(f"{BASE}/upload/resumable/{up}",
 
   const errorRows = [
     { code: 'UNAUTHORIZED', status: '401', note: 'Missing / invalid key or Bearer token.' },
-    { code: 'FILE_TOO_LARGE', status: '400 / 413', note: 'Over 15 MB multipart, 50 MB URL, or 5 GB resumable.' },
+    { code: 'FILE_TOO_LARGE', status: '400 / 413', note: 'Over 15 MB multipart, 26 MB quick convert, 50 MB URL, or 5 GB resumable.' },
     { code: 'UNSUPPORTED_TYPE', status: '400', note: 'multipart /upload only accepts image/* MIME types.' },
     { code: 'QUOTA_EXCEEDED', status: '403', note: 'Upload would exceed the client’s 50 GB quota.' },
     { code: 'TOO_MANY_SESSIONS', status: '429', note: 'More than 5 concurrent upload sessions per key.' },
@@ -323,6 +333,7 @@ print(requests.get(f"{BASE}/upload/resumable/{up}",
     { item: 'Chunk size', value: '10 MB', note: 'Intermediate chunks must be multiples of 256 KB; max 15 MB.' },
     { item: 'Convert · documents', value: '≤ 25 MB in', note: 'PDF/TXT/CSV/HTML out; Google caps the export at 10 MB.' },
     { item: 'Convert · images', value: '≤ 20 MB in', note: 'jpeg, png, webp, gif → jpeg, png, webp, avif; quality 40–100.' },
+    { item: 'Quick convert · POST /convert', value: '≤ 26 MB body', note: 'Same engines, nothing stored, no quota.' },
     { item: 'Concurrent sessions', value: '5 / key', note: 'Across multipart, URL and resumable together.' },
     { item: 'Quota', value: '50 GB / key', note: 'Reserved at /init, refunded on abort or delete.' },
     { item: 'Folders', value: '1000 / user', note: 'Up to 8 levels deep; names 1–100 chars (no slash / control).' },
@@ -638,6 +649,13 @@ print(requests.get(f"{BASE}/upload/resumable/{up}",
             Document exports are hard-capped at 10 MB by Google (<Box component="code" sx={inlineCodeStyle}>413
             EXPORT_TOO_LARGE</Box>). A spreadsheet exported to CSV keeps only its first sheet. Conversion runs
             inside the request and has a 25 s server deadline, so it needs a Workers Paid plan.
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }}>
+            <strong>Quick convert</strong> (<Box component="code" sx={inlineCodeStyle}>POST /convert</Box>) does
+            the same work without touching the library: it creates no file, writes no metadata and charges no
+            quota — you get the converted bytes back as an attachment. Use it when the result is a one-off
+            download; use <Box component="code" sx={inlineCodeStyle}>/image/:id/convert</Box> when you want to
+            keep it.
           </Typography>
         </Paper>
       </Box>
