@@ -20,6 +20,7 @@ const TOC_ITEMS = [
   { id: 'api-files', label: 'Files' },
   { id: 'api-folders', label: 'Folders' },
   { id: 'api-import', label: 'Import URL' },
+  { id: 'api-convert', label: 'Convert' },
   { id: 'api-resumable', label: 'Resumable' },
   { id: 'api-limits', label: 'Limits' },
   { id: 'api-reference', label: 'Reference' },

@@ -195,6 +195,22 @@ curl -X POST "${baseUrl}/upload/url" \\
   -H "${authHeader}" -H "Content-Type: application/json" \\
   -d '{"url":"https://example.com/hero.png","name":"hero.png"}'`;
 
+  const convertSnippet = `# 1) What can this deployment convert? (auth required)
+curl "${baseUrl}/convert/capabilities" -H "${authHeader}"
+# → { engines: { documents, images, media }, limits, sources[] }
+
+# 2) Convert one file. The RESULT IS A NEW LIBRARY FILE — the source is
+#    untouched and the output is charged to your quota.
+curl -X POST "${baseUrl}/image/<IMAGE_ID>/convert" \\
+  -H "${authHeader}" -H "Content-Type: application/json" \\
+  -d '{"format":"pdf","name":"report.pdf","folder_id":"FOLDER_ID"}'
+# → 201 { id, name, mime_type, derived_from, conversion: { ... } }
+
+# 3) Images take a quality knob (40–100, default 82; jpeg/webp/avif only).
+curl -X POST "${baseUrl}/image/<IMAGE_ID>/convert" \\
+  -H "${authHeader}" -H "Content-Type: application/json" \\
+  -d '{"format":"webp","quality":72}'`;
+
   const resumableSnippet = `# 1) Start a session (any file up to 5 GB)
 curl -X POST "${baseUrl}/upload/resumable/init" \\
   -H "${authHeader}" -H "Content-Type: application/json" \\
@@ -291,6 +307,13 @@ print(requests.get(f"{BASE}/upload/resumable/{up}",
     { code: 'FOLDER_NOT_FOUND', status: '404', note: 'folder_id not in this user’s registry.' },
     { code: 'FOLDER_CHANGED', status: '409', note: 'Folder moved / trashed outside ImgStore.' },
     { code: 'UPLOAD_PROCESSING', status: '409', note: 'Finalization pending — retry deletion shortly.' },
+    { code: 'UNSUPPORTED_CONVERSION', status: '415', note: 'No source → target pair for that MIME type and format.' },
+    { code: 'SOURCE_TOO_LARGE', status: '413', note: 'Document over 25 MB; images over 20 MB use INPUT_TOO_LARGE.' },
+    { code: 'INPUT_TOO_LARGE', status: '413', note: 'Image source over 20 MB.' },
+    { code: 'EXPORT_TOO_LARGE', status: '413', note: 'Converted document over 10 MB — a Google export limit.' },
+    { code: 'CONVERT_UNAVAILABLE', status: '503', note: 'Engine not enabled on this deployment (no Images binding / Drive credentials).' },
+    { code: 'CONVERT_TIMEOUT', status: '503', note: 'Conversion exceeded the 25 s server deadline.' },
+    { code: 'CONVERT_ENGINE_ERROR', status: '502', note: 'Drive or Images failed in a way we cannot classify.' },
   ];
 
   const limitsRows = [
@@ -298,6 +321,8 @@ print(requests.get(f"{BASE}/upload/resumable/{up}",
     { item: 'POST /upload/url', value: '≤ 50 MB', note: '8 MB when the source hides Content-Length; URL ≤ 8192 chars.' },
     { item: 'Resumable uploads', value: '≤ 5 GB', note: 'Any file type; session window 24 h.' },
     { item: 'Chunk size', value: '10 MB', note: 'Intermediate chunks must be multiples of 256 KB; max 15 MB.' },
+    { item: 'Convert · documents', value: '≤ 25 MB in', note: 'PDF/TXT/CSV/HTML out; Google caps the export at 10 MB.' },
+    { item: 'Convert · images', value: '≤ 20 MB in', note: 'jpeg, png, webp, gif → jpeg, png, webp, avif; quality 40–100.' },
     { item: 'Concurrent sessions', value: '5 / key', note: 'Across multipart, URL and resumable together.' },
     { item: 'Quota', value: '50 GB / key', note: 'Reserved at /init, refunded on abort or delete.' },
     { item: 'Folders', value: '1000 / user', note: 'Up to 8 levels deep; names 1–100 chars (no slash / control).' },
@@ -590,7 +615,34 @@ print(requests.get(f"{BASE}/upload/resumable/{up}",
         </Paper>
       </Box>
 
-      {/* 5 · Resumable */}
+      {/* 5 · Convert */}
+      <Box id="api-convert" sx={{ scrollMarginTop: 90 }}>
+        <Paper className="content-surface" sx={{ p: { xs: 1.75, sm: 2.5 } }}>
+          {sectionHead('Convert', 'Turn a stored file into another format')}
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Two engines back this endpoint: <strong>documents</strong> (docx, xlsx, pptx, odt, rtf, txt, csv…)
+            are imported into Google Docs/Sheets/Slides and exported as PDF, TXT, CSV or HTML;{' '}
+            <strong>images</strong> (jpeg, png, webp, gif) are re-encoded at the edge with Cloudflare Images.
+            The response is the same record as <Box component="code" sx={inlineCodeStyle}>/upload</Box>, with{' '}
+            <Box component="code" sx={inlineCodeStyle}>derived_from</Box> and{' '}
+            <Box component="code" sx={inlineCodeStyle}>conversion</Box> recording where it came from.
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Audio and video (mp3, mov…) are <strong>not convertible yet</strong> — the Workers runtime cannot
+            run ffmpeg. <Box component="code" sx={inlineCodeStyle}>GET /convert/capabilities</Box> reports which
+            engines are live on this deployment, so clients can hide what is unavailable instead of calling a
+            route that answers <Box component="code" sx={inlineCodeStyle}>503</Box>.
+          </Typography>
+          {codeBlock(convertSnippet, 'Convert', () => copyCode(convertSnippet, 'Convert'))}
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+            Document exports are hard-capped at 10 MB by Google (<Box component="code" sx={inlineCodeStyle}>413
+            EXPORT_TOO_LARGE</Box>). A spreadsheet exported to CSV keeps only its first sheet. Conversion runs
+            inside the request and has a 25 s server deadline, so it needs a Workers Paid plan.
+          </Typography>
+        </Paper>
+      </Box>
+
+      {/* 6 · Resumable */}
       <Box id="api-resumable" sx={{ scrollMarginTop: 90 }}>
         <Paper className="content-surface" sx={{ p: { xs: 1.75, sm: 2.5 } }}>
           {sectionHead('Resumable uploads', 'Any file up to 5 GB, restartable from the last byte')}
@@ -633,7 +685,7 @@ print(requests.get(f"{BASE}/upload/resumable/{up}",
         </Paper>
       </Box>
 
-      {/* 6 · Reference */}
+      {/* 7 · Reference */}
       <Box id="api-reference" sx={{ scrollMarginTop: 90 }}>
         <Paper className="content-surface" sx={{ p: { xs: 1.75, sm: 2.5 } }}>
           {sectionHead('Reference', 'Serving, errors, extra endpoints and Python')}
