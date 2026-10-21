@@ -19,6 +19,7 @@ import { apiKeysHandler } from './handlers/apiKeys';
 import { bodyLimit } from 'hono/body-limit';
 import { foldersHandler } from './handlers/folders';
 import { convertCapabilitiesHandler, convertImageHandler } from './handlers/convert';
+import { convertQuickHandler } from './handlers/convertQuick';
 import {
   initResumableUploadHandler,
   chunkResumableUploadHandler,
@@ -47,7 +48,9 @@ app.use('*', async (c, next) => {
     },
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'x-api-key', 'Content-Range', 'Range'],
-    exposeHeaders: ['Content-Length', 'Content-Range', 'Range', 'Accept-Ranges', 'ETag', 'X-ImgStore-Cache'],
+    // Content-Disposition is exposed for POST /convert: the web client reads the
+    // converted file's name from it, and the API is on its own origin.
+    exposeHeaders: ['Content-Length', 'Content-Range', 'Range', 'Accept-Ranges', 'ETag', 'Content-Disposition', 'X-ImgStore-Cache'],
     maxAge: 86400,
   });
   return corsMiddleware(c, next);
@@ -90,6 +93,7 @@ app.get('/', (c) => {
       convert: {
         capabilities: 'GET /convert/capabilities (Requires API Key; which source formats can be converted, and to what)',
         convert: 'POST /image/:id/convert {format, name?, folder_id?, quality?} — stores the result as a NEW library file',
+        quick: 'POST /convert (multipart: file, format, name?, quality?) — converts and returns the file; stores NOTHING, charges no quota',
       },
       list: 'GET /images (Requires API Key)',
       folders: 'GET /folders; POST /folders {name, parent_id?}. All uploads accept optional folder_id; default is the authenticated user root.',
@@ -124,6 +128,10 @@ app.get('/images', authMiddleware, listImagesHandler);
 app.get('/folders', authMiddleware, foldersHandler);
 app.post('/folders', authMiddleware, bodyLimit({ maxSize: 2048, onError: c => jsonError(c, 'BODY_TOO_LARGE', 'Folder JSON must be under 2 KB.', 413) }), foldersHandler);
 app.get('/convert/capabilities', authMiddleware, convertCapabilitiesHandler);
+/* Quick convert: file in the request body, converted bytes back out. Nothing
+ * is stored, so the cap is the document source limit (25 MB) plus multipart
+ * overhead — not the library quota. */
+app.post('/convert', authMiddleware, bodyLimit({ maxSize: 26 * 1024 * 1024, onError: c => jsonError(c, 'FILE_TOO_LARGE', 'File must be under 26 MB.', 413) }), convertQuickHandler);
 app.get('/image/:id', authMiddleware, getImageHandler);
 app.post('/image/:id/convert', authMiddleware, bodyLimit({ maxSize: 4096, onError: c => jsonError(c, 'BODY_TOO_LARGE', 'Conversion JSON must be under 4 KB.', 413) }), convertImageHandler);
 app.delete('/image/:id', authMiddleware, deleteImageHandler);

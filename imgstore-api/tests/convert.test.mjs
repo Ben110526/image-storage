@@ -272,3 +272,155 @@ test('images: webp conversion stores real bytes, dimensions and quality', async 
   assert.equal((await oversized.json()).error.code, 'INPUT_TOO_LARGE');
   assert.equal(images.calls.length, callsBefore);
 });
+
+/* ---------------------------------------------------------------------------
+ * POST /convert — quick convert. The file travels in the request body and the
+ * converted bytes come straight back; nothing is published, so no Drive library
+ * file, no KV record and no quota movement may result.
+ * ------------------------------------------------------------------------- */
+
+const quick = (f, key, form) => f.request('/convert', { method: 'POST', headers: headers(key), body: form });
+
+/** Multipart body for a quick conversion. */
+function quickForm(bytes, name, type, fields = {}) {
+  const form = new FormData();
+  form.set('file', new File([bytes], name, { type }));
+  for (const [k, v] of Object.entries(fields)) form.set(k, String(v));
+  return form;
+}
+
+const imgKeys = async f => [...f.rows.keys()].filter(k => k.startsWith('img:'));
+
+test('quick convert docx → pdf: bytes straight back, nothing stored', async () => {
+  const f = fixture(), key = await f.issue('Alice');
+  const pdfBytes = new Uint8Array([37, 80, 68, 70, 45, 49, 46, 52]);
+  const drive = fakeDrive({ exportBytes: pdfBytes });
+
+  const response = await quick(f, key, quickForm(new Uint8Array([1, 2, 3, 4]), 'report.docx', DOCX, { format: 'pdf' }));
+  assert.equal(response.status, 200, await response.clone().text());
+  assert.equal(response.headers.get('Content-Type'), 'application/pdf');
+  assert.match(response.headers.get('Content-Disposition'), /attachment; filename\*=UTF-8''report\.pdf/);
+  assert.equal(response.headers.get('Cache-Control'), 'no-store');
+  // The web app is on another origin: without this the browser hides the name.
+  assert.match(response.headers.get('Access-Control-Expose-Headers') ?? '', /Content-Disposition/i);
+  assert.deepEqual(new Uint8Array(await response.arrayBuffer()), pdfBytes);
+
+  // The source went to Google as the declared source MIME, and the output was
+  // exported as the target MIME — same round-trip the library path uses.
+  assert.equal(drive.imports.length, 1);
+  assert.equal(drive.imports[0].mimeType, 'application/vnd.google-apps.document');
+  assert.deepEqual(drive.importedBytes, new Uint8Array([1, 2, 3, 4]));
+  assert.deepEqual(drive.exported, ['application/pdf']);
+
+  // The temporary Google Doc is deleted...
+  assert.deepEqual(drive.deleted, ['tmp1']);
+  // ...and the output is NEVER published: no Drive publish init, no KV record.
+  assert.deepEqual(drive.published, [], 'quick convert must not create a library file');
+  assert.deepEqual(await imgKeys(f), [], 'quick convert must not write img: records');
+  assert.deepEqual(
+    [...f.rows.keys()].filter(k => k.startsWith(`u:${key.userId}:img:`)),
+    [],
+    'quick convert must not write per-owner index keys',
+  );
+});
+
+test('quick convert png → webp: quality reaches the binding, dimensions ignored', async () => {
+  const f = fixture(), key = await f.issue('Alice');
+  const images = fakeImages();
+  f.env.IMAGES = images;
+  // No Drive at all: an image quick convert never touches it.
+  const drive = fakeDrive();
+
+  const response = await quick(f, key, quickForm(new Uint8Array([137, 80, 78, 71]), 'photo.png', 'image/png', { format: 'webp', quality: 60 }));
+  assert.equal(response.status, 200, await response.clone().text());
+  assert.equal(response.headers.get('Content-Type'), 'image/webp');
+  assert.match(response.headers.get('Content-Disposition'), /filename\*=UTF-8''photo\.webp/);
+  assert.deepEqual(new Uint8Array(await response.arrayBuffer()), new Uint8Array([137, 80, 78, 71]));
+
+  assert.equal(images.calls.length, 1);
+  assert.deepEqual(images.calls[0], { format: 'image/webp', quality: 60, anim: false });
+
+  assert.deepEqual(drive.deleted, []);
+  assert.deepEqual(drive.published, []);
+  assert.deepEqual(await imgKeys(f), []);
+
+  // An explicit output name is honoured as-is.
+  const named = await quick(f, key, quickForm(new Uint8Array([1]), 'photo.png', 'image/png', { format: 'jpeg', name: 'Ảnh bìa.jpg' }));
+  assert.equal(named.status, 200);
+  assert.match(named.headers.get('Content-Disposition'), /filename\*=UTF-8''%E1%BA%A2nh%20b%C3%ACa\.jpg/);
+});
+
+test('quick convert leaves storage untouched and charges no quota', async () => {
+  const f = fixture(), key = await f.issue('Alice');
+  fakeDrive();
+  f.env.IMAGES = fakeImages();
+
+  const readStorage = async () => (await (await f.request('/storage', { headers: headers(key) })).json()).data;
+  const before = await readStorage();
+
+  assert.equal((await quick(f, key, quickForm(new Uint8Array([1, 2, 3, 4]), 'report.docx', DOCX, { format: 'txt' }))).status, 200);
+  assert.equal((await quick(f, key, quickForm(new Uint8Array([9]), 'pic.png', 'image/png', { format: 'webp' }))).status, 200);
+
+  const after = await readStorage();
+  assert.equal(after.total_files, before.total_files);
+  assert.equal(after.used_bytes, before.used_bytes);
+  // startSession reserves quota in ClientQuotaDO; quick convert never calls it.
+  assert.equal(after.client_quota?.used_bytes ?? 0, before.client_quota?.used_bytes ?? 0);
+});
+
+test('quick convert cleans up the Google temp file even when the export fails', async () => {
+  const f = fixture(), key = await f.issue('Alice');
+  const drive = fakeDrive({
+    exportResponse: () => Response.json({ error: { errors: [{ reason: 'exportSizeLimitExceeded' }] } }, { status: 403 }),
+  });
+
+  const response = await quick(f, key, quickForm(new Uint8Array([1]), 'huge.docx', DOCX, { format: 'pdf' }));
+  assert.equal(response.status, 413);
+  assert.equal((await response.json()).error.code, 'EXPORT_TOO_LARGE');
+  assert.deepEqual(drive.deleted, ['tmp1'], 'temp must be deleted on the failure path too');
+  assert.deepEqual(drive.published, []);
+});
+
+test('quick convert rejections: auth, bad request, unsupported pairs, oversize', async () => {
+  const f = fixture(), key = await f.issue('Alice');
+  const drive = fakeDrive();
+  f.env.IMAGES = fakeImages();
+
+  // Auth is the same middleware as every other route.
+  assert.equal((await f.request('/convert', { method: 'POST', body: quickForm(new Uint8Array([1]), 'a.docx', DOCX, { format: 'pdf' }) })).status, 401);
+
+  // Wrong content type, missing file, missing format, empty file.
+  const json = await f.request('/convert', { method: 'POST', headers: { ...headers(key), 'Content-Type': 'application/json' }, body: '{}' });
+  assert.equal(json.status, 400);
+  assert.equal((await json.json()).error.code, 'INVALID_CONTENT_TYPE');
+
+  const noFile = new FormData();
+  noFile.set('format', 'pdf');
+  assert.equal((await quick(f, key, noFile)).status, 400);
+
+  const noFormat = new FormData();
+  noFormat.set('file', new File([new Uint8Array([1])], 'a.docx', { type: DOCX }));
+  const missingFormat = await quick(f, key, noFormat);
+  assert.equal(missingFormat.status, 400);
+  assert.equal((await missingFormat.json()).error.code, 'INVALID_FORMAT');
+
+  assert.equal((await quick(f, key, quickForm(new Uint8Array(0), 'a.docx', DOCX, { format: 'pdf' }))).status, 400);
+
+  // Pairs outside the matrix, and sources with no engine at all.
+  const pair = await quick(f, key, quickForm(new Uint8Array([1]), 'pic.png', 'image/png', { format: 'csv' }));
+  assert.equal(pair.status, 415);
+  assert.equal((await pair.json()).error.code, 'UNSUPPORTED_CONVERSION');
+  assert.equal((await quick(f, key, quickForm(new Uint8Array([1]), 'song.mp3', 'audio/mpeg', { format: 'mp3' }))).status, 415);
+
+  // MIME inference from the extension: browsers send octet-stream for docx.
+  const inferred = await quick(f, key, quickForm(new Uint8Array([1, 2, 3, 4]), 'notes.docx', 'application/octet-stream', { format: 'pdf' }));
+  assert.equal(inferred.status, 200);
+  assert.equal(drive.imports.length, 1);
+
+  // Oversized image is rejected before the binding runs.
+  const callsBefore = f.env.IMAGES.calls.length;
+  const oversized = await quick(f, key, quickForm(new Uint8Array(20 * 1024 * 1024 + 1), 'huge.png', 'image/png', { format: 'webp' }));
+  assert.equal(oversized.status, 413);
+  assert.equal((await oversized.json()).error.code, 'INPUT_TOO_LARGE');
+  assert.equal(f.env.IMAGES.calls.length, callsBefore);
+});
