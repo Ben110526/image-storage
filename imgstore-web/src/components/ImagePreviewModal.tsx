@@ -23,6 +23,7 @@ import {
   Description as DocumentIcon,
   InsertDriveFile as FileIcon,
   Download as DownloadIcon,
+  SyncAlt as ConvertIcon,
 } from '@mui/icons-material';
 import type { ImageMetadata } from '../types';
 import { haptics } from '../lib/haptics';
@@ -42,6 +43,9 @@ interface ImagePreviewModalProps {
   image: ImageMetadata | null;
   open: boolean;
   onClose: () => void;
+  /** Optional: opens the convert dialog for this file. Omitted when the
+   * server cannot convert the MIME type, so no dead control is rendered. */
+  onConvert?: (image: ImageMetadata) => void;
 }
 
 function formatBytes(bytes: number): string {
@@ -55,6 +59,7 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
   image,
   open,
   onClose,
+  onConvert,
 }) => {
   const [tabIndex, setTabIndex] = useState(0);
 
@@ -172,9 +177,27 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
             }}
           />
         </Box>
-        <IconButton onClick={onClose} size="small" aria-label="Đóng xem trước">
-          <CloseIcon fontSize="small" />
-        </IconButton>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
+          {/* Only offered when the gallery knows the server can convert this
+           * file; the dialog itself re-checks the capability matrix. */}
+          {onConvert && (
+            <Tooltip title="Chuyển đổi định dạng">
+              <IconButton
+                onClick={() => {
+                  haptics.playClick();
+                  onConvert(image);
+                }}
+                size="small"
+                aria-label={`Chuyển đổi ${image.name}`}
+              >
+                <ConvertIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
+          <IconButton onClick={onClose} size="small" aria-label="Đóng xem trước">
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </Box>
       </DialogTitle>
 
       <DialogContent sx={{ p: { xs: 2, md: 3 } }}>
