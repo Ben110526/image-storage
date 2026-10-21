@@ -1,3 +1,49 @@
+export type ConversionEngine = 'documents' | 'images' | 'media';
+
+export interface ConvertTarget {
+  format: string;
+  label: string;
+  mime_type: string;
+  extension: string;
+  engine: ConversionEngine;
+  warning?: string;
+}
+
+export interface ConversionCapability {
+  source_mime: string;
+  source_extension: string;
+  label: string;
+  engine: ConversionEngine;
+  max_input_bytes: number;
+  targets: ConvertTarget[];
+}
+
+export interface ConversionEngineState {
+  available: boolean;
+  reason?: string;
+}
+
+export interface ConversionCapabilitiesResponse {
+  engines: Record<ConversionEngine, ConversionEngineState>;
+  limits: {
+    document_export_bytes: number;
+    image_input_bytes: number;
+  };
+  sources: ConversionCapability[];
+}
+
+/** Provenance of a file produced by the conversion endpoint. */
+export interface ConversionInfo {
+  source_id: string;
+  source_name: string;
+  source_mime: string;
+  engine: ConversionEngine;
+  target_format: string;
+  target_mime: string;
+  quality?: number;
+  converted_at: string;
+}
+
 export interface ImageMetadata {
   folder_id?: string;
   folder_path?: string;
@@ -13,6 +59,9 @@ export interface ImageMetadata {
   created_at: string;
   owner_id?: string;
   owner_email?: string;
+  /** Set when this file was produced by converting another library file. */
+  derived_from?: string;
+  conversion?: ConversionInfo;
 }
 
 export interface FolderMetadata {

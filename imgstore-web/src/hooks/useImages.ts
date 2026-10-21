@@ -5,15 +5,25 @@ import {
   deleteImageById,
   fetchHealth,
   fetchStorage,
+  fetchConversionCapabilities,
+  convertImageById,
+  type ConvertImageRequest,
   type TransportCredential,
 } from '../api/client';
-import type { ImagesListResponse, ImageMetadata, HealthResponse, StorageResponse } from '../types';
+import type {
+  ImagesListResponse,
+  ImageMetadata,
+  HealthResponse,
+  StorageResponse,
+  ConversionCapabilitiesResponse,
+} from '../types';
 import { useAuth } from '../context/AuthContext';
 
 export const QUERY_KEYS = {
   images: (page: number, limit: number, search: string, folderId?: string) => ['images', page, limit, search, folderId ?? ''],
   health: ['health'],
   storage: ['storage'],
+  conversionCapabilities: ['convert', 'capabilities'],
 };
 
 export function useImages(page = 1, limit = 20, search = '', folderId?: string) {
@@ -80,6 +90,39 @@ export function useDeleteImage() {
   return useMutation<void, Error, string>({
     mutationFn: (id: string) => deleteImageById(id),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['images'] });
+      queryClient.invalidateQueries({ queryKey: ['storage'] });
+    },
+  });
+}
+
+/**
+ * Which (source → target) conversions this deployment supports.
+ *
+ * The server is the single source of truth: a missing Images binding or Drive
+ * credential turns the corresponding sources off, and the UI then simply has
+ * nothing to offer instead of surfacing a 503.
+ */
+export function useConversionCapabilities() {
+  const { user, isLoading, isAuthenticated } = useAuth();
+  return useQuery<ConversionCapabilitiesResponse, Error>({
+    queryKey: [...QUERY_KEYS.conversionCapabilities, user?.id],
+    enabled: !isLoading && isAuthenticated,
+    queryFn: () => fetchConversionCapabilities(),
+    // Deployment capabilities change only on redeploy.
+    staleTime: 30 * 60 * 1000,
+    retry: 1,
+  });
+}
+
+export function useConvertImage() {
+  const queryClient = useQueryClient();
+
+  return useMutation<ImageMetadata, Error, { id: string } & ConvertImageRequest>({
+    mutationFn: ({ id, ...request }) => convertImageById(id, request),
+    onSuccess: () => {
+      // The result is a brand-new library file: both the list and the quota
+      // that paid for it are now stale.
       queryClient.invalidateQueries({ queryKey: ['images'] });
       queryClient.invalidateQueries({ queryKey: ['storage'] });
     },

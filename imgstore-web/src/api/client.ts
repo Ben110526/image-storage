@@ -9,6 +9,7 @@ import type {
   UserProfile,
   ResumableInitResponse,
   ResumableStatusResponse,
+  ConversionCapabilitiesResponse,
 } from '../types';
 
 const STORAGE_KEY_API_URL = 'imgstore_api_url';
@@ -245,6 +246,41 @@ export async function deleteImageById(id: string): Promise<void> {
 export async function fetchImageById(id: string): Promise<ImageMetadata> {
   const client = createAxiosInstance();
   const res = await client.get<ApiSuccessResponse<ImageMetadata>>(`/image/${id}`);
+  return res.data.data;
+}
+
+// ----------------------------------------------------
+// Conversion Endpoints
+// ----------------------------------------------------
+
+export async function fetchConversionCapabilities(
+  credential?: TransportCredential
+): Promise<ConversionCapabilitiesResponse> {
+  const client = createAxiosInstance(credential);
+  const res = await client.get<ApiSuccessResponse<ConversionCapabilitiesResponse>>('/convert/capabilities');
+  return res.data.data;
+}
+
+export interface ConvertImageRequest {
+  format: string;
+  folder_id?: string;
+  name?: string;
+  quality?: number;
+}
+
+export async function convertImageById(
+  id: string,
+  request: ConvertImageRequest,
+  credential?: TransportCredential
+): Promise<ImageMetadata> {
+  const client = createAxiosInstance(credential);
+  // Conversion runs inside the request (Drive import + export can take ~20 s),
+  // so the 60 s default is replaced by a budget above the server's own deadline.
+  const res = await client.post<ApiSuccessResponse<ImageMetadata>>(
+    `/image/${id}/convert`,
+    request,
+    { timeout: 120_000 }
+  );
   return res.data.data;
 }
 
